@@ -108,6 +108,7 @@ The engine always sends to `127.0.0.1:9000` (set in `engine/osc.py`). If you cha
 1. Start the engine (`uv run python -m engine` in the repository root). OSC is fire and forget, so the order does not matter, but the director only reacts to what arrives after it starts.
 2. Open `MelasSim.uproject`, make sure `/Game/Maps/Melas` is loaded.
 3. In the Cmd box run `py "<repo>/unreal/scripts/director.py"`, then press Play (or set `SOLWAY_PLAY=1`).
+   For a demo, pick **New Editor Window (PIE)** in the menu next to the Play button: the scene then runs in a window of its own, without the editor around it.
 4. Start the demo from the dashboard (**Run demo**) or start the engine with `--demo`.
 
 Running the script again replaces the previous director. To stop it, run in the Cmd box:
