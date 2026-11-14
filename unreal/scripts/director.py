@@ -74,6 +74,7 @@ CLIP_ONCE = ("collapse", "stumble")                                             
 STRIDE_M = 1.20                # ground covered by one cycle of the walk clip (unreal_import/crew/z2_suit_rigged.json)
 MAX_CADENCE = 1.7              # walk cycles per second at most: at high mission speed the feet slide rather than blur
 ROUTE_OPACITY = {"follow": 0.0, "shelter": 0.3}      # next to the crew the ground markers carry the route, the line steps back
+FOLLOW_GROUP_CM = 1500.0       # the follow shot holds every crew member this close to the lead
 CRUMB_STEP = 3.5               # metres between the ground markers of the chosen route
 CRUMB_SIZE = 0.42              # metres across
 
@@ -938,10 +939,11 @@ class Director:
         if name == "follow":
             lead = self._lead()
             if lead is not None:
-                p = lead["pos"]
-                # behind and to the side, drifting slowly around the walker
+                near = [c["pos"] for c in self.crew.values() if c["pos"] is not None and math.dist(c["pos"], lead["pos"]) < FOLLOW_GROUP_CM]
+                p = [sum(q[i] for q in near) / len(near) for i in range(3)]      # the middle of the group, so nobody walks out of frame
+                # behind and to the side, drifting slowly around the walkers
                 a = math.radians(lead["heading"] + 180.0 + 32.0 + 22.0 * math.sin(2.0 * math.pi * tau / 48.0))
-                dist = 950.0 + 180.0 * math.sin(2.0 * math.pi * tau / 31.0)
+                dist = 1050.0 + 180.0 * math.sin(2.0 * math.pi * tau / 31.0)
                 want = [p[0] + math.sin(a) * dist, p[1] - math.cos(a) * dist, p[2] + 340.0 + 70.0 * math.sin(2.0 * math.pi * tau / 37.0)]
                 if self.follow is None or math.dist(self.follow, want) > 20000.0:
                     self.follow = want
