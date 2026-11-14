@@ -6,8 +6,9 @@ All files were fetched on 14 Nov 2026, except the Universal Animation Library, t
 reference photographs and the extra ground textures (15 Nov 2026). Licence and author text below is taken from those `SOURCE.txt` files, from
 `data/site/meta.json` and from the pipeline code.
 
-This project is not affiliated with or endorsed by NASA. No NASA insignia or logos are used: the insignia and the
-mission emblem on the suit model's textures are painted out (`tools/make_suit_texture.py`).
+This project is not affiliated with or endorsed by NASA. No NASA insignia or logos are shown: the insignia, emblems
+and agency or programme logos on the textures of the NASA models in the scene (suit, habitat, lander, helicopter) are painted
+out by `tools/make_suit_texture.py` and `tools/make_prop_textures.py`.
 
 The project's own code is under Apache 2.0 (`LICENSE`).
 
@@ -53,12 +54,11 @@ copyright in the United States, that NASA should be acknowledged as the source, 
 
 | Asset | Where in Unreal | Credit | Source | Status |
 |---|---|---|---|---|
-| Habitat Demonstration Unit, parts 1 and 2 | `/Game/Props/Habitat` | NASA (individual modeller not verified) | NASA-3D-Resources, `3D Models/Habitat Demonstration Unit/` | In scene |
+| Habitat Demonstration Unit, parts 1 and 2 | `/Game/Props/Habitat` | NASA (individual modeller not verified) | NASA-3D-Resources, `3D Models/Habitat Demonstration Unit/` | In scene. Modified: insignia, programme logos and unit patches painted out of the texture |
 | Space Exploration Vehicle | `/Game/Props/Rover` | NASA (individual modeller not verified) | NASA-3D-Resources, `3D Models/Space Exploration Vehicle/` | In scene |
-| Z-2 planetary surface spacesuit prototype | `/Game/Props/Suit` | NASA/LaRC/Advanced Concepts Lab | [science.nasa.gov/3d-resources/z2-spacesuit](https://science.nasa.gov/3d-resources/z2-spacesuit/) | In scene (crew figure). Modified: given a skeleton and animation clips by `tools/make_crew_rig.py` (`/Game/Props/CrewRig`), insignia and mission emblem painted out of the textures |
-| InSight lander (deployed) | `/Game/Props/InSight` | NASA/JPL-Caltech | [science.nasa.gov/resource/insight-lander-3d-model](https://science.nasa.gov/resource/insight-lander-3d-model/) | In scene (seismic station) |
-| Ingenuity Mars Helicopter | `/Game/Props/Ingenuity` | NASA/JPL-Caltech | [science.nasa.gov/resource/mars-ingenuity-helicopter-3d-model](https://science.nasa.gov/resource/mars-ingenuity-helicopter-3d-model/) | In scene (helicopter) |
-| Astronaut (generic, static) | `/Game/Props/AstronautNasa` | DigitalSpace Corporation, distributed by NASA 3D Resources | [science.nasa.gov/3d-resources/astronaut](https://science.nasa.gov/3d-resources/astronaut/) | In project |
+| Z-2 planetary surface spacesuit prototype | `/Game/Props/Suit` | NASA/LaRC/Advanced Concepts Lab | [science.nasa.gov/3d-resources/z2-spacesuit](https://science.nasa.gov/3d-resources/z2-spacesuit/) | In scene (crew figure). Modified: given a skeleton and animation clips by `tools/make_crew_rig.py` (`/Game/Props/CrewRig`), insignia and mission emblem painted out of the textures, normal map made from the model's bump image |
+| InSight lander (deployed) | `/Game/Props/InSight` | NASA/JPL-Caltech | [science.nasa.gov/resource/insight-lander-3d-model](https://science.nasa.gov/resource/insight-lander-3d-model/) | In scene (seismic station). Modified: agency logos painted out of the calibration target texture |
+| Ingenuity Mars Helicopter | `/Game/Props/Ingenuity` | NASA/JPL-Caltech | [science.nasa.gov/resource/mars-ingenuity-helicopter-3d-model](https://science.nasa.gov/resource/mars-ingenuity-helicopter-3d-model/) | In scene (helicopter). Modified: agency logos painted out of the textures |
 
 The same terms apply to each row: NASA / US government, no copyright claimed, credit NASA, no endorsement implied.
 
@@ -121,6 +121,7 @@ They are listed so the credit record matches the folder. If one is ever used, th
 | Extravehicular Mobility Unit | NASA/Michael D. Carbajal | [science.nasa.gov/3d-resources/extravehicular-mobility-unit](https://science.nasa.gov/3d-resources/extravehicular-mobility-unit/) | same |
 | Mark III spacesuit | NASA/Michael D. Carbajal | [science.nasa.gov/3d-resources/mark-iii-spacesuit](https://science.nasa.gov/3d-resources/mark-iii-spacesuit/) | same |
 | Space Shuttle EVA suit | NASA/Johnson Space Center | [science.nasa.gov/3d-resources/space-shuttle-parts](https://science.nasa.gov/3d-resources/space-shuttle-parts/) | same |
+| Astronaut (generic) | DigitalSpace Corporation, distributed by NASA 3D Resources | [science.nasa.gov/3d-resources/astronaut](https://science.nasa.gov/3d-resources/astronaut/) | same |
 | RASSOR excavator | NASA/Dewey L. Smith; NASA/Jason M. Schuler | [science.nasa.gov/3d-resources/regolith-advanced-surface-systems-operations-robot-rassor](https://science.nasa.gov/3d-resources/regolith-advanced-surface-systems-operations-robot-rassor/) | same |
 | Tall Dish antenna (3 parts) | NASA/Ames Research Center | [science.nasa.gov/3d-resources/tall-dish](https://science.nasa.gov/3d-resources/tall-dish/) | same |
 | Viking 1 lander | NASA/Michael D. Carbajal | [science.nasa.gov/3d-resources/viking-lander](https://science.nasa.gov/3d-resources/viking-lander/) | same |

@@ -33,7 +33,7 @@ Project Browser). The default and startup map is `/Game/Maps/Melas`. The first o
 | `/Game/Props/Habitat`, `Rover` | NASA Habitat Demonstration Unit and Space Exploration Vehicle |
 | `/Game/Props/Suit`, `InSight`, `Ingenuity` | NASA Z-2 suit (static model and the suit material), InSight lander (seismic station), Ingenuity (scout helicopter) |
 | `/Game/Props/CrewRig` | The Z-2 suit as a skeletal mesh with eight animation clips (idle, idle talk, walk, stumble, collapse, kneel, crouch, work): the crew |
-| `/Game/Props/Astronaut`, `Crew`, `AstronautNasa` | Rigged astronaut (Quaternius, CC0) and a copy, and a static NASA astronaut. `build_scene.py` does not place them. |
+| `/Game/Props/Astronaut`, `Crew` | Rigged astronaut (Quaternius, CC0) and a copy. `build_scene.py` does not place them. |
 | `/Game/Props/Rocks` | Nine scanned rocks (Poly Haven, CC0) |
 
 Authors, sources and licences are in `../ASSETS.md`.
@@ -53,18 +53,20 @@ The Unreal project already contains the imported assets, so these steps are only
 | `uv run python tools/make_fx_textures.py` | `unreal_import/fx/dust_atlas.png`: procedural dust sprites |
 | `uv run --no-project --with numpy --with pillow --with scipy --with rasterio python -I tools/make_ortho_colour.py` | `unreal_import/core_ortho_colour_4096.png`, `region_ortho_colour_2048x8192.png`: the orthoimages with colour (needs the HiRISE colour product and the Viking mosaic in `data_raw/colour/`, see the script header) |
 | `uv run --no-project --with numpy --with scipy --with DracoPy python -I tools/make_crew_rig.py` | `unreal_import/crew/z2_suit_rigged.glb` and `.json`: the Z-2 suit bound to a skeleton, with its animation clips |
-| `uv run --no-project --with numpy --with pillow --with scipy python -I tools/make_suit_texture.py` | `unreal_import/crew/z2_Color_s.jpg`, `z2_spec_color_s.jpg`: suit textures without the insignia and the mission emblem |
+| `uv run --no-project --with numpy --with pillow --with scipy python -I tools/make_suit_texture.py` | `unreal_import/crew/z2_Color_s.jpg`, `z2_spec_color_s.jpg`, `z2_Bump_s.jpg`: suit textures without the insignia and the mission emblem, and a normal map made from the model's bump image |
+| `uv run --no-project --with numpy --with pillow --with scipy python -I tools/make_prop_textures.py` | `unreal_import/props/*.png`: habitat, lander and helicopter textures without logos |
 
 **2. Run the editor scripts** (in this order):
 
 | # | Script | How | Produces |
 |---|---|---|---|
 | 1 | `scripts/import_assets.py` | headless | Drape textures in `/Game/Terrain/Textures`, ground textures in `/Game/Terrain/Ground`, models in `/Game/Props/Astronaut`, `Habitat`, `Rover`, `Rocks`. Replaces existing assets. Report: `Saved/import_report.json`. |
-| 2 | `scripts/import_crew.py` | in the open editor | The rigged suit and its clips in `/Game/Props/CrewRig`, the suit textures without insignia over the ones in `/Game/Props/Suit`, the suit material made usable on skinned meshes. Needs the static suit in `/Game/Props/Suit`. Report: `Saved/import_crew_report.json`. |
-| 3 | `scripts/build_level.py` | headless | The empty `/Game/Maps/Melas` level with sun, atmosphere, sky light, fog, exposure and a start camera. Does nothing if the level exists. Report: `Saved/build_level_report.json`. |
-| 4 | `scripts/import_terrain.py` | headless or in the editor | The terrain meshes in `/Game/Terrain/Meshes` as Nanite static meshes. Keeps existing meshes. Report: `Saved/import_terrain_report.json`. |
-| 5 | `scripts/build_scene.py` | in the open editor, `Melas` loaded | The terrain material and instances, terrain actors, markers, dust effects, props, crew, boulders, rockfall rocks, agent markers and cameras. Safe to re-run. Report: `Saved/build_scene_report.json`. |
-| 6 | `scripts/director.py` | in the open editor, `Melas` loaded | The live director. See below. |
+| 2 | `scripts/import_crew.py` | in the open editor | The rigged suit and its clips in `/Game/Props/CrewRig`, the suit textures (no insignia, a real normal map) over the ones in `/Game/Props/Suit`, the suit material made usable on skinned meshes. Needs the static suit in `/Game/Props/Suit`. Report: `Saved/import_crew_report.json`. |
+| 3 | `scripts/import_prop_textures.py` | in the open editor | The habitat, lander and helicopter textures without logos, over the ones of the models in `/Game/Props/Habitat`, `InSight` and `Ingenuity`. Report: `Saved/import_prop_textures_report.json`. |
+| 4 | `scripts/build_level.py` | headless | The empty `/Game/Maps/Melas` level with sun, atmosphere, sky light, fog, exposure and a start camera. Does nothing if the level exists. Report: `Saved/build_level_report.json`. |
+| 5 | `scripts/import_terrain.py` | headless or in the editor | The terrain meshes in `/Game/Terrain/Meshes` as Nanite static meshes. Keeps existing meshes. Report: `Saved/import_terrain_report.json`. |
+| 6 | `scripts/build_scene.py` | in the open editor, `Melas` loaded | The terrain material and instances, terrain actors, markers, dust effects, props, crew, boulders, rockfall rocks, agent markers and cameras. Safe to re-run. Report: `Saved/build_scene_report.json`. |
+| 7 | `scripts/director.py` | in the open editor, `Melas` loaded | The live director. See below. |
 
 Headless command (editor closed):
 
@@ -83,7 +85,8 @@ py "<repo>/unreal/scripts/build_scene.py"
 The Z-2 suit, InSight and Ingenuity models that `build_scene.py` loads are already in `Content/`, but no script in the repository
 imports them. To rebuild `Content/` from nothing, import them by hand from `assets_src/` (`nasa_z2_spacesuit`, `nasa_insight_lander`
 `insight_deployed_mars_team.glb`, `nasa_ingenuity_helicopter`) under the names `z2_spacesuit`, `insight_deployed_mars_team` and
-`ingenuity_v3_mars_team` in the folders listed above. `build_scene.py` lists anything it cannot load under `props_failed` in its report.
+`ingenuity_v3_mars_team` in the folders listed above, then run `import_crew.py` and `import_prop_textures.py` again so the textures
+without logos replace the ones of the models. `build_scene.py` lists anything it cannot load under `props_failed` in its report.
 
 ## Environment variables
 

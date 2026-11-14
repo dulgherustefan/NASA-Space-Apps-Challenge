@@ -4,7 +4,8 @@ Run inside the editor (Tools > Execute Python Script, or `py "<path>"` in the co
 The file is made by tools/make_crew_rig.py: the NASA Z-2 suit bound to the Universal Animation Library skeleton
 (Quaternius, CC0) with the clips Idle, IdleTalk, Walk, Stumble, Collapse, Kneel, Crouch and Work.
 The suit keeps the material of the static suit model, because the rigged file carries no textures.
-The two suit textures made by tools/make_suit_texture.py (no insignia, no mission emblem) replace the ones of the model.
+The three suit textures made by tools/make_suit_texture.py (no insignia, no mission emblem, and a normal map in place
+of the bump image) replace the ones of the model.
 Writes Saved/import_crew_report.json.
 """
 import json
@@ -18,7 +19,8 @@ SOURCE = os.path.join(ROOT, "unreal_import", "crew", "z2_suit_rigged.glb")
 DEST = "/Game/Props/CrewRig"
 STATIC_SUIT = "/Game/Props/Suit/z2_spacesuit"
 SUIT_DIR = "/Game/Props/Suit"
-SUIT_TEXTURES = ("z2_Color_s", "z2_spec_color_s")          # unreal_import/crew/<name>.jpg, same names as the assets
+SUIT_TEXTURES = ("z2_Color_s", "z2_spec_color_s", "z2_Bump_s")   # unreal_import/crew/<name>.jpg, same names as the assets
+SUIT_NORMAL_MAPS = ("z2_Bump_s",)                               # stored with green up, as glTF does
 REPORT = os.path.join(unreal.Paths.project_saved_dir(), "import_crew_report.json")
 
 report = {"source": SOURCE, "dest": DEST, "assets": {}, "clips": {}, "notes": []}
@@ -45,9 +47,17 @@ def import_textures():
     report["textures"] = {}
     for name in SUIT_TEXTURES:
         tex = unreal.load_asset(f"{SUIT_DIR}/{name}")
-        if tex is not None:
-            report["textures"][name] = {"class": tex.get_class().get_name(), "size": [tex.blueprint_get_size_x(), tex.blueprint_get_size_y()],
-                                        "srgb": bool(tex.get_editor_property("srgb"))}
+        if tex is None:
+            continue
+        if name in SUIT_NORMAL_MAPS:
+            tex.set_editor_property("srgb", False)
+            tex.set_editor_property("compression_settings", unreal.TextureCompressionSettings.TC_NORMALMAP)
+            tex.set_editor_property("flip_green_channel", True)
+            unreal.EditorAssetLibrary.save_loaded_asset(tex)
+        report["textures"][name] = {"class": tex.get_class().get_name(), "size": [tex.blueprint_get_size_x(), tex.blueprint_get_size_y()],
+                                    "srgb": bool(tex.get_editor_property("srgb")),
+                                    "compression": str(tex.get_editor_property("compression_settings")),
+                                    "flip_green": bool(tex.get_editor_property("flip_green_channel"))}
 
 
 def main():
