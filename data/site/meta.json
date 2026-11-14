@@ -1,0 +1,112 @@
+{
+ "site": "NE Melas Chasma wall & floor (northern edge of the East Melas Exploration Zone)",
+ "lat0": -10.0,
+ "radius": 3396190.0,
+ "origin": {
+  "projX": -4150721.364564072,
+  "projY": -584833.3464244048,
+  "lon": -70.02518001769727,
+  "lat": -9.866492295375343,
+  "note": "local e = (X - projX) * cos(lat0), s = projY - Y  (metres east / south)"
+ },
+ "core": {
+  "e0": 1650.0,
+  "s0": 6600.0,
+  "size": 4000.0,
+  "renderCell": 2.5,
+  "n": 1601,
+  "cell": 5.0,
+  "na": 800,
+  "zMin": -3680.0,
+  "zMax": -2618.0,
+  "layers": [
+   "slope",
+   "slope_mean",
+   "rough",
+   "beta",
+   "sky",
+   "pit",
+   "albedo",
+   "sand"
+  ],
+  "scale": {
+   "slope": 3.0,
+   "slope_mean": 3.0,
+   "rough": 100.0,
+   "beta": 6.0,
+   "sky": 255.0,
+   "pit": 10.0,
+   "albedo": 255.0,
+   "sand": 255.0
+  },
+  "ortho": "core_ortho.webp",
+  "orthoPx": 4096,
+  "centerLon": -69.96265237456713,
+  "centerLat": -10.011579497155134
+ },
+ "reg": {
+  "e0": -1008.0,
+  "s0": -12000.0,
+  "w": 9216.0,
+  "h": 28224.0,
+  "cell": 16.0,
+  "nx": 576,
+  "ny": 1764,
+  "zMin": -4593.0,
+  "zMax": 2807.0,
+  "layers": [
+   "slope",
+   "beta"
+  ],
+  "ortho": "reg_ortho.webp",
+  "orthoCell": 4.0
+ },
+ "far": {
+  "e0": -18000.0,
+  "s0": -32000.0,
+  "w": 56000.0,
+  "h": 68000.0,
+  "cell": 80.0,
+  "nx": 700,
+  "ny": 850,
+  "zMin": -5090.0,
+  "zMax": 3712.0,
+  "ortho": "far_ortho.webp",
+  "orthoCell": 40.0
+ },
+ "rockfall": {
+  "sourceSlopeDeg": 32.0,
+  "alphas": [
+   12.0,
+   14.0,
+   16.2,
+   18.4,
+   20.0,
+   21.8,
+   24.0,
+   26.0,
+   27.8,
+   29.5,
+   31.4,
+   33.0,
+   34.8,
+   37.0
+  ],
+  "apexSearchM": 300.0,
+  "method": "energy-line cone from every source cell (CONEFALL-style reach angle), chamfer sweep"
+ },
+ "ctxOffsetM": 10.93410873413086,
+ "ctxResidualRmsM": 38.607139587402344,
+ "sources": {
+  "hirise_dtm": "DTEEC_028857_1700_028923_1700_A01 (USGS Astrogeology STAC mro_hirise_socet_dtms, CC0); credit NASA/JPL/University of Arizona/USGS",
+  "hirise_ortho": "ESP_028857_1700_RED_C_01_ORTHO (1 m); credit NASA/JPL/University of Arizona",
+  "ctx_dtm": "D04_028857_1684_XN_11S069W / D04_028923_1684_XN_11S069W (USGS STAC mro_ctx_controlled_usgs_dtms, CC0); credit NASA/JPL/MSSS/USGS"
+ },
+ "sizes": {
+  "core_h.bin.gz": 4609834,
+  "reg_h.bin.gz": 1692385,
+  "far_h.bin.gz": 875265,
+  "core_layers.bin.gz": 2299729,
+  "reg_layers.bin.gz": 827761
+ }
+}
