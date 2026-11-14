@@ -9,7 +9,7 @@ The Landscape itself cannot be created from a script in UE 5.8: import it by han
 
 Sky values are a physically motivated starting point (dust optical depth 0.5, scale height 11 km,
 single-scattering albedo falling toward blue). They are a look, not a measurement: tune by eye.
-Sun direction is JPL Horizons for the site on 2026-11-15 09:00 UT (az 284.65, el 23.09); the engine
+Sun direction is JPL Horizons for the site on 2026-11-15 07:00 UT (az 297.68, el 50.05); the engine
 overrides it at run time through /clock.
 """
 import json
@@ -21,7 +21,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 MAP = "/Game/Maps/Melas"
 REPORT = os.path.join(unreal.Paths.project_saved_dir(), "build_level_report.json")
 
-SUN_AZ, SUN_EL = 284.65, 23.09          # degrees; azimuth clockwise from north
+SUN_AZ, SUN_EL = 297.68, 50.05          # degrees; azimuth clockwise from north
 ATMOSPHERE_BASE_Z = -150000.0           # cm; below the lowest terrain vertex (about -1440 m)
 FOG_BASE_Z = -53000.0                   # cm; canyon floor inside the core box
 
@@ -86,7 +86,7 @@ def main():
     s = sky.get_component_by_class(unreal.SkyLightComponent)
     setp(s, "mobility", unreal.ComponentMobility.MOVABLE)
     setp(s, "real_time_capture", True)
-    setp(s, "intensity", 1.0)
+    setp(s, "intensity", 2.5)                      # dusty sky: shadows on Mars are filled by scattered light
 
     # ---- height fog: almost off; the dust incident raises it at run time
     fog = spawn(unreal.ExponentialHeightFog, "DustHaze", loc=(365000.0, 860000.0, FOG_BASE_Z))

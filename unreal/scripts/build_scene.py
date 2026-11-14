@@ -15,7 +15,8 @@ Terrain material (M_Terrain), one instance per tier:
   Overlay       RGBA texture over UV0 with OverlayOpacity (hazard, slope, dose ... layers sent by the engine)
   Overlay2      a second slot of the same kind, so two layers can show at once
   Routes        texture over UV0 with RoutesOpacity (route lines drawn at run time; anything not black is a line)
-Colours are a look, not a measurement: the orthoimage is greyscale with a tint.
+Colours are a look, not a measurement: the orthoimage keeps the HiRISE brightness, and tools/make_ortho_colour.py gives it
+a hue from the HiRISE colour strip and the Viking colour mosaic, set to the soil colours of rover photographs.
 """
 import json
 import os
@@ -34,13 +35,13 @@ MEL = unreal.MaterialEditingLibrary
 ME = unreal  # expression classes live at module level
 report = {"material": {}, "links_failed": [], "props_failed": [], "terrain_actors": [], "errors": []}
 
-# per tier: orthoimage, tint, slope tint strength
+# per tier: orthoimage (the colour one, or the older tinted one when it is not imported), tint, slope tint strength
 TIERS = {
-    "core": {"ortho": "T_CoreOrtho", "use_ortho": 1.0, "tint": (0.60, 0.60, 0.60), "slope": 0.45},
-    "region": {"ortho": "T_RegionOrtho", "use_ortho": 1.0, "tint": (0.50, 0.49, 0.48), "slope": 0.45},
+    "core": {"ortho": ("T_CoreOrthoColour", "T_CoreOrtho"), "use_ortho": 1.0, "tint": (0.60, 0.60, 0.60), "slope": 0.45},
+    "region": {"ortho": ("T_RegionOrthoColour", "T_RegionOrtho"), "use_ortho": 1.0, "tint": (0.50, 0.49, 0.48), "slope": 0.45},
     "far": {"ortho": None, "use_ortho": 0.0, "tint": (1.0, 1.0, 1.0), "slope": 1.0},
 }
-FLAT_COLOUR = (0.235, 0.108, 0.052)      # linear; mean of the tinted region orthoimage
+FLAT_COLOUR = (0.240, 0.113, 0.055)      # linear; mean of the tinted region orthoimage
 DETAIL_ORIGIN = (365000.0, 860000.0)     # cm; centre of the core box, keeps tiling UVs small
 GROUND_MEAN = {                          # mean linear colour of each tiling ground texture (2k albedo maps)
     "red_laterite_soil_stones": (0.1329, 0.0503, 0.0284),
@@ -249,7 +250,9 @@ def build_material():
                            unreal.MaterialInstanceConstantFactoryNew())
         MEL.set_material_instance_parent(mi, mat)
         if cfg["ortho"]:
-            MEL.set_material_instance_texture_parameter_value(mi, "Ortho", tex(f"{TERRAIN}/Textures/{cfg['ortho']}"))
+            name = next((n for n in cfg["ortho"] if EAL.does_asset_exist(f"{TERRAIN}/Textures/{n}")), cfg["ortho"][-1])
+            MEL.set_material_instance_texture_parameter_value(mi, "Ortho", tex(f"{TERRAIN}/Textures/{name}"))
+            report["material"].setdefault("ortho", {})[tier] = name
         MEL.set_material_instance_scalar_parameter_value(mi, "UseOrtho", cfg["use_ortho"])
         MEL.set_material_instance_scalar_parameter_value(mi, "SlopeTintStrength", cfg["slope"])
         t = cfg["tint"]
@@ -395,10 +398,13 @@ HABITAT = ("/Game/Props/Habitat/Habitat_Demonstration_Unit_part1/StaticMeshes/Ha
 ROVER = "/Game/Props/Rover/Space_Exploration_Vehicle/StaticMeshes/Space_Exploration_Vehicle"
 INSIGHT = "/Game/Props/InSight/insight_deployed_mars_team"
 HELICOPTER = "/Game/Props/Ingenuity/ingenuity_v3_mars_team"
-CREW_MESH = "/Game/Props/Suit/z2_spacesuit"   # NASA Z-2 surface suit: static, 1.93 m, pivot at the feet, faces +Y
+CREW_MESH = "/Game/Props/CrewRig/z2_suit_rigged/SkeletalMeshes/z2_suit_rigged"   # NASA Z-2 surface suit with a skeleton (import_crew.py): 1.93 m, pivot at the feet, faces +Y
+CREW_MESH_STATIC = "/Game/Props/Suit/z2_spacesuit"   # the same suit without a skeleton, used when the rigged one is not imported
 ROCKS = ("/Game/Props/Rocks/namaqualand_boulder_03/namaqualand_boulder_03_1k/StaticMeshes/namaqualand_boulder_03_1k",
-         "/Game/Props/Rocks/moon_rock_02/moon_rock_02_1k/StaticMeshes/moon_rock_02_1k",
-         "/Game/Props/Rocks/moon_rock_01/moon_rock_01_1k/StaticMeshes/moon_rock_01_LOD0")
+         "/Game/Props/Rocks/namaqualand_boulder_06/namaqualand_boulder_06_2k/StaticMeshes/namaqualand_boulder_06_2k",
+         "/Game/Props/Rocks/namaqualand_boulder_05/namaqualand_boulder_05_2k/StaticMeshes/namaqualand_boulder_05_2k")
+ROCK_WIDTH = (270.0, 121.0, 136.0)            # cm, widest side of each rock mesh
+STONES = (("/Game/Props/Rocks/rock_07/rock_07_2k/StaticMeshes/rock_07_2k", 32.0), (ROCKS[1], 121.0), (ROCKS[2], 136.0))
 CYLINDER = "/Engine/BasicShapes/Cylinder"     # 1 m wide, 1 m tall, pivot in the middle
 SPHERE = "/Engine/BasicShapes/Sphere"         # 1 m wide
 CREW_SCALE = 1.0
@@ -488,12 +494,20 @@ def place_props(mats, fx):
                    mobility=MOVABLE, material=fx["rotor"], shadows=False, lift_cm=48.0)
 
     # ---- boulders in the runout band, plus the fresh one of the science incident
-    widths = (270.0, 25.0, 22.0)             # cm, widest side of each rock mesh
+    widths = ROCK_WIDTH
     for k, b in enumerate(lay["boulders"]):
         s = b["size_m"] * 100.0 / widths[b["mesh"]]
         mesh_actor(ROCKS[b["mesh"]], f"Boulder_{k:02d}", "Boulders", b["ue"], yaw=b["yaw"], scale=(s, s, s * 0.85), tags=("boulder",))
     fresh = lay["places"]["B"]["ue"]
     mesh_actor(ROCKS[0], "Boulder_Fresh", "Boulders", fresh, yaw=140.0, scale=(2.4, 2.4, 2.2), tags=("boulder", "fresh"), lift_cm=-40.0)
+
+    # ---- loose stones around the places and between them (set dressing)
+    for k, b in enumerate(lay.get("stones", [])):
+        asset, width = STONES[b["mesh"]]
+        s = b["size_m"] * 100.0 / width
+        a = mesh_actor(asset, f"Stone_{k:03d}", "Boulders", b["ue"], yaw=b["yaw"], scale=(s, s, s), tags=("stone",))
+        if a is not None:
+            a.set_actor_rotation(unreal.Rotator(roll=b["tilt"], pitch=b["tilt"] * 0.6, yaw=b["yaw"]), False)
 
     # ---- rocks that fall during the marsquake: parked at the top of their track, hidden until the event
     for k, path in enumerate(lay["rockfall_paths"]):
@@ -502,14 +516,16 @@ def place_props(mats, fx):
                    mobility=MOVABLE, hidden=True)
 
     # ---- crew: suited figure with a thin light beam above the head; the director moves it by its tag
-    crew_mesh = unreal.load_asset(CREW_MESH)
+    crew_mesh = unreal.load_asset(CREW_MESH) or unreal.load_asset(CREW_MESH_STATIC)
     skeletal = isinstance(crew_mesh, unreal.SkeletalMesh)
     idle = None
     if skeletal:                                # a rigged model: start on its idle clip, if the import brought one
         reg = unreal.AssetRegistryHelpers.get_asset_registry()
         for ad in reg.get_assets_by_path(CREW_MESH.rsplit("/", 1)[0], recursive=True):
-            if str(ad.asset_class_path.asset_name) == "AnimSequence" and "idle" in str(ad.asset_name).lower():
+            if str(ad.asset_class_path.asset_name) == "AnimSequence" and str(ad.asset_name).lower().endswith("idle"):
                 idle = idle or ad.get_asset()
+    static_suit = unreal.load_asset(CREW_MESH_STATIC)
+    suit_mat = static_suit.get_material(0) if isinstance(static_suit, unreal.StaticMesh) else None
     start = lay["places"]["S"]["ue"]
     for member in lay["crew"]:
         cid = member["id"]
@@ -522,6 +538,8 @@ def place_props(mats, fx):
         if skeletal:
             c = a.skeletal_mesh_component
             c.set_mobility(MOVABLE)
+            if suit_mat is not None:            # the rigged file has no textures: it wears the material of the static suit
+                c.set_material(0, suit_mat)
             try:
                 c.set_editor_property("animation_mode", unreal.AnimationMode.ANIMATION_SINGLE_NODE)
                 data = c.get_editor_property("animation_data")

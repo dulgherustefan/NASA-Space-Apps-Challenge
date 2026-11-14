@@ -9,6 +9,7 @@ grid, the same heights the terrain meshes are built from, so objects sit on the 
   places          the scenario's places (science site, rover, habitat, shelters, boulder, epicentre)
   props           set dressing near the habitat (seismic station, helicopter), on the flattest ground nearby
   boulders        rocks scattered in the rockfall runout band (illustrative positions, seeded; not mapped boulders)
+  stones          small loose rocks around the places and between them (set dressing, seeded; not mapped rocks)
   rockfall_paths  downhill tracks from steep source cells, used to animate falling rocks during the marsquake
   cameras         fixed camera poses for the cues of docs/CONTRACT.md
 """
@@ -150,6 +151,22 @@ def main():
         paths.append({"points": pts, "length_m": round(float(length), 0), "size_m": round(float(rng.uniform(1.5, 4.5)), 2),
                       "delay_s": round(float(rng.uniform(0.0, 9.0)), 1)})
 
+    # ---- loose stones where the crew works and walks: around the places and along the straight lines between them
+    stones = []
+    spots = [(q["x"], q["y"], 45.0, 26) for q in (S, A, C, R, H)]
+    for p0, p1 in ((S, A), (S, C), (S, R), (R, H), (A, R), (C, R)):
+        n_seg = max(2, int(np.hypot(p1["x"] - p0["x"], p1["y"] - p0["y"]) / 40.0))
+        spots += [(p0["x"] + (p1["x"] - p0["x"]) * t, p0["y"] + (p1["y"] - p0["y"]) * t, 30.0, 5) for t in np.linspace(0.0, 1.0, n_seg)]
+    for cx, cy, spread, count in spots:
+        for _ in range(count):
+            x = float(np.clip(cx + rng.normal(0.0, spread), 2.0, size - 2.0))
+            y = float(np.clip(cy + rng.normal(0.0, spread), 2.0, size - 2.0))
+            if min(np.hypot(x - q["x"], y - q["y"]) for q in (H, R)) < 14.0:      # keep the habitat and the rover clear
+                continue
+            size_m = float(np.clip(rng.lognormal(-1.1, 0.55), 0.12, 1.4))
+            stones.append({"ue": ue(x, y, -0.18 * size_m), "size_m": round(size_m, 2), "yaw": round(float(rng.uniform(0, 360)), 1),
+                           "tilt": round(float(rng.uniform(-14, 14)), 1), "mesh": int(rng.integers(0, 3))})
+
     # ---- cameras (location, look-at target)
     def cam(x, y, up_m, tx, ty, tup_m, fov=55.0):
         loc = ue(x, y, up_m)
@@ -168,7 +185,7 @@ def main():
 
     out = {"z_ref_m": z_ref, "note": "Unreal centimetres; z from the 2.5 m render grid. Boulders and rockfall tracks are illustrative.",
            "core_box_cm": [e0 * 100.0, s0 * 100.0, size * 100.0],
-           "places": places, "props": props, "crew": mission["crew"], "boulders": boulders, "rockfall_paths": paths,
+           "places": places, "props": props, "crew": mission["crew"], "boulders": boulders, "stones": stones, "rockfall_paths": paths,
            "cameras": cameras}
     with open(OUT, "w", encoding="utf8") as f:
         json.dump(out, f, indent=1)
@@ -176,7 +193,7 @@ def main():
         print(f"  {k} {p['name']:<18} ue {p['ue']}  slope {p['slope_deg']}  reach {p['reach_deg']}")
     for k, p in props.items():
         print(f"  {k:<18} slope {p['slope_deg']}  ue {p['ue']}")
-    print(f"  {len(boulders)} boulders, {len(paths)} rockfall tracks ({min(p['length_m'] for p in paths):.0f}-{max(p['length_m'] for p in paths):.0f} m) -> {OUT}")
+    print(f"  {len(boulders)} boulders, {len(stones)} stones, {len(paths)} rockfall tracks ({min(p['length_m'] for p in paths):.0f}-{max(p['length_m'] for p in paths):.0f} m) -> {OUT}")
 
 
 if __name__ == "__main__":

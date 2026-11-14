@@ -65,9 +65,14 @@ ROUTE_ORDER = ("failed", "candidate", "testing", "chosen")
 ROUTE_RT = 8192                # about 0.5 m per pixel over the core box
 ROUTE_GLOW = 0.10              # low: a bright line lights the ground and the suits around it
 OVERLAY_GLOW = 0.12
-OVERLAY_SCALE = {"follow": 0.3, "shelter": 0.55}     # data layers step back when the camera is close to the crew
+OVERLAY_SCALE = {"follow": 0.12, "shelter": 0.4}     # data layers step back when the camera is close to the crew
 LABEL_REF_CM = 250000.0        # labels keep the size they have when seen from this far
 MIN_SUN_EL = 14.0              # keep the scene readable when the mission clock puts the sun low
+CLIPS = ("idle", "idletalk", "walk", "stumble", "collapse", "kneel", "crouch", "work")   # clips of the rigged suit, by the end of their name
+CLIP_FOR = {2: "kneel", 3: "collapse", 4: "crouch", 5: "crouch", 6: "crouch"}   # crew status -> clip when not walking; idle otherwise
+CLIP_ONCE = ("collapse", "stumble")                                               # played once, then held on the last frame
+STRIDE_M = 1.20                # ground covered by one cycle of the walk clip (unreal_import/crew/z2_suit_rigged.json)
+MAX_CADENCE = 1.7              # walk cycles per second at most: at high mission speed the feet slide rather than blur
 ROUTE_OPACITY = {"follow": 0.0, "shelter": 0.3}      # next to the crew the ground markers carry the route, the line steps back
 CRUMB_STEP = 3.5               # metres between the ground markers of the chosen route
 CRUMB_SIZE = 0.42              # metres across
@@ -340,6 +345,14 @@ class Director:
                     actor.set_actor_location_and_rotation(loc, rot, False, True)
             for c in self.crumbs:
                 c["actor"].set_actor_transform(self.park, False, True)
+        home = getattr(self, "vp_fov_home", None)
+        if home is not None and home[1] is not None:      # give the editor viewport its own field of view back
+            try:
+                unreal.get_editor_subsystem(unreal.LevelEditorSubsystem).set_level_viewport_fov(float(home[1]), home[0])
+            except Exception:
+                pass
+        self.vp_fov = None
+        self.vp_fov_home = None
         self.bound = False
         self.dust = []
         self.crumbs = []
@@ -351,6 +364,8 @@ class Director:
     def _bind(self, w, game):
         self.bound = False
         self.world, self.game = w, game
+        self.vp_fov = None
+        self.vp_fov_home = None
         tagged = lambda tag: list(GS.get_all_actors_with_tag(w, tag))
         # crew
         beams = {int(tag_value(tags_of(a), "crew:", "-1")): a for a in tagged("crewbeam")}
@@ -359,7 +374,7 @@ class Director:
             tg = tags_of(a)
             cid = int(tag_value(tg, "crew:", "-1"))
             c = dict(actor=a, beam=beams.get(cid), facing=float(tag_value(tg, "yaw:", "0")), pos=None, heading=None,
-                     skeletal=isinstance(a, unreal.SkeletalMeshActor), anims={}, playing=None, phase=0.0)
+                     skeletal=isinstance(a, unreal.SkeletalMeshActor), anims={}, playing=None, phase=0.0, clip_t=0.0, cid=cid)
             if c["skeletal"]:
                 comp = a.skeletal_mesh_component
                 c["comp"] = comp
@@ -370,9 +385,13 @@ class Director:
                         if str(ad.asset_class_path.asset_name) != "AnimSequence":
                             continue
                         n = str(ad.asset_name).lower()
-                        for key in ("walk", "idle"):
-                            if n.endswith(key) or (key in n and key not in c["anims"]):
-                                c["anims"][key] = ad.get_asset()
+                        for key in CLIPS:
+                            if n.endswith(key):
+                                seq = ad.get_asset()
+                                c["anims"][key] = (seq, float(seq.get_play_length()))
+                    comp.set_animation_mode(unreal.AnimationMode.ANIMATION_SINGLE_NODE)
+                    comp.set_update_animation_in_editor(True)      # the editor world does not tick poses on its own
+                    comp.set_editor_property("visibility_based_anim_tick_option", unreal.VisibilityBasedAnimTickOption.ALWAYS_TICK_POSE_AND_REFRESH_BONES)
                 except Exception as e:
                     self._err("crew anims", e)
             self.crew[cid] = c
@@ -603,7 +622,9 @@ class Director:
                 c["heading"] = m["heading"]
             k = 1.0 - math.exp(-dt / 0.09)
             p = c["pos"]
+            was = (p[0], p[1])
             p[0], p[1], p[2] = lerp(p[0], tx, k), lerp(p[1], ty, k), lerp(p[2], tz, k)
+            moved_m = math.hypot(p[0] - was[0], p[1] - was[1]) / 100.0
             c["heading"] = lerp_angle(c["heading"], m["heading"], 1.0 - math.exp(-dt / 0.25))
             status = m["status"] if now - m["t"] < 2.0 else 1
             walking = status == 0 and m["pace"] > 0.02
@@ -612,11 +633,13 @@ class Director:
             fwd = unreal.Vector(math.sin(h), -math.cos(h), 0.0)
             right = unreal.Vector(math.cos(h), math.sin(h), 0.0)
             lean, sway, lift, twist = 0.0, 0.0, 0.0, 0.0
-            if status == 3:
+            if c["skeletal"]:
+                pass                                              # the clips carry the body motion
+            elif status == 3:
                 lean, lift = 84.0, 28.0
             elif status == 2:
                 lean = 32.0
-            elif walking and not c["skeletal"]:
+            elif walking:
                 c["phase"] += dt * 1.7 * max(0.5, min(1.6, m["pace"]))
                 lean = 5.0
                 sway = 2.6 * math.sin(math.pi * c["phase"])
@@ -639,12 +662,30 @@ class Director:
                     c["beam"].set_actor_scale3d(unreal.Vector(w, w, 45.0))
                     c["beam"].set_actor_location(unreal.Vector(p[0], p[1], p[2] + 2550.0), False, True)
             if c["skeletal"]:
-                want = "walk" if walking else "idle"
-                if want != c["playing"] and c["anims"].get(want) is not None:
-                    c["comp"].play_animation(c["anims"][want], True)
-                    c["playing"] = want
-                if walking:
-                    c["comp"].set_play_rate(max(0.5, min(1.8, m["pace"])))
+                self._animate(c, status, walking, moved_m, dt)
+
+    def _animate(self, c, status, walking, moved_m, dt):
+        """Pose the rigged suit: the walk clip advances with the ground covered, the other clips with time."""
+        want = "walk" if walking else CLIP_FOR.get(status, "idletalk" if c["cid"] % 2 else "idle")
+        if want not in c["anims"]:
+            want = "idle"
+        clip = c["anims"].get(want)
+        if clip is None:
+            return
+        seq, length = clip
+        if want != c["playing"]:
+            c["playing"] = want
+            c["comp"].set_animation(seq)
+            c["comp"].set_play_rate(0.0)                          # the position is set by hand every tick
+            if want != "walk":
+                c["clip_t"] = 0.0
+        if want == "walk":
+            c["phase"] = (c["phase"] + min(moved_m / STRIDE_M, MAX_CADENCE * dt)) % 1.0
+            t = c["phase"] * length
+        else:
+            c["clip_t"] += dt
+            t = min(c["clip_t"], length - 0.04) if want in CLIP_ONCE else c["clip_t"] % length
+        c["comp"].set_position(t, False)
 
     # ----------------------------------------------------------------------------------- agents
     def _move_agents(self, now, dt):
@@ -900,14 +941,14 @@ class Director:
                 p = lead["pos"]
                 # behind and to the side, drifting slowly around the walker
                 a = math.radians(lead["heading"] + 180.0 + 32.0 + 22.0 * math.sin(2.0 * math.pi * tau / 48.0))
-                dist = 1500.0 + 250.0 * math.sin(2.0 * math.pi * tau / 31.0)
-                want = [p[0] + math.sin(a) * dist, p[1] - math.cos(a) * dist, p[2] + 520.0 + 110.0 * math.sin(2.0 * math.pi * tau / 37.0)]
+                dist = 950.0 + 180.0 * math.sin(2.0 * math.pi * tau / 31.0)
+                want = [p[0] + math.sin(a) * dist, p[1] - math.cos(a) * dist, p[2] + 340.0 + 70.0 * math.sin(2.0 * math.pi * tau / 37.0)]
                 if self.follow is None or math.dist(self.follow, want) > 20000.0:
                     self.follow = want
                 k = 0.035
                 self.follow = [lerp(self.follow[i], want[i], k) for i in range(3)]
                 g = self.ground_cm(self.follow[0], self.follow[1])
-                loc = (self.follow[0], self.follow[1], max(self.follow[2], (g if g is not None else -1e9) + 260.0))
+                loc = (self.follow[0], self.follow[1], max(self.follow[2], (g if g is not None else -1e9) + 190.0))
                 return self._look(loc, (p[0], p[1], p[2] + 130.0), 55.0)
             name = "overview"
         if name == "shelter":
@@ -955,6 +996,22 @@ class Director:
                 self.live_cam.camera_component.set_field_of_view(pose[5])
         else:
             unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem).set_level_viewport_camera_info(loc, rot)
+            self._viewport_fov(pose[5])
+
+    def _viewport_fov(self, fov):
+        """The editor viewport takes the field of view of the shot, as the game camera does."""
+        if self.vp_fov is not None and abs(self.vp_fov - fov) < 0.05:
+            return
+        try:
+            les = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
+            key = les.get_active_viewport_config_key()
+            if self.vp_fov_home is None:
+                self.vp_fov_home = (key, les.get_level_viewport_fov(key))
+            les.set_level_viewport_fov(fov, key)
+            self.vp_fov = fov
+        except Exception as e:
+            self._err("viewport fov", e)
+            self.vp_fov = fov
 
     def _face_labels(self):
         cam = self.cam_now

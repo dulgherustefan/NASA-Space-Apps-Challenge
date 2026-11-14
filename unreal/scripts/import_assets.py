@@ -73,6 +73,9 @@ def main():
     texture(os.path.join(IMP, "core_ortho_4096.png"), "/Game/Terrain/Textures", "T_CoreOrtho", srgb=True, compression=TC.TC_BC7)
     texture(os.path.join(IMP, "region_lum_2048x8192.png"), "/Game/Terrain/Textures", "T_RegionLum", srgb=True, compression=TC.TC_GRAYSCALE)
     texture(os.path.join(IMP, "region_ortho_2048x8192.png"), "/Game/Terrain/Textures", "T_RegionOrtho", srgb=True, compression=TC.TC_BC7)
+    # colour versions of the two orthoimages (tools/make_ortho_colour.py); the terrain material uses these when present
+    texture(os.path.join(IMP, "core_ortho_colour_4096.png"), "/Game/Terrain/Textures", "T_CoreOrthoColour", srgb=True, compression=TC.TC_BC7)
+    texture(os.path.join(IMP, "region_ortho_colour_2048x8192.png"), "/Game/Terrain/Textures", "T_RegionOrthoColour", srgb=True, compression=TC.TC_BC7)
 
     # ---- tiling ground detail (Poly Haven, CC0)
     for mat in ("red_laterite_soil_stones", "sandy_gravel_02", "dry_ground_rocks"):
@@ -89,6 +92,8 @@ def main():
     model(os.path.join(SRC, "nasa_space_exploration_vehicle", "Space_Exploration_Vehicle.glb"), "/Game/Props/Rover")
     for rock in ("moon_rock_01", "moon_rock_02", "moon_rock_03", "moon_rock_04", "rock_09", "namaqualand_boulder_03"):
         model(os.path.join(SRC, "polyhaven_rocks", rock, f"{rock}_1k.gltf"), f"/Game/Props/Rocks/{rock}")
+    for rock in ("namaqualand_boulder_05", "namaqualand_boulder_06", "rock_07"):      # 2k versions, used for boulders and stones
+        model(os.path.join(SRC, f"polyhaven_{rock}", f"{rock}_2k.gltf"), f"/Game/Props/Rocks/{rock}")
 
     with open(REPORT, "w", encoding="utf8") as f:
         json.dump(report, f, indent=1)
