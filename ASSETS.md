@@ -2,10 +2,12 @@
 
 Everything in this repository that we did not make ourselves. Raw downloads live in `assets_src/` (not in git).
 Each folder there has a `SOURCE.txt` that records the URL, the author line and the terms as shown on the source page.
-All files were fetched on 14 Nov 2026, except the Universal Animation Library (15 Nov 2026). Licence and author text below is taken from those `SOURCE.txt` files, from
+All files were fetched on 14 Nov 2026, except the Universal Animation Library, the terrain colour data, the rover
+reference photographs and the extra ground textures (15 Nov 2026). Licence and author text below is taken from those `SOURCE.txt` files, from
 `data/site/meta.json` and from the pipeline code.
 
-This project is not affiliated with or endorsed by NASA. No NASA insignia or logos are used.
+This project is not affiliated with or endorsed by NASA. No NASA insignia or logos are used: the insignia and the
+mission emblem on the suit model's textures are painted out (`tools/make_suit_texture.py`).
 
 The project's own code is under Apache 2.0 (`LICENSE`).
 
@@ -17,8 +19,24 @@ The project's own code is under Apache 2.0 (`LICENSE`).
 | Orthoimage, 1 m | HiRISE `ESP_028857_1700_RED_C_01_ORTHO` | NASA/JPL/University of Arizona | [USGS Astrogeology folder](https://astrogeo-ard.s3-us-west-2.amazonaws.com/mars/mro/hirise/controlled/dtm/ESP_028857_1700_ESP_028923_1700/) | Public domain |
 | Elevation, regional strip | CTX DTM `D04_028857_1684_XN_11S069W` / `D04_028923_1684_XN_11S069W` | NASA/JPL/MSSS/USGS | [USGS Astrogeology folder](https://astrogeo-ard.s3-us-west-2.amazonaws.com/mars/mro/ctx/controlled/usgs/D04_028857_1684_XN_11S069W__D04_028923_1684_XN_11S069W/), collection `mro_ctx_controlled_usgs_dtms` | CC0 |
 
+| Colour pattern (dust and sand), strip about 1.2 km wide | HiRISE merged colour product `ESP_028857_1700_MRGB` | NASA/JPL/University of Arizona | [HiRISE PDS folder](https://hirise-pds.lpl.arizona.edu/PDS/EXTRAS/RDR/ESP/ORB_028800_028899/ESP_028857_1700/), [image page](https://www.uahirise.org/ESP_028857_1700) | Public domain (HiRISE image usage policy) |
+| Broad hue variation, about 232 m per pixel | Viking MDIM 2.1 colourised global mosaic | USGS Astrogeology Science Center / NASA Ames | [USGS Astrogeology](https://astrogeology.usgs.gov/search/map/mars_viking_colorized_global_mosaic_232m) | Public domain |
+
 Processed copies are in `data/site/` (grids described in `data/site/meta.json`) and, for Unreal, in `unreal_import/`.
-The orthoimage is greyscale. Surface colour in the app is a tint, shown as approximate colour.
+The HiRISE orthoimage is greyscale. In the dashboard the surface colour is a tint. In the Unreal scene the terrain uses
+`unreal_import/*_ortho_colour_*.png`, made by `tools/make_ortho_colour.py`: the brightness is the HiRISE orthoimage, the
+dust and sand pattern comes from the HiRISE colour strip, a broad hue variation comes from the Viking mosaic, and the
+colours themselves are set to soil colours measured on the rover photographs below. This is an approximate colour, not a
+measurement of the site.
+
+Rover photographs used only as colour reference (not shown in the app, not in git):
+
+| Image | Rover and camera | Credit | Source |
+|---|---|---|---|
+| PIA16769, PIA25176, PIA26367 | Curiosity, Mastcam | NASA/JPL-Caltech/MSSS | `photojournal.jpl.nasa.gov/catalog/<id>`, files from the NASA Image and Video Library |
+| PIA23727, PIA24765, PIA25736 | Perseverance, Mastcam-Z | NASA/JPL-Caltech/ASU/MSSS | same |
+
+NASA media usage guidelines apply to these images, as for the NASA models below.
 
 ## 3D models in the Unreal project
 
@@ -37,7 +55,7 @@ copyright in the United States, that NASA should be acknowledged as the source, 
 |---|---|---|---|---|
 | Habitat Demonstration Unit, parts 1 and 2 | `/Game/Props/Habitat` | NASA (individual modeller not verified) | NASA-3D-Resources, `3D Models/Habitat Demonstration Unit/` | In scene |
 | Space Exploration Vehicle | `/Game/Props/Rover` | NASA (individual modeller not verified) | NASA-3D-Resources, `3D Models/Space Exploration Vehicle/` | In scene |
-| Z-2 planetary surface spacesuit prototype | `/Game/Props/Suit` | NASA/LaRC/Advanced Concepts Lab | [science.nasa.gov/3d-resources/z2-spacesuit](https://science.nasa.gov/3d-resources/z2-spacesuit/) | In scene (crew figure) |
+| Z-2 planetary surface spacesuit prototype | `/Game/Props/Suit` | NASA/LaRC/Advanced Concepts Lab | [science.nasa.gov/3d-resources/z2-spacesuit](https://science.nasa.gov/3d-resources/z2-spacesuit/) | In scene (crew figure). Modified: given a skeleton and animation clips by `tools/make_crew_rig.py` (`/Game/Props/CrewRig`), insignia and mission emblem painted out of the textures |
 | InSight lander (deployed) | `/Game/Props/InSight` | NASA/JPL-Caltech | [science.nasa.gov/resource/insight-lander-3d-model](https://science.nasa.gov/resource/insight-lander-3d-model/) | In scene (seismic station) |
 | Ingenuity Mars Helicopter | `/Game/Props/Ingenuity` | NASA/JPL-Caltech | [science.nasa.gov/resource/mars-ingenuity-helicopter-3d-model](https://science.nasa.gov/resource/mars-ingenuity-helicopter-3d-model/) | In scene (helicopter) |
 | Astronaut (generic, static) | `/Game/Props/AstronautNasa` | DigitalSpace Corporation, distributed by NASA 3D Resources | [science.nasa.gov/3d-resources/astronaut](https://science.nasa.gov/3d-resources/astronaut/) | In project |
@@ -49,9 +67,13 @@ The same terms apply to each row: NASA / US government, no copyright claimed, cr
 | Asset | Where in Unreal | Author | Source | Licence | Status |
 |---|---|---|---|---|---|
 | Astronaut, rigged, 24 animations | `/Game/Props/Astronaut` (copy in `/Game/Props/Crew`) | Quaternius | [poly.pizza/m/3hC2i0CTuO](https://poly.pizza/m/3hC2i0CTuO) | CC0 1.0 | In project |
-| namaqualand_boulder_03 | `/Game/Props/Rocks` | Jenelle van Heerden (modelling), Dario Barresi (photography), Poly Haven | [polyhaven.com/a/namaqualand_boulder_03](https://polyhaven.com/a/namaqualand_boulder_03) | CC0 1.0 | In scene (boulders) |
-| moon_rock_01 | `/Game/Props/Rocks` | Greg Zaal, Rico Cilliers (photography); Jenelle van Heerden, Dario Barresi (processing); Poly Haven | [polyhaven.com/a/moon_rock_01](https://polyhaven.com/a/moon_rock_01) | CC0 1.0 | In scene (boulders, rockfall) |
-| moon_rock_02 | `/Game/Props/Rocks` | Rico Cilliers, Greg Zaal (photography); Jenelle van Heerden (processing); Poly Haven | [polyhaven.com/a/moon_rock_02](https://polyhaven.com/a/moon_rock_02) | CC0 1.0 | In scene (boulders) |
+| Universal Animation Library [Standard] v3.0 (skeleton and the idle, walk, stumble, collapse, kneel, crouch and work clips) | `/Game/Props/CrewRig` (retargeted to the Z-2 suit) | Quaternius | [quaternius.itch.io/universal-animation-library](https://quaternius.itch.io/universal-animation-library) | CC0 1.0 | In scene (crew animation) |
+| namaqualand_boulder_03 | `/Game/Props/Rocks` | Jenelle van Heerden (modelling), Dario Barresi (photography), Poly Haven | [polyhaven.com/a/namaqualand_boulder_03](https://polyhaven.com/a/namaqualand_boulder_03) | CC0 1.0 | In scene (boulders, rockfall) |
+| namaqualand_boulder_05 | `/Game/Props/Rocks` | Jenelle van Heerden (modelling), Dario Barresi (photography), Poly Haven | [polyhaven.com/a/namaqualand_boulder_05](https://polyhaven.com/a/namaqualand_boulder_05) | CC0 1.0 | In scene (boulders, stones) |
+| namaqualand_boulder_06 | `/Game/Props/Rocks` | Greg Zaal (photography), Jenelle van Heerden (modelling), Poly Haven | [polyhaven.com/a/namaqualand_boulder_06](https://polyhaven.com/a/namaqualand_boulder_06) | CC0 1.0 | In scene (boulders, stones) |
+| rock_07 | `/Game/Props/Rocks` | Jenelle van Heerden, Poly Haven | [polyhaven.com/a/rock_07](https://polyhaven.com/a/rock_07) | CC0 1.0 | In scene (small stones) |
+| moon_rock_01 | `/Game/Props/Rocks` | Greg Zaal, Rico Cilliers (photography); Jenelle van Heerden, Dario Barresi (processing); Poly Haven | [polyhaven.com/a/moon_rock_01](https://polyhaven.com/a/moon_rock_01) | CC0 1.0 | In project |
+| moon_rock_02 | `/Game/Props/Rocks` | Rico Cilliers, Greg Zaal (photography); Jenelle van Heerden (processing); Poly Haven | [polyhaven.com/a/moon_rock_02](https://polyhaven.com/a/moon_rock_02) | CC0 1.0 | In project |
 | moon_rock_03 | `/Game/Props/Rocks` | Greg Zaal, Rico Cilliers (photography); Jenelle van Heerden (processing); Poly Haven | [polyhaven.com/a/moon_rock_03](https://polyhaven.com/a/moon_rock_03) | CC0 1.0 | In project |
 | moon_rock_04 | `/Game/Props/Rocks` | Greg Zaal, Rico Cilliers (photography); Jenelle van Heerden (processing); Poly Haven | [polyhaven.com/a/moon_rock_04](https://polyhaven.com/a/moon_rock_04) | CC0 1.0 | In project |
 | rock_09 | `/Game/Props/Rocks` | Jenelle van Heerden, Poly Haven | [polyhaven.com/a/rock_09](https://polyhaven.com/a/rock_09) | CC0 1.0 | In project |
@@ -108,9 +130,10 @@ They are listed so the credit record matches the folder. If one is ever used, th
 | Quaternius Ultimate Space Kit props (rovers, base, domes, houses, rocks, panels) | Quaternius | [Ultimate Space Kit bundle on Poly Pizza](https://poly.pizza/bundle/Ultimate-Space-Kit-YWh743lqGX) | CC0 1.0 |
 | Quaternius animal astronauts (3 models) | Quaternius | [poly.pizza/m/0D54W8yfrA](https://poly.pizza/m/0D54W8yfrA), [zbtPq4dOJL](https://poly.pizza/m/zbtPq4dOJL), [OgeSH89Nmx](https://poly.pizza/m/OgeSH89Nmx) | CC0 1.0 |
 | Character Hazmat | Quaternius | [poly.pizza/m/z3TSQYx1Kn](https://poly.pizza/m/z3TSQYx1Kn) | CC0 1.0 |
-| Universal Animation Library [Standard] v3.0 | Quaternius | [quaternius.itch.io/universal-animation-library](https://quaternius.itch.io/universal-animation-library) | CC0 1.0 |
 | Polygonal Mind astronaut avatars (3 models) | Polygonal Mind (100Avatars) | [poly.pizza/m/UeBrldDxE9](https://poly.pizza/m/UeBrldDxE9), [4orkFqR9c9](https://poly.pizza/m/4orkFqR9c9), [WVliq38EJz](https://poly.pizza/m/WVliq38EJz) | CC0 1.0 |
-| Poly Haven models: namaqualand_boulder_02, 04, 05, 06; namaqualand_cliff_01, 02; rock_07; stone_01 | Poly Haven artists as listed in each `SOURCE.txt` (Greg Zaal, Rico Cilliers, Jenelle van Heerden, Dario Barresi) | `polyhaven.com/a/<name>` | CC0 1.0 |
+| Poly Haven models: namaqualand_boulder_02, 04; namaqualand_cliff_01, 02; stone_01 | Poly Haven artists as listed in each `SOURCE.txt` (Greg Zaal, Rico Cilliers, Jenelle van Heerden, Dario Barresi) | `polyhaven.com/a/<name>` | CC0 1.0 |
+| Poly Haven ground textures: rocks_ground_09, rocky_trail_02 | Rob Tuytel; Amal Kumar (Poly Haven) | `polyhaven.com/a/<name>` | CC0 1.0 |
+| ambientCG materials: Ground098, Rock029, Rock062 | ambientCG | `ambientcg.com/a/<name>` | CC0 1.0 |
 | Sci Fi Character | Quaternius, via Poly Pizza | [poly.pizza/m/4pUXv5V8kq](https://poly.pizza/m/4pUXv5V8kq) | CC-BY 3.0 (label on the Poly Pizza page). Attribution: "Sci Fi Character by Quaternius [CC-BY] via Poly Pizza" |
 | Hazmat Man | Charlie, via Poly Pizza | [poly.pizza/m/y2ygMH3VYx](https://poly.pizza/m/y2ygMH3VYx) | CC-BY 3.0. Attribution: "Hazmat Man by Charlie [CC-BY] via Poly Pizza" |
 | Rigged astronaut | J-Toastie | [poly.pizza/m/0oBRDJ9Zl9](https://poly.pizza/m/0oBRDJ9Zl9) | CC-BY 3.0 |
