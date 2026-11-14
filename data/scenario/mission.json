@@ -1,8 +1,8 @@
 {
   "note": "Scripted demo mission at NE Melas Chasma. Positions are core metres (x east, y south of the EVA-box corner); local e = 1650 + x, s = 6600 + y. Everything in this file is a scenario input, not an observation.",
   "scenario": true,
-  "start_utc": "2026-11-15T09:00:00Z",
-  "start_utc_note": "Mission time 0. Chosen so the Sun is in the Horizons table (06:00-12:00 UTC, 15 Nov 2026) and the crew works in the Martian afternoon.",
+  "start_utc": "2026-11-15T07:00:00Z",
+  "start_utc_note": "Mission time 0. Chosen so the Sun is in the Horizons table (06:00-12:00 UTC, 15 Nov 2026) and the crew works in the early Martian afternoon (about 14:20 local true solar time, Sun 50 degrees high).",
   "site_east_lon": 290.0373,
   "site_lat": -10.0116,
   "places": [

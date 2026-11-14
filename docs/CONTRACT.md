@@ -117,7 +117,7 @@ Positions are local metres. Fractions are 0..1. `kind` on any number: `measured`
              {"id":"sci-1","kind":"science","title":"Fresh boulder","at_s":900}]}
 
 {"type":"snapshot","t":134.2,
- "clock":{"t":134.2,"sol":1,"lmst":"14:32:10","utc":"2026-11-15T09:02:14Z","speed":8,"paused":false},
+ "clock":{"t":134.2,"sol":1,"lmst":"14:49:02","utc":"2026-11-15T07:02:14Z","speed":8,"paused":false},
  "phase":"assess","incident_id":"sep-1",
  "crew":[{"id":0,"name":"EV1","e":4450.0,"s":8100.0,"z":-3301.2,"heading":212.0,"pace":1.1,
           "o2":0.82,"heat":0.31,"dose":0.004,"status":0}],
