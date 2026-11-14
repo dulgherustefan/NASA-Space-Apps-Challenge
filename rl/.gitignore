@@ -1,0 +1,9 @@
+__pycache__/
+# parity dumps and intermediate checkpoints are reproducible (see README); keep logs, configs, eval json
+runs/parity/*.f32
+runs/parity/*.f64
+runs/parity/*.u8
+runs/parity/*.i32
+runs/smoke/
+runs/*/ckpt_*.pt
+runs/*/eval_test.json
