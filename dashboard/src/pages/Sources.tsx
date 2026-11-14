@@ -6,6 +6,8 @@ const DATA: Row[] = [
   { name: 'HiRISE DTM DTEEC_028857_1700_028923_1700_A01', credit: 'NASA/JPL/University of Arizona/USGS', terms: 'CC0. USGS Astrogeology STAC, collection mro_hirise_socet_dtms', use: 'Elevation, 1 m, 4 × 4 km core box. Slope, roughness, sky view and the walking model are derived from it.' },
   { name: 'HiRISE orthoimage ESP_028857_1700_RED_C_01_ORTHO', credit: 'NASA/JPL/University of Arizona', terms: 'Public domain', use: 'The greyscale base image of the tactical map. Surface colour in the app is an approximate tint.' },
   { name: 'CTX DTM D04_028857_1684_XN_11S069W and D04_028923_1684_XN_11S069W', credit: 'NASA/JPL/MSSS/USGS', terms: 'CC0. USGS Astrogeology STAC, collection mro_ctx_controlled_usgs_dtms', use: 'Regional elevation strip around the core box.' },
+  { name: 'HiRISE merged colour product ESP_028857_1700_MRGB', credit: 'NASA/JPL/University of Arizona', terms: 'Public domain (HiRISE image usage policy)', use: 'Dust and sand pattern of the terrain colour in the 3D view. An approximate colour, not a measurement of the site.' },
+  { name: 'Viking MDIM 2.1 colourised global mosaic, 232 m per pixel', credit: 'USGS Astrogeology Science Center / NASA Ames', terms: 'Public domain', use: 'Broad hue variation of the terrain colour in the 3D view.' },
 ]
 const INCIDENT_DATA: Row[] = [
   { name: 'MSL RAD solar particle event of 20 May 2024 (Loewe et al. 2025, arXiv:2502.02469)', credit: 'NASA/JPL, Curiosity RAD team', terms: 'Published results', use: 'Time to peak, 30 minute shelter rule, unshielded dose.' },
@@ -21,13 +23,16 @@ const METHOD: Row[] = [
   { name: 'HRP evidence report on EVA (NTRS 20220004017)', credit: 'NASA', terms: 'Public', use: 'Suit cooling limit and stored-heat limits.' },
   { name: 'Apollo 16 Time and Motion Study (NTRS 19730008098)', credit: 'NASA', terms: 'Public', use: 'Nominal suited walking pace.' },
 ]
+const NASA_TERMS = 'NASA 3D Resources: no copyright claimed, credit NASA, no endorsement implied'
 const MODELS: Row[] = [
-  { name: 'Habitat Demonstration Unit (parts 1 and 2)', credit: 'NASA, from NASA-3D-Resources', terms: 'Free and without copyright (NASA media guidelines)', use: '3D view' },
-  { name: 'Space Exploration Vehicle', credit: 'NASA, from NASA-3D-Resources', terms: 'Free and without copyright (NASA media guidelines)', use: '3D view' },
-  { name: 'Astronaut, rigged, 24 animations', credit: 'Quaternius, poly.pizza/m/3hC2i0CTuO', terms: 'CC0 1.0', use: '3D view' },
-  { name: 'moon_rock_01 to 04', credit: 'Greg Zaal, Rico Cilliers, Jenelle van Heerden, Dario Barresi (Poly Haven)', terms: 'CC0 1.0', use: '3D view. Earth and studio scans, not Mars data.' },
-  { name: 'rock_09', credit: 'Jenelle van Heerden (Poly Haven)', terms: 'CC0 1.0', use: '3D view' },
-  { name: 'namaqualand_boulder_03', credit: 'Jenelle van Heerden, Dario Barresi (Poly Haven)', terms: 'CC0 1.0', use: '3D view' },
+  { name: 'Z-2 planetary surface spacesuit prototype', credit: 'NASA/LaRC/Advanced Concepts Lab', terms: NASA_TERMS, use: 'Crew figures. Modified: given a skeleton and animation clips, insignia and mission emblem painted out.' },
+  { name: 'Habitat Demonstration Unit (parts 1 and 2)', credit: 'NASA', terms: NASA_TERMS, use: 'Habitat. Modified: insignia and logos painted out.' },
+  { name: 'Space Exploration Vehicle', credit: 'NASA', terms: NASA_TERMS, use: 'Rover' },
+  { name: 'InSight lander (deployed)', credit: 'NASA/JPL-Caltech', terms: NASA_TERMS, use: 'Seismic station. Modified: logos painted out.' },
+  { name: 'Ingenuity Mars Helicopter', credit: 'NASA/JPL-Caltech', terms: NASA_TERMS, use: 'Helicopter (set dressing). Modified: logos painted out.' },
+  { name: 'Universal Animation Library [Standard] v3.0', credit: 'Quaternius', terms: 'CC0 1.0', use: 'Skeleton and the walk, idle, stumble, collapse, kneel, crouch and work clips of the crew.' },
+  { name: 'namaqualand_boulder_03, 05 and 06', credit: 'Jenelle van Heerden, Dario Barresi, Greg Zaal (Poly Haven)', terms: 'CC0 1.0', use: 'Boulders, rockfall and stones. Earth scans used as set dressing, not Mars data.' },
+  { name: 'rock_07', credit: 'Jenelle van Heerden (Poly Haven)', terms: 'CC0 1.0', use: 'Small stones (set dressing)' },
   { name: 'red_laterite_soil_stones', credit: 'Amal Kumar (Poly Haven)', terms: 'CC0 1.0', use: 'Ground detail texture' },
   { name: 'sandy_gravel_02', credit: 'Dario Barresi (Poly Haven)', terms: 'CC0 1.0', use: 'Ground detail texture' },
   { name: 'dry_ground_rocks', credit: 'Rob Tuytel (Poly Haven)', terms: 'CC0 1.0', use: 'Ground detail texture' },
@@ -57,7 +62,7 @@ export function SourcesPage() {
   return (
     <PageShell wide title="Sources" lede="The data, papers and assets behind what you see on the console.">
       <div className="mb-8 rounded-[3px] border border-rule2 bg-panel px-4 py-3 text-[13.5px] text-ink">
-        Not affiliated with or endorsed by NASA. No NASA insignia or logos are used.
+        Not affiliated with or endorsed by NASA. No NASA insignia or logos are shown: the ones on the textures of the NASA 3D models are painted out.
       </div>
       <H2>Terrain datasets</H2>
       <Table rows={DATA} head={['Dataset', 'Credit', 'Terms', 'Used for']} />

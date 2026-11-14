@@ -9,6 +9,16 @@ on real HiRISE and CTX terrain.
 It was made for the NASA Space Apps Challenge 2026, challenge "Interplanetary Survival Guide: Martian Map".
 It is not affiliated with or endorsed by NASA, and it is a planning aid only. Nothing here has been tested with a crew.
 
+![The Solway dashboard during the solar particle event scenario](docs/img/dashboard.png)
+
+The dashboard during the scripted solar particle event: the incident, what changed on the hazard map, the stress-tested
+routes and the chosen one. Every figure is labelled as measured, model, requirement, assumption or scenario.
+
+![The 3D view: two crew members walk the chosen route](docs/img/scene.jpg)
+
+The 3D view: the crew walks the chosen route on the HiRISE terrain, with the rover and the habitat marked ahead.
+The terrain colour is approximate, and the dust is set dressing.
+
 ## How it works
 
 An incident goes through four phases.
