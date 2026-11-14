@@ -1,69 +1,158 @@
 # Simulation window (Unreal Engine 5.8)
 
-`MelasSim/` is the Unreal project. It shows the real terrain of the demo site and plays what the engine sends over OSC
-(`docs/CONTRACT.md`). Blueprint only, no C++, so it opens without a compile step.
+`MelasSim/` is the Unreal project. It shows the real terrain of the demo site and plays what the Solway engine sends over
+OSC. The engine is the authority; this window only displays. Interfaces are in `../docs/CONTRACT.md`.
 
-## What is already in the project
+The project has no C++ source, so it opens without a compile step. The scene is built and driven by Python scripts in
+`scripts/`. The 3D window is the Unreal editor in Play mode with the director script running; no packaged build is included.
+
+## Requirements
+
+- Unreal Engine 5.8 (`EngineAssociation` is `5.8` in `MelasSim/MelasSim.uproject`).
+- Plugins enabled by the project: `PythonScriptPlugin`, `EditorScriptingUtilities`, `OSC`, `Niagara`, `GeometryScripting`, `PCG`,
+  `JsonBlueprintUtilities`, `HttpBlueprint`, `ModelContextProtocol`, `AllToolsets`.
+- Developed on macOS (Metal SM6). The Windows paths below use DirectX 12 SM6, as set in `Config/DefaultEngine.ini`.
+- For the full rebuild: `uv` and the repository's Python environment (the `tools/` scripts), and `assets_src/` (raw models and
+  textures, not in git).
+
+## Open the project
+
+Open `unreal/MelasSim/MelasSim.uproject` with Unreal Engine 5.8 (double-click it, or choose it in the Epic Games Launcher / Unreal
+Project Browser). The default and startup map is `/Game/Maps/Melas`. The first open compiles shaders and can take a while.
+
+## What is in the project
 
 | Path | What |
 |---|---|
-| `/Game/Maps/Melas` | Empty level: Mars sun, atmosphere, sky light, haze, exposure, start camera. Opens by default. |
-| `/Game/Terrain/Textures` | Orthoimage and luminance drapes for both terrain tiers |
-| `/Game/Terrain/Ground` | Three tiling ground materials (Poly Haven, CC0): diffuse, normal, AO/rough/metal |
-| `/Game/Props/Astronaut` | Rigged astronaut with 24 animations (Quaternius, CC0) |
-| `/Game/Props/Habitat`, `/Game/Props/Rover` | NASA Habitat Demonstration Unit and Space Exploration Vehicle (credit NASA) |
+| `/Game/Maps/Melas` | The level: Mars sun, atmosphere, sky light, haze, exposure, terrain, markers, props, crew, cameras |
+| `/Game/Terrain/Meshes` | Nanite terrain meshes: `SM_Core_00` to `SM_Core_33`, `SM_Region_0` to `3`, `SM_Far_0` |
+| `/Game/Terrain/Textures` | Orthoimage and luminance drapes for the core and region tiers |
+| `/Game/Terrain/Ground` | Three tiling ground textures (Poly Haven, CC0): diffuse, normal, AO/rough/metal |
+| `/Game/Terrain` | `M_Terrain` and one instance per tier (`MI_Terrain_Core`, `MI_Terrain_Region`, `MI_Terrain_Far`) |
+| `/Game/Markers`, `/Game/FX` | Marker and beam materials, dust sprite material and texture, rotor material |
+| `/Game/Props/Habitat`, `Rover` | NASA Habitat Demonstration Unit and Space Exploration Vehicle |
+| `/Game/Props/Suit`, `InSight`, `Ingenuity` | NASA Z-2 suit (crew figure), InSight lander (seismic station), Ingenuity (scout helicopter) |
+| `/Game/Props/Astronaut`, `Crew`, `AstronautNasa` | Rigged astronaut (Quaternius, CC0) and a copy, and a static NASA astronaut. `build_scene.py` does not place them. |
 | `/Game/Props/Rocks` | Six scanned rocks (Poly Haven, CC0) |
 
-Rebuild any of it with the scripts in `unreal/scripts/` (editor closed):
+Authors, sources and licences are in `../ASSETS.md`.
+
+## Scripts and the order to run them
+
+Run from the repository root unless noted. `<UE>` is the Unreal Engine install folder and `<repo>` the repository.
+The Unreal project already contains the imported assets, so these steps are only needed to rebuild it.
+
+**1. Make the input files** (Python, no editor):
+
+| Command | Writes |
+|---|---|
+| `uv run python tools/make_unreal_terrain.py` | `unreal_import/`: 16-bit heightmaps, orthoimage and luminance drapes, `import_values.json` (including `Z_REF`) |
+| `uv run python tools/make_terrain_meshes.py` | `unreal_import/meshes/*.glb` (not in git) and `terrain_meshes.json`: core 4 × 4 km at 2.5 m, region 9 × 28 km at 16 m (pushed 40 m down under the core), far 56 × 68 km at 80 m |
+| `uv run python tools/make_scene_layout.py` | `unreal_import/scene_layout.json`: positions of places, props, boulders, rockfall tracks and cameras, in Unreal centimetres |
+| `uv run python tools/make_fx_textures.py` | `unreal_import/fx/dust_atlas.png`: procedural dust sprites |
+
+**2. Run the editor scripts** (in this order):
+
+| # | Script | How | Produces |
+|---|---|---|---|
+| 1 | `scripts/import_assets.py` | headless | Drape textures in `/Game/Terrain/Textures`, ground textures in `/Game/Terrain/Ground`, models in `/Game/Props/Astronaut`, `Habitat`, `Rover`, `Rocks`. Replaces existing assets. Report: `Saved/import_report.json`. |
+| 2 | `scripts/build_level.py` | headless | The empty `/Game/Maps/Melas` level with sun, atmosphere, sky light, fog, exposure and a start camera. Does nothing if the level exists. Report: `Saved/build_level_report.json`. |
+| 3 | `scripts/import_terrain.py` | headless or in the editor | The terrain meshes in `/Game/Terrain/Meshes` as Nanite static meshes. Keeps existing meshes. Report: `Saved/import_terrain_report.json`. |
+| 4 | `scripts/build_scene.py` | in the open editor, `Melas` loaded | The terrain material and instances, terrain actors, markers, dust effects, props, crew, boulders, rockfall rocks, agent markers and cameras. Safe to re-run. Report: `Saved/build_scene_report.json`. |
+| 5 | `scripts/director.py` | in the open editor, `Melas` loaded | The live director. See below. |
+
+Headless command (editor closed):
 
 ```
 "<UE>/Engine/Binaries/Mac/UnrealEditor-Cmd" <repo>/unreal/MelasSim/MelasSim.uproject -run=pythonscript -script=<repo>/unreal/scripts/import_assets.py -unattended -nosplash
 ```
 
-On Windows the binary is `<UE>\Engine\Binaries\Win64\UnrealEditor-Cmd.exe`. `import_assets.py` needs `assets_src/` and
-`unreal_import/` (run `uv run python tools/make_unreal_terrain.py` for the second). `build_level.py` never overwrites an existing level.
+On Windows the binary is `<UE>\Engine\Binaries\Win64\UnrealEditor-Cmd.exe`. Replace the script name for `build_level.py` and `import_terrain.py`.
 
-## The one manual step: import the two Landscapes
+In the open editor, type in the Output Log's Cmd box:
 
-Unreal 5.8 has no scripting call that creates a Landscape, so this is done once by hand, in the `Melas` level.
-Files are in `unreal_import/`, all values also in `unreal_import/import_values.json`.
+```
+py "<repo>/unreal/scripts/build_scene.py"
+```
 
-For each row: **Landscape Mode (Shift+2) → Manage → New → Import from File**, pick the heightmap, set the fields, press **Import**.
-Do not press *Fit To Data*. Leave *Flip Y Axis* off and the material empty.
+The Z-2 suit, InSight and Ingenuity models that `build_scene.py` loads are already in `Content/`, but no script in the repository
+imports them. To rebuild `Content/` from nothing, import them by hand from `assets_src/` (`nasa_z2_spacesuit`, `nasa_insight_lander`
+`insight_deployed_mars_team.glb`, `nasa_ingenuity_helicopter`) under the names `z2_spacesuit`, `insight_deployed_mars_team` and
+`ingenuity_v3_mars_team` in the folders listed above. `build_scene.py` lists anything it cannot load under `props_failed` in its report.
 
-| Field | Core (4 × 4 km, HiRISE) | Region (9 × 28 km, HiRISE + CTX) |
+## Environment variables
+
+Set them in the environment of the editor process before it starts. All are optional.
+
+| Variable | Read by | Effect |
 |---|---|---|
-| Heightmap file | `core_height_2017.png` | `region_height_568x1765.png` |
-| Location (panel, = centre) | 365000, 860000, 0 | 360000, 212000, 225754.83 |
-| Scale | 198.4127, 198.4127, 207.425 | 1600, 1600, 1444.358 |
-| Section size | 63 × 63 quads | 63 × 63 quads |
-| Sections per component | 2 × 2 | 1 × 1 |
-| Number of components | 16 × 16 | 9 × 28 |
-| Overall resolution (check) | 2017 × 2017 | 568 × 1765 |
+| `TERRAIN_FORCE=1` | `import_terrain.py` | Import meshes again even if they exist |
+| `TERRAIN_ONLY` | `import_terrain.py` | Comma-separated mesh names (for example `SM_Core_00,SM_Far_0`); import only those |
+| `SCENE_STAGES` | `build_scene.py` | Comma-separated list of `terrain` and `props` (default both); limits what is rebuilt |
+| `SOLWAY_OSC_PORT` | `director.py` | UDP port to listen on (default 9000) |
+| `SOLWAY_PLAY=1` | `director.py` | Start Play In Editor as soon as the director starts |
+| `SOLWAY_EDITOR_WORLD=1` | `director.py` | Also drive the editor world when Play is not running (for look checks; do not save the level afterwards) |
 
-After each import select the new Landscape actor and check **Details → Transform → Location**. It must read:
+The engine always sends to `127.0.0.1:9000` (set in `engine/osc.py`). If you change `SOLWAY_OSC_PORT`, change the engine too.
 
-| | Core | Region |
-|---|---|---|
-| Actor location | 165000, 660000, 0 | −93600, −1199200, 225754.83 |
+## Start the director
 
-If it does not, type these values there (the actor's location is its first vertex, the panel's is the centre).
-Rename the actors `Landscape_Core` and `Landscape_Region`, then save the level.
+1. Start the engine (`uv run python -m engine` in the repository root). OSC is fire and forget, so the order does not matter, but the director only reacts to what arrives after it starts.
+2. Open `MelasSim.uproject`, make sure `/Game/Maps/Melas` is loaded.
+3. In the Cmd box run `py "<repo>/unreal/scripts/director.py"`, then press Play (or set `SOLWAY_PLAY=1`).
+4. Start the demo from the dashboard (**Run demo**) or start the engine with `--demo`.
 
-The region is sunk 40 m under the core box on purpose, so the two tiers never fight for the same pixels.
+Running the script again replaces the previous director. To stop it, run in the Cmd box:
+
+```
+py import builtins; builtins.solway_director.stop()
+```
+
+OSC messages and their arguments are defined in `../docs/CONTRACT.md`, section 3 (port 9000; addresses `/clock`, `/crew`, `/agent`,
+`/incident`, `/overlay`, `/reload`, `/route`, `/cue`). The director also reads `runtime/` (routes, trajectories, overlay images),
+`data/site/` and `unreal_import/scene_layout.json`. It writes its state once a second to `MelasSim/Saved/director_state.json`.
+
+What the director does for each message:
+
+| Message | Effect in the scene |
+|---|---|
+| `/crew` | Moves the crew actors (tag `crew:<id>`); heights come from the 2.5 m render grid so feet stay on the mesh |
+| `/agent` | Moves a pool of markers during stress-test replays, coloured by status |
+| `/clock` | Turns the sun |
+| `/incident` | Marsquake: epicentre beam, falling rocks along the tracks in `scene_layout.json`, camera shake |
+| `/overlay` | Shows `runtime/overlay_<layer>.png` on the core terrain, two layers at a time |
+| `/reload` | Reads `routes`, `overlay` or `trajectories` again |
+| `/route` | Draws the candidate routes on the terrain, coloured by state |
+| `/cue` | Camera: `overview`, `follow`, `wall`, `shelter`, `failure` |
+
+## Set dressing, not simulation output
+
+On its own the director keeps the scene moving: the cameras swing slowly around their subject, dust rises from the crew's steps
+and from falling rocks, wind-blown dust and a dust devil drift across the view, and the scout helicopter circles the crew.
+The dust, the dust devil and the helicopter are set dressing, not simulation output. The same holds for the seismic station
+model, the Earth rock scans and ground textures, and the boulders in the rockfall band, whose positions are seeded and illustrative.
+What does come from the engine: crew and agent positions, the clock and Sun direction, incidents, overlays and routes.
 
 ## Coordinates
 
-`X = east × 100`, `Y = south × 100`, `Z = (elevation − Z_REF) × 100`, with `Z_REF = −3148.992 m`. Images and heightmaps
-have east to the right and south down, so nothing is flipped. North is −Y.
+`X = east × 100`, `Y = south × 100`, `Z = (elevation − Z_REF) × 100`, in centimetres, with `Z_REF = −3148.992 m`
+(`unreal_import/import_values.json`). Images have east to the right and south down, so nothing is flipped. North is −Y.
+
+## Terrain as Landscape (not used by the current scene)
+
+`tools/make_unreal_terrain.py` still writes Landscape heightmaps (`core_height_2017.png`, `region_height_568x1765.png`) and the import
+values for the Landscape dialog in `unreal_import/import_values.json`. UE 5.8 has no scripting call that creates a Landscape, so
+that route needs manual import. `build_scene.py` places the Nanite meshes instead and does not use these files.
 
 ## Editor automation
 
 Plugins `ModelContextProtocol` and `AllToolsets` (both ship with the engine) expose the editor on `http://127.0.0.1:8000/mcp`
-for scripted scene edits. The server is off unless the editor is started with `-ModelContextProtocolStartServer`.
+for scripted scene edits (`MelasSim/.mcp.json`). The server is off unless the editor is started with `-ModelContextProtocolStartServer`.
 
 ## Look
 
-Dynamic lighting only: Lumen for global illumination and reflections, Virtual Shadow Maps, no baked light.
-The sky values in `build_level.py` are a starting point chosen from dust optical depth and albedo, not a measurement; tune by eye.
+Dynamic lighting only: Lumen for global illumination and reflections, Virtual Shadow Maps, no baked light
+(`Config/DefaultEngine.ini`). The sky values in `build_level.py` are a starting point chosen from dust optical depth and albedo,
+not a measurement. The initial Sun direction is the JPL Horizons value for the site on 2026-11-15 09:00 UT (azimuth 284.65°,
+elevation 23.09°); the engine overrides it through `/clock`, and the director keeps the Sun above a minimum elevation so the scene stays readable.
 Surface colour comes from a greyscale orthoimage and a tint. It is approximate colour, and the app says so.

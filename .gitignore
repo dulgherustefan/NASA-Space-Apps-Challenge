@@ -44,3 +44,6 @@ Thumbs.db
 # per-user editor scratch folders
 unreal/MelasSim/Content/Developers/
 unreal/MelasSim/Content/Collections/
+
+# terrain meshes for the Unreal import (rebuilt by tools/make_terrain_meshes.py)
+unreal_import/meshes/
