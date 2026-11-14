@@ -80,8 +80,9 @@ class Hub:
 
     def _publish(self, msg):
         msg = _clean(msg)
-        if msg["type"] == "incident":
-            self.sticky = [msg]
+        if msg["type"] == "incident":      # a client that connects late gets every incident since the reset; a repeated one replaces its first run
+            self.sticky = [m for m in self.sticky if m.get("incident_id", m.get("id")) != msg["id"]]
+            self.sticky.append(msg)
         elif msg["type"] in STICKY:
             self.sticky.append(msg)
         text = _json(msg)

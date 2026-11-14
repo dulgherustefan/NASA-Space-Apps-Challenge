@@ -38,6 +38,7 @@ Heading is degrees clockwise from north; Unreal yaw = heading − 90.
 ## 2. Engine → dashboard (WebSocket, JSON, one object per message)
 
 Every message has `type` and `t` (mission seconds).
+A client that connects late gets `hello`, then every `incident`, `assessment`, `routes`, `stress` and `decision` message sent since the last reset, in order.
 
 | type | When | Payload |
 |---|---|---|

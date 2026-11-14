@@ -1,4 +1,5 @@
 """Engine tests: coordinates, overlays, routes, contract field names, file-server path checks."""
+import asyncio
 import json
 import math
 import os
@@ -15,7 +16,7 @@ from engine.hazards import LAYERS, Hazards, png_bytes  # noqa: E402
 from engine.osc import Osc  # noqa: E402
 from engine.routes import plan_candidates  # noqa: E402
 from engine.scenario import Scenario  # noqa: E402
-from engine.server import safe_path  # noqa: E402
+from engine.server import Hub, safe_path  # noqa: E402
 from engine.site import get_site, heading_deg  # noqa: E402
 
 
@@ -179,6 +180,18 @@ def _incident_msg(msgs, iid):
     return [m for m in msgs if m["type"] == "incident" and m["id"] == iid][0]
 
 
+def test_late_client_gets_every_incident_since_reset():
+    async def run():
+        hub = Hub(None)
+        for m in (dict(type="incident", t=60.0, id="sep-1"), dict(type="decision", t=72.0, incident_id="sep-1", route_id=0),
+                  dict(type="incident", t=420.0, id="quake-1"), dict(type="log", t=421.0, text="not kept"),
+                  dict(type="incident", t=500.0, id="sep-1"), dict(type="decision", t=512.0, incident_id="sep-1", route_id=1)):
+            hub._publish(m)
+        return hub.sticky
+    kept = asyncio.run(run())
+    assert [(m["type"], m["t"]) for m in kept] == [("incident", 420.0), ("incident", 500.0), ("decision", 512.0)]
+
+
 def test_incidents_fire_at_scenario_time(demo_run, scen):
     """at_s in the scenario files is when the incident really fires (demo pacing does not shift it)."""
     _, msgs, _ = demo_run
@@ -248,7 +261,6 @@ def _files_endpoint(app):
                                      "data/ast/ast_heatmap_sep-1_0.png"])
 def test_missing_optional_files_give_404(tmp_path, monkeypatch, site, scen, missing):
     """runtime/params.json and data/ast/* may not exist (data/ast is produced on another machine)."""
-    import asyncio
     import functools
 
     from fastapi import HTTPException
