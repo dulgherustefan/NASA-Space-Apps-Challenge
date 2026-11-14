@@ -1,0 +1,46 @@
+# secrets
+.env
+.env.*
+!.env.example
+
+# python
+.venv/
+__pycache__/
+*.pyc
+
+# node / electron
+node_modules/
+dashboard/dist/
+dashboard/release/
+
+# raw downloads and source assets (re-fetchable, listed in ASSETS.md)
+data_raw/
+assets_src/
+
+# generated at run time by the engine
+runtime/*
+!runtime/.gitkeep
+
+# RL runs (keep configs and logs, drop checkpoints)
+rl/runs/*/ckpt_*.pt
+rl/runs/smoke/
+
+# Unreal Engine
+unreal/*/Binaries/
+unreal/*/Build/
+unreal/*/DerivedDataCache/
+unreal/*/Intermediate/
+unreal/*/Saved/
+unreal/*/.vs/
+unreal/*/*.sln
+unreal/*/*.xcworkspace
+unreal/*/Content/Megascans/
+unreal/*/Content/Fab/
+
+# OS / editors
+.DS_Store
+Thumbs.db
+*.log
+# per-user editor scratch folders
+unreal/MelasSim/Content/Developers/
+unreal/MelasSim/Content/Collections/

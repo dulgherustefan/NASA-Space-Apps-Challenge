@@ -1,0 +1,24 @@
+[project]
+name = "mars-incident-engine"
+version = "0.1.0"
+description = "Incident-response engine for crews on foot on Mars: hazard layers, route planning, stress-test results, mission clock."
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "numpy>=2.1",
+    "numba>=0.61",
+    "pillow>=11.0",
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "python-osc>=1.9",
+]
+
+[project.optional-dependencies]
+# Raw-data rebuild only (pipeline/10_build_site.py). Not needed to run the product.
+pipeline = ["rasterio>=1.4", "scipy>=1.14"]
+# Training runs on the Windows RTX laptop; install torch there from the CUDA index (see rl/README.md).
+plots = ["matplotlib>=3.9"]
+
+[tool.uv]
+package = false
