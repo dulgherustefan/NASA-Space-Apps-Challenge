@@ -1,0 +1,92 @@
+{
+ "note": "Unreal X = east*100, Y = south*100, Z = (z - z_ref_m)*100. Heightmap columns run east, rows run south. location_cm is the Landscape actor's location (its first vertex); panel_location_cm is what the New Landscape panel asks for (the centre).",
+ "z_ref_m": -3148.991897459373,
+ "core": {
+  "heightmap": "core_height_2017.png",
+  "resolution": [
+   2017,
+   2017
+  ],
+  "section_size": "63x63 quads",
+  "sections_per_component": "2x2",
+  "components": [
+   16,
+   16
+  ],
+  "location_cm": [
+   165000.0,
+   660000.0,
+   0.0
+  ],
+  "panel_location_cm": [
+   365000.0,
+   860000.0,
+   0.0
+  ],
+  "scale": [
+   198.4126984126984,
+   198.4126984126984,
+   207.42504005493248
+  ],
+  "quad_m": 1.984126984126984,
+  "z_min_m": -3680.0,
+  "z_max_m": -2618.0,
+  "ortho": "core_ortho_4096.png",
+  "luminance": "core_lum_4096.png",
+  "ortho_extent_m": {
+   "e0": 1650.0,
+   "s0": 6600.0,
+   "w": 4000.0,
+   "h": 4000.0
+  }
+ },
+ "region": {
+  "heightmap": "region_height_568x1765.png",
+  "resolution": [
+   568,
+   1765
+  ],
+  "section_size": "63x63 quads",
+  "sections_per_component": "1x1",
+  "components": [
+   9,
+   28
+  ],
+  "location_cm": [
+   -93600.0,
+   -1199200.0,
+   225754.8317692836
+  ],
+  "panel_location_cm": [
+   360000.0,
+   212000.0,
+   225754.8317692836
+  ],
+  "scale": [
+   1600.0,
+   1600.0,
+   1444.3579766536966
+  ],
+  "quad_m": 16.0,
+  "z_min_m": -4589.0,
+  "z_max_m": 2806.0,
+  "sunk_under_core_m": 40.0,
+  "ortho": "region_ortho_2048x8192.png",
+  "luminance": "region_lum_2048x8192.png",
+  "ortho_source_px": [
+   2304,
+   7056
+  ],
+  "ortho_extent_m": {
+   "e0": -1008.0,
+   "s0": -12000.0,
+   "w": 9216.0,
+   "h": 28224.0
+  }
+ },
+ "sources": {
+  "hirise_dtm": "DTEEC_028857_1700_028923_1700_A01 (USGS Astrogeology STAC mro_hirise_socet_dtms, CC0); credit NASA/JPL/University of Arizona/USGS",
+  "hirise_ortho": "ESP_028857_1700_RED_C_01_ORTHO (1 m); credit NASA/JPL/University of Arizona",
+  "ctx_dtm": "D04_028857_1684_XN_11S069W / D04_028923_1684_XN_11S069W (USGS STAC mro_ctx_controlled_usgs_dtms, CC0); credit NASA/JPL/MSSS/USGS"
+ }
+}
