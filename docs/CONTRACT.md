@@ -105,7 +105,7 @@ The demo plays from these files. Nothing is fetched at run time.
 Positions are local metres. Fractions are 0..1. `kind` on any number: `measured`, `model`, `requirement`, `assumption`, `scenario`.
 
 ```json
-{"type":"hello","t":0,"product":"Faro","version":"0.2",
+{"type":"hello","t":0,"product":"Solway","version":"0.2",
  "site":{"name":"NE Melas Chasma","lat":-10.0,"lon":-69.0,"core":{"e0":1650,"s0":6600,"size":4000},"z_ref":-3148.992,
          "ortho":"data/site/core_ortho.webp"},
  "places":[{"id":"S","name":"Science site","kind":"site","e":4450,"s":8100,"z":-3301.2},

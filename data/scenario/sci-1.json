@@ -1,0 +1,68 @@
+{
+  "id": "sci-1",
+  "kind": "science",
+  "title": "Fresh boulder",
+  "scenario": true,
+  "summary": "One sol later, no storm. A fresh boulder stopped below the wall, inside the runout band. Sortie from the rover to the boulder and back, with the band as a hazard.",
+  "source": "Scripted science target; reach angle from Grindrod et al. 2021",
+  "at_s": 88835,
+  "trigger": {
+    "type": "sol",
+    "after_sep_s": 88775.244,
+    "note": "One Mars sol after the solar event; the mission clock jumps forward."
+  },
+  "target": "B",
+  "home": "R",
+  "start": "R",
+  "pace": "nominal",
+  "sep": "none",
+  "band_active": false,
+  "new_eva": true,
+  "overlays": [
+    "rockfall",
+    "hazard",
+    "slope"
+  ],
+  "variants": [
+    {
+      "label": "Boulder and back, band-avoiding weights",
+      "band_weights": "active",
+      "note": "Planner weights with the runout band active (rl/planner.build_cell_costs band_active=True)."
+    },
+    {
+      "label": "Boulder and back, standing weights",
+      "band_weights": "standing",
+      "note": "Planner weights with the band at its standing (background) level."
+    }
+  ],
+  "params": [
+    {
+      "label": "Time since the marsquake",
+      "value": 24.6,
+      "unit": "h",
+      "kind": "scenario",
+      "source": "Scripted: one sol later"
+    },
+    {
+      "label": "Hold on the runout band",
+      "value": 24,
+      "unit": "h",
+      "kind": "assumption",
+      "source": "Team design rule (expired)"
+    },
+    {
+      "label": "Rockfall reach angle",
+      "value": 27.8,
+      "unit": "deg",
+      "kind": "measured",
+      "source": "Grindrod et al. 2021"
+    },
+    {
+      "label": "Boulder site distance from the rover",
+      "value": 1.0,
+      "unit": "km",
+      "kind": "scenario",
+      "source": "Nearest walkable cell in the distal runout band (see data/scenario/mission.json)"
+    }
+  ]
+}

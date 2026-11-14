@@ -1,0 +1,37 @@
+{
+  "note": "Scripted demo mission at NE Melas Chasma. Positions are core metres (x east, y south of the EVA-box corner); local e = 1650 + x, s = 6600 + y. Everything in this file is a scenario input, not an observation.",
+  "scenario": true,
+  "start_utc": "2026-11-15T09:00:00Z",
+  "start_utc_note": "Mission time 0. Chosen so the Sun is in the Horizons table (06:00-12:00 UTC, 15 Nov 2026) and the crew works in the Martian afternoon.",
+  "site_east_lon": 290.0373,
+  "site_lat": -10.0116,
+  "places": [
+    {"id": "S", "name": "Science site", "kind": "site", "x": 2800, "y": 1500},
+    {"id": "R", "name": "Rover", "kind": "rover", "x": 1700, "y": 2600, "shield_param": "shieldRover"},
+    {"id": "H", "name": "Habitat", "kind": "habitat", "x": 700, "y": 3300, "shield_param": "shieldHabitat"},
+    {"id": "A", "name": "Terrain shelter A", "kind": "shelter", "x": 2598, "y": 1858, "shield_param": "terrain"},
+    {"id": "C", "name": "Terrain shelter C", "kind": "shelter", "x": 2343, "y": 2083, "shield_param": "terrain"},
+    {"id": "B", "name": "Fresh boulder", "kind": "science", "x": 1087.5, "y": 1797.5,
+     "note": "Nearest walkable 5 m cell from the rover that is at least 250 m away, inside the 27.8 deg runout band (reach angle 28.8-31.8 deg, i.e. the distal part where boulders stop) and flatter than 12 deg."},
+    {"id": "Q", "name": "Quake epicentre", "kind": "epicentre", "x": 2600, "y": -2600}
+  ],
+  "crew": [
+    {"id": 0, "name": "EV1", "follow_delay_s": 0, "lateral_m": 0},
+    {"id": 1, "name": "EV2", "follow_delay_s": 8, "lateral_m": 2.5}
+  ],
+  "incidents": ["sep-1", "quake-1", "sci-1"],
+  "demo": {
+    "note": "Wall-clock pacing of the demo command (seconds) and the mission-clock speeds it uses.",
+    "lead_in_speed": 20,
+    "phase_speed": 1,
+    "hold_detect_s": 2.5,
+    "hold_assess_s": 3.5,
+    "stress_spacing_s": 0.6,
+    "replay_s": 5.0,
+    "hold_respond_s": 2.5,
+    "walk_speed_min": 30,
+    "walk_wall_max_s": 11,
+    "quake_after_walk_s": 360,
+    "idle_between_s": 2.0
+  }
+}

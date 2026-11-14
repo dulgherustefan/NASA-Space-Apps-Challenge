@@ -1,0 +1,28 @@
+{
+  "id": "quake-1",
+  "kind": "quake",
+  "title": "Marsquake",
+  "scenario": true,
+  "summary": "Ground shaking 4 km north of the crew. Rockfall runout band below the wall is now active; shelters inside it are closed. Re-planning from the crew's position.",
+  "source": "Scripted event; magnitude comparable to S0976a (MQS V14 catalogue, doi 10.12686/a21); rockfall response from Vijayan et al. 2026",
+  "at_s": 480,
+  "trigger": {"type": "walk", "after_walk_s": 360, "note": "Fires when the crew has walked 6 minutes of its solar-storm route. The crew takes its first step 60 s (reactS) after the storm alert, so at_s = 60 (sep-1) + 60 + 360 = 480. The engine holds the mission clock at that instant, whatever the demo pacing."},
+  "epicentre": "Q",
+  "start": "crew", "candidates": ["A", "C", "R", "H"],
+  "pace": "storm",
+  "sep": "continues",
+  "band_active": true,
+  "close_in_band": true,
+  "overlays": ["rockfall", "hazard"],
+  "seismic_peak": 0.05,
+  "seismic_decay_s": 45,
+  "params": [
+    {"label": "Magnitude (scripted)", "value": 4.2, "unit": "MbP", "kind": "scenario", "source": "Comparable to S0976a, Coprates NW, MQS V14 (largest event near Valles Marineris)"},
+    {"label": "Epicentre distance", "value": 4.1, "unit": "km", "kind": "scenario", "source": "Scripted epicentre on the plateau north of the wall"},
+    {"label": "Peak ground acceleration at the crew (scripted)", "value": 0.05, "unit": "m/s2", "kind": "scenario", "source": "Scripted; no strong-motion records exist for Mars"},
+    {"label": "Rockfall reach angle", "value": 27.8, "unit": "deg", "kind": "measured", "source": "Grindrod et al. 2021 (Terra Sirenum, most mobile large fall)"},
+    {"label": "Post-quake rockfall rate vs. background", "value": 10, "unit": "x", "kind": "measured", "source": "Vijayan et al. 2026 (Cerberus Fossae, S0235b)"},
+    {"label": "Boulders released", "value": 27, "unit": "", "kind": "scenario", "source": "Count after S0235b at Cerberus Fossae, Vijayan et al. 2026"},
+    {"label": "Hold on the runout band", "value": 24, "unit": "h", "kind": "assumption", "source": "Team design rule"}
+  ]
+}
