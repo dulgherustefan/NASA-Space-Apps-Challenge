@@ -1,0 +1,472 @@
+{
+ "z_ref_m": -3148.991897459373,
+ "note": "positions are local metres (east, south, z - z_ref); actors sit at 0,0,0",
+ "meshes": [
+  {
+   "tier": "core",
+   "name": "SM_Core_00",
+   "file": "meshes/SM_Core_00.glb",
+   "vertices": 162405,
+   "triangles": 323200,
+   "bounds_m": {
+    "e": [
+     1650.0,
+     2650.0
+    ],
+    "s": [
+     6600.0,
+     7600.0
+    ],
+    "up": [
+     -228.803662165255,
+     205.75591668574043
+    ]
+   }
+  },
+  {
+   "tier": "core",
+   "name": "SM_Core_01",
+   "file": "meshes/SM_Core_01.glb",
+   "vertices": 162405,
+   "triangles": 323200,
+   "bounds_m": {
+    "e": [
+     2650.0,
+     3650.0
+    ],
+    "s": [
+     6600.0,
+     7600.0
+    ],
+    "up": [
+     -185.09855802243055,
+     206.71201647974385
+    ]
+   }
+  },
+  {
+   "tier": "core",
+   "name": "SM_Core_02",
+   "file": "meshes/SM_Core_02.glb",
+   "vertices": 162405,
+   "triangles": 323200,
+   "bounds_m": {
+    "e": [
+     3650.0,
+     4650.0
+    ],
+    "s": [
+     6600.0,
+     7600.0
+    ],
+    "up": [
+     -60.82178988326859,
+     334.44046692607026
+    ]
+   }
+  },
+  {
+   "tier": "core",
+   "name": "SM_Core_03",
+   "file": "meshes/SM_Core_03.glb",
+   "vertices": 162405,
+   "triangles": 323200,
+   "bounds_m": {
+    "e": [
+     4650.0,
+     5650.0
+    ],
+    "s": [
+     6600.0,
+     7600.0
+    ],
+    "up": [
+     51.268757152666694,
+     530.6515907530329
+    ]
+   }
+  },
+  {
+   "tier": "core",
+   "name": "SM_Core_10",
+   "file": "meshes/SM_Core_10.glb",
+   "vertices": 162405,
+   "triangles": 323200,
+   "bounds_m": {
+    "e": [
+     1650.0,
+     2650.0
+    ],
+    "s": [
+     7600.0,
+     8600.0
+    ],
+    "up": [
+     -362.5604028381781,
+     -179.09855802243055
+    ]
+   }
+  },
+  {
+   "tier": "core",
+   "name": "SM_Core_11",
+   "file": "meshes/SM_Core_11.glb",
+   "vertices": 162405,
+   "triangles": 323200,
+   "bounds_m": {
+    "e": [
+     2650.0,
+     3650.0
+    ],
+    "s": [
+     7600.0,
+     8600.0
+    ],
+    "up": [
+     -265.5567864499885,
+     -54.82178988326859
+    ]
+   }
+  },
+  {
+   "tier": "core",
+   "name": "SM_Core_12",
+   "file": "meshes/SM_Core_12.glb",
+   "vertices": 162405,
+   "triangles": 323200,
+   "bounds_m": {
+    "e": [
+     3650.0,
+     4650.0
+    ],
+    "s": [
+     7600.0,
+     8600.0
+    ],
+    "up": [
+     -174.61387045090396,
+     59.18095674067308
+    ]
+   }
+  },
+  {
+   "tier": "core",
+   "name": "SM_Core_13",
+   "file": "meshes/SM_Core_13.glb",
+   "vertices": 162405,
+   "triangles": 323200,
+   "bounds_m": {
+    "e": [
+     4650.0,
+     5650.0
+    ],
+    "s": [
+     7600.0,
+     8600.0
+    ],
+    "up": [
+     -61.42137788967739,
+     406.8609750514993
+    ]
+   }
+  },
+  {
+   "tier": "core",
+   "name": "SM_Core_20",
+   "file": "meshes/SM_Core_20.glb",
+   "vertices": 162405,
+   "triangles": 323200,
+   "bounds_m": {
+    "e": [
+     1650.0,
+     2650.0
+    ],
+    "s": [
+     8600.0,
+     9600.0
+    ],
+    "up": [
+     -444.28262760357075,
+     -257.69320210574506
+    ]
+   }
+  },
+  {
+   "tier": "core",
+   "name": "SM_Core_21",
+   "file": "meshes/SM_Core_21.glb",
+   "vertices": 162405,
+   "triangles": 323200,
+   "bounds_m": {
+    "e": [
+     2650.0,
+     3650.0
+    ],
+    "s": [
+     8600.0,
+     9600.0
+    ],
+    "up": [
+     -348.1864957656212,
+     -163.62270542458236
+    ]
+   }
+  },
+  {
+   "tier": "core",
+   "name": "SM_Core_22",
+   "file": "meshes/SM_Core_22.glb",
+   "vertices": 162405,
+   "triangles": 323200,
+   "bounds_m": {
+    "e": [
+     3650.0,
+     4650.0
+    ],
+    "s": [
+     8600.0,
+     9600.0
+    ],
+    "up": [
+     -289.6537422751203,
+     -31.129961089493918
+    ]
+   }
+  },
+  {
+   "tier": "core",
+   "name": "SM_Core_23",
+   "file": "meshes/SM_Core_23.glb",
+   "vertices": 162405,
+   "triangles": 323200,
+   "bounds_m": {
+    "e": [
+     4650.0,
+     5650.0
+    ],
+    "s": [
+     8600.0,
+     9600.0
+    ],
+    "up": [
+     -153.74172579537662,
+     524.7043259327079
+    ]
+   }
+  },
+  {
+   "tier": "core",
+   "name": "SM_Core_30",
+   "file": "meshes/SM_Core_30.glb",
+   "vertices": 162405,
+   "triangles": 323200,
+   "bounds_m": {
+    "e": [
+     1650.0,
+     2650.0
+    ],
+    "s": [
+     9600.0,
+     10600.0
+    ],
+    "up": [
+     -536.0195925841153,
+     -341.8461890592812
+    ]
+   }
+  },
+  {
+   "tier": "core",
+   "name": "SM_Core_31",
+   "file": "meshes/SM_Core_31.glb",
+   "vertices": 162405,
+   "triangles": 323200,
+   "bounds_m": {
+    "e": [
+     2650.0,
+     3650.0
+    ],
+    "s": [
+     9600.0,
+     10600.0
+    ],
+    "up": [
+     -460.29324788281065,
+     -268.77747768368044
+    ]
+   }
+  },
+  {
+   "tier": "core",
+   "name": "SM_Core_32",
+   "file": "meshes/SM_Core_32.glb",
+   "vertices": 162405,
+   "triangles": 323200,
+   "bounds_m": {
+    "e": [
+     3650.0,
+     4650.0
+    ],
+    "s": [
+     9600.0,
+     10600.0
+    ],
+    "up": [
+     -467.1155870908674,
+     -147.74172579537662
+    ]
+   }
+  },
+  {
+   "tier": "core",
+   "name": "SM_Core_33",
+   "file": "meshes/SM_Core_33.glb",
+   "vertices": 162405,
+   "triangles": 323200,
+   "bounds_m": {
+    "e": [
+     4650.0,
+     5650.0
+    ],
+    "s": [
+     9600.0,
+     10600.0
+    ],
+    "up": [
+     -457.01982146944374,
+     53.525383382925156
+    ]
+   }
+  },
+  {
+   "tier": "region",
+   "name": "SM_Region_0",
+   "file": "meshes/SM_Region_0.glb",
+   "vertices": 253076,
+   "triangles": 504126,
+   "bounds_m": {
+    "e": [
+     -936.0,
+     8136.0
+    ],
+    "s": [
+     -11992.0,
+     -4936.0
+    ],
+    "up": [
+     3134.3866483558404,
+     5954.975646601053
+    ]
+   }
+  },
+  {
+   "tier": "region",
+   "name": "SM_Region_1",
+   "file": "meshes/SM_Region_1.glb",
+   "vertices": 253076,
+   "triangles": 504126,
+   "bounds_m": {
+    "e": [
+     -936.0,
+     8136.0
+    ],
+    "s": [
+     -4936.0,
+     2120.0
+    ],
+    "up": [
+     1790.3384298466467,
+     4510.205676356146
+    ]
+   }
+  },
+  {
+   "tier": "region",
+   "name": "SM_Region_2",
+   "file": "meshes/SM_Region_2.glb",
+   "vertices": 253076,
+   "triangles": 504126,
+   "bounds_m": {
+    "e": [
+     -936.0,
+     8136.0
+    ],
+    "s": [
+     2120.0,
+     9176.0
+    ],
+    "up": [
+     -665.9398947127488,
+     2861.1692835889216
+    ]
+   }
+  },
+  {
+   "tier": "region",
+   "name": "SM_Region_3",
+   "file": "meshes/SM_Region_3.glb",
+   "vertices": 253076,
+   "triangles": 504126,
+   "bounds_m": {
+    "e": [
+     -936.0,
+     8136.0
+    ],
+    "s": [
+     9176.0,
+     16232.0
+    ],
+    "up": [
+     -1499.1526817730983,
+     408.27846189059255
+    ]
+   }
+  },
+  {
+   "tier": "far",
+   "name": "SM_Far_0",
+   "file": "meshes/SM_Far_0.glb",
+   "vertices": 595000,
+   "triangles": 1111038,
+   "bounds_m": {
+    "e": [
+     -17960.0,
+     37960.0
+    ],
+    "s": [
+     -31960.0,
+     35960.0
+    ],
+    "up": [
+     -1940.605172808423,
+     6860.588967727168
+    ]
+   }
+  }
+ ],
+ "drapes": {
+  "core": {
+   "ortho": "core_ortho_4096.png",
+   "extent_m": {
+    "e0": 1650.0,
+    "s0": 6600.0,
+    "w": 4000.0,
+    "h": 4000.0
+   }
+  },
+  "region": {
+   "ortho": "region_ortho_2048x8192.png",
+   "extent_m": {
+    "e0": -1008.0,
+    "s0": -12000.0,
+    "w": 9216.0,
+    "h": 28224.0
+   }
+  }
+ },
+ "sources": {
+  "hirise_dtm": "DTEEC_028857_1700_028923_1700_A01 (USGS Astrogeology STAC mro_hirise_socet_dtms, CC0); credit NASA/JPL/University of Arizona/USGS",
+  "hirise_ortho": "ESP_028857_1700_RED_C_01_ORTHO (1 m); credit NASA/JPL/University of Arizona",
+  "ctx_dtm": "D04_028857_1684_XN_11S069W / D04_028923_1684_XN_11S069W (USGS STAC mro_ctx_controlled_usgs_dtms, CC0); credit NASA/JPL/MSSS/USGS"
+ }
+}
