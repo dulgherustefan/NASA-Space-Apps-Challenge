@@ -1,0 +1,18 @@
+{
+	"FileVersion": 3,
+	"EngineAssociation": "5.8",
+	"Category": "",
+	"Description": "3D simulation window: real Melas Chasma terrain, crews, hazards and incidents, driven by the Python engine over OSC.",
+	"Plugins": [
+		{ "Name": "ModelContextProtocol", "Enabled": true },
+		{ "Name": "AllToolsets", "Enabled": true },
+		{ "Name": "PythonScriptPlugin", "Enabled": true },
+		{ "Name": "EditorScriptingUtilities", "Enabled": true },
+		{ "Name": "OSC", "Enabled": true },
+		{ "Name": "JsonBlueprintUtilities", "Enabled": true },
+		{ "Name": "HttpBlueprint", "Enabled": true },
+		{ "Name": "Niagara", "Enabled": true },
+		{ "Name": "GeometryScripting", "Enabled": true },
+		{ "Name": "PCG", "Enabled": true }
+	]
+}
