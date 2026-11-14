@@ -1,10 +1,11 @@
 # Contract between the three processes
 
-Version 0.1, 14 Nov 2026. Change it only with a note to everyone who builds against it.
+Version 0.2, 14 Nov 2026. Change it only with a note to everyone who builds against it.
 
 ```
 engine (Python, authority)
-   ├── WebSocket  ws://127.0.0.1:8765      → dashboard (Electron)
+   ├── WebSocket  ws://127.0.0.1:8765/ws   → dashboard (Electron)
+   ├── HTTP       http://127.0.0.1:8765/files/<repo path>   (read-only: runtime/, data/site/, data/ast/)
    ├── OSC / UDP  127.0.0.1:9000           → simulation (Unreal)
    └── files      runtime/                 → both
 ```
@@ -98,3 +99,74 @@ Layers: `hazard`, `slope`, `rockfall`, `sand`, `sky`, `dose`, `failures`.
 `ast_baselines.json`, `ast_heatmap_<scenario>_<route>.png`).
 
 The demo plays from these files. Nothing is fetched at run time.
+
+## 6. Message examples (normative: field names and units)
+
+Positions are local metres. Fractions are 0..1. `kind` on any number: `measured`, `model`, `requirement`, `assumption`, `scenario`.
+
+```json
+{"type":"hello","t":0,"product":"Faro","version":"0.2",
+ "site":{"name":"NE Melas Chasma","lat":-10.0,"lon":-69.0,"core":{"e0":1650,"s0":6600,"size":4000},"z_ref":-3148.992,
+         "ortho":"data/site/core_ortho.webp"},
+ "places":[{"id":"S","name":"Science site","kind":"site","e":4450,"s":8100,"z":-3301.2},
+           {"id":"H","name":"Habitat","kind":"habitat","e":2350,"s":9900,"z":-3310.0},
+           {"id":"R","name":"Rover","kind":"rover","e":3350,"s":9200,"z":-3305.0},
+           {"id":"A","name":"Overhang A","kind":"shelter","e":4248,"s":8458,"z":-3290.0}],
+ "scenario":[{"id":"sep-1","kind":"sep","title":"Solar particle event","at_s":60},
+             {"id":"quake-1","kind":"quake","title":"Marsquake","at_s":420},
+             {"id":"sci-1","kind":"science","title":"Fresh boulder","at_s":900}]}
+
+{"type":"snapshot","t":134.2,
+ "clock":{"t":134.2,"sol":1,"lmst":"14:32:10","utc":"2026-11-15T09:02:14Z","speed":8,"paused":false},
+ "phase":"assess","incident_id":"sep-1",
+ "crew":[{"id":0,"name":"EV1","e":4450.0,"s":8100.0,"z":-3301.2,"heading":212.0,"pace":1.1,
+          "o2":0.82,"heat":0.31,"dose":0.004,"status":0}],
+ "sensors":{"dose_rate":12.4,"seismic":0.02,"tau":0.6},
+ "light_time_s":656.7}
+
+{"type":"incident","t":60,"id":"sep-1","kind":"sep","title":"Solar particle event",
+ "summary":"Dose rate rising. Peak expected within 53 minutes.",
+ "source":"Loewe et al. 2025, arXiv:2502.02469, Table 1 (MSL RAD, 20 May 2024)","scenario":true,
+ "e":null,"s":null,
+ "params":[{"label":"Time to peak","value":53,"unit":"min","kind":"measured","source":"arXiv:2502.02469"}]}
+
+{"type":"assessment","t":64,"incident_id":"sep-1",
+ "changes":[{"label":"Shelter rule","value":30,"unit":"min","kind":"requirement","source":"..."}],
+ "overlays":[{"layer":"sky","file":"runtime/overlay_sky.png","label":"Open sky (unshielded)"}],
+ "shelters":[{"id":"A","name":"Overhang A","e":4248,"s":8458,"open":true,"reason":""}]}
+
+{"type":"routes","t":68,"incident_id":"sep-1","file":"runtime/routes.json",
+ "routes":[{"id":0,"shelter":"A","label":"Overhang A","length_m":912,"time_s":780,"ascent_m":35,"max_slope":18.2,
+            "o2_margin":0.61,"heat_margin":0.44,"dose":0.8,
+            "robustness_nats":null,"mc_fail_rate":null,"status":"candidate"}]}
+
+{"type":"stress","t":80,"incident_id":"sep-1","route_id":0,"method":"cem","source":"data/ast",
+ "robustness_nats":7.9,"mc_fail_rate":0.012,"mc_ci":[0.008,0.018],"n":20000,
+ "failures":[{"class":"heat","e":4300,"s":8350,"t":410,"log_p":-8.1,
+              "summary":"Cooling at 0.71 for 6 min on the 14 degree climb",
+              "events":[{"t":300,"channel":"cooling","value":0.71,"log_p":-3.2}]}],
+ "heatmap":"runtime/overlay_failures.png"}
+
+{"type":"decision","t":95,"incident_id":"sep-1","route_id":1,"shelter":"C","auto":true,
+ "reasons":["Highest robustness of the routes inside the 30-minute rule"],
+ "avoided":[{"label":"Rockfall runout band","detail":"Route 0 crosses 140 m of it"}],
+ "time_to_shelter_s":820,"margins":{"o2":0.58,"heat":0.40,"dose":0.9}}
+
+{"type":"log","t":96,"level":"info","text":"Crew EV1 moving to Overhang C","source":"engine"}
+```
+
+Units: `o2` usable oxygen left, `heat` stored heat as a fraction of the failure limit, `dose` cumulative mSv on this walk,
+`dose_rate` in uGy/h, `seismic` ground acceleration in m/s2, `tau` dust optical depth, margins = fraction left on arrival.
+Route `status`: `candidate`, `testing`, `tested`, `rejected`, `chosen`, `infeasible`.
+`stress.method`: `ppo-ast`, `cem`, `mc`. `stress.source`: `data/ast` (trained offline) or `local preview` (small Monte Carlo run by the engine).
+`failure.class`: `fall`, `heat`, `oxygen`, `late`, `stuck`.
+
+Commands (dashboard to engine, same socket):
+
+```json
+{"cmd":"start"} {"cmd":"pause"} {"cmd":"resume"} {"cmd":"reset"} {"cmd":"speed","value":8}
+{"cmd":"trigger","id":"quake-1"} {"cmd":"choose","route_id":1} {"cmd":"cue","name":"wall"} {"cmd":"demo"}
+```
+
+`demo` plays the three incidents back to back with fixed pacing (about 90 s of wall time).
+The product name is sent in `hello.product`; nothing else hard-codes it.
