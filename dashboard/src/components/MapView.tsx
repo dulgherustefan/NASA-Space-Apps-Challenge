@@ -83,6 +83,11 @@ export function MapView() {
   // a recorded-run web build plans in the browser (src/live/bridge.ts)
   const canPlan = useStore((s) => s.mode === 'live' || s.mode === 'replay')
   const [view3d, setView3d] = useState<null | '3d' | 'hud'>(null)
+  useEffect(() => {
+    const on = (e: Event) => setView3d((e as CustomEvent<null | '3d' | 'hud'>).detail)
+    window.addEventListener('solway:view', on)
+    return () => window.removeEventListener('solway:view', on)
+  }, [])
   const online = useStore((s) => s.conn === 'online')
   const planRef = useRef(planMode)
   planRef.current = planMode

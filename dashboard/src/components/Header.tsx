@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { History, Play, RotateCcw, Settings2, Volume2, VolumeX } from 'lucide-react'
+import { History, Play, RotateCcw, Settings2, Sparkles, Volume2, VolumeX } from 'lucide-react'
 import { useStore } from '@/lib/store'
 import { FALLBACK_PRODUCT } from '@/lib/config'
 import { sendCmd } from '@/lib/engine'
@@ -188,6 +188,12 @@ export function Header() {
       </a>
       <nav className="h-full" aria-label="Pages"><Nav /></nav>
       <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3 lg:gap-5">
+        {import.meta.env.MODE === 'live' && (
+          <button type="button" data-testid="tour" onClick={() => void import('@/live/DashTour').then((m) => m.startDashTour())}
+            className="hidden h-9 items-center gap-1.5 rounded-[6px] px-2 text-[13px] text-ink2 transition-colors duration-150 hover:bg-panel3 hover:text-ink md:inline-flex">
+            <Sparkles size={15} />Start tour
+          </button>
+        )}
         <div className="max-[560px]:hidden"><Clocks /></div>
         <Link />
         <Menu label="Settings" button={<Settings2 size={17} />} buttonClassName="inline-flex h-9 w-9 items-center justify-center rounded-[6px] text-ink2 transition-colors duration-150 hover:bg-panel3 hover:text-ink">

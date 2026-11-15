@@ -54,7 +54,7 @@ function GradeChip({ desc }: { desc: SiteDescriptor }) {
 function Section({ title, children, right }: { title: string; children: ReactNode; right?: ReactNode }) {
   return (
     <section className="border-b border-rule px-4 py-3">
-      <div className="mb-2 flex items-center justify-between gap-2"><h2 className="text-[12.5px] font-semibold uppercase tracking-wide text-ink3">{title}</h2>{right}</div>
+      <div className="mb-2 flex items-center justify-between gap-2"><h2 className="text-[13px] font-semibold text-ink">{title}</h2>{right}</div>
       {children}
     </section>
   )
@@ -169,16 +169,27 @@ export default function LiveApp() {
   const chosen = s.chosen
   return (
     <div className="flex h-full flex-col">
-      <header className="flex h-12 shrink-0 items-center gap-3 border-b border-rule bg-panel px-3">
-        <Mark />
-        <span className="text-[16px] font-semibold">Solway</span>
-        <span className="rounded bg-accent/15 px-1.5 text-[11.5px] font-semibold text-accent" title="Everything on this page is computed in your browser now; nothing is pre-recorded.">LIVE</span>
-        <span className="hidden min-w-0 truncate text-[13px] text-ink2 md:inline">{l.desc.name}</span>
-        <span className="hidden sm:inline"><GradeChip desc={l.desc} /></span>
-        <div className="ml-auto flex items-center gap-2">
-          <button className="tap hidden items-center gap-1.5 rounded px-2 text-[13px] text-ink2 hover:text-ink sm:flex" onClick={() => startTour()} data-testid="tour"><Sparkles size={15} />Start tour</button>
-          {HAS.anywhere && <button className="tap flex items-center gap-1.5 rounded px-2 text-[13px] text-ink2 hover:text-ink" onClick={() => setPickerOpen(true)} data-testid="anywhere"><Globe2 size={15} /><span className="hidden sm:inline">Anywhere on Mars</span></button>}
-          <a className="tap hidden items-center rounded px-2 text-[13px] text-ink3 hover:text-ink lg:flex" href="./index.html" title="The recorded run shown at the pitch">Recorded run</a>
+      <header className="flex h-[48px] min-w-0 shrink-0 items-center gap-3 border-b border-rule bg-panel px-3 sm:gap-4 sm:px-4 lg:gap-6">
+        <a href="./index.html" className="flex shrink-0 items-center gap-2.5">
+          <Mark />
+          <span className="text-[16px] font-semibold text-ink">Solway</span>
+          <span className="hidden max-w-[220px] truncate text-[13px] text-ink3 lg:inline">{l.desc.name}</span>
+        </a>
+        <nav className="h-full" aria-label="Pages">
+          <ul className="flex h-full items-stretch gap-4 sm:gap-5">
+            {([['Mission', './index.html', false], ['Reference', './index.html#/method', false], ['Anywhere on Mars', './live.html', true]] as const).map(([label, href, on]) => (
+              <li key={label} className={cn('flex', label === 'Reference' && 'max-sm:hidden')}>
+                <a href={href} aria-current={on ? 'page' : undefined} className={cn('relative flex items-center whitespace-nowrap text-[13.5px] transition-colors duration-150', on ? 'font-semibold text-ink' : 'text-ink3 hover:text-ink')}>
+                  {label}<span className={cn('absolute inset-x-0 bottom-0 h-[2px]', on ? 'bg-ink' : 'bg-transparent')} />
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+        <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
+          <span className="hidden sm:inline"><GradeChip desc={l.desc} /></span>
+          <button className="hidden h-9 items-center gap-1.5 rounded-[6px] px-2 text-[13px] text-ink2 transition-colors duration-150 hover:bg-panel3 hover:text-ink md:flex" onClick={() => startTour()} data-testid="tour"><Sparkles size={15} />Start tour</button>
+          {HAS.anywhere && <button className="flex h-9 items-center gap-1.5 rounded-[6px] px-2 text-[13px] text-ink2 transition-colors duration-150 hover:bg-panel3 hover:text-ink" onClick={() => setPickerOpen(true)} data-testid="anywhere"><Globe2 size={15} /><span className="hidden sm:inline">Pick a place</span></button>}
         </div>
       </header>
 

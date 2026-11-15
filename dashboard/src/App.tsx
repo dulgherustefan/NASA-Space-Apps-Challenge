@@ -12,6 +12,7 @@ import { MethodPage } from '@/pages/Method'
 import { ParametersPage } from '@/pages/Parameters'
 import { LogPage } from '@/pages/Log'
 import { SourcesPage } from '@/pages/Sources'
+import { DashTourCaption, startDashTour } from '@/live/DashTour'
 
 function OfflineBanner() {
   const conn = useStore((s) => s.conn)
@@ -72,6 +73,9 @@ export default function App() {
   useEffect(() => { startEngine() }, [])
   useEffect(() => { document.title = product ?? FALLBACK_PRODUCT }, [product])
   useShortcuts(page === 'console')
+  // ?tour starts the guided tour once the recording is loaded (web build)
+  const ready = useStore((s) => !!s.hello)
+  useEffect(() => { if (ready && import.meta.env.MODE === 'live' && /[?&]tour/.test(location.search)) startDashTour() }, [ready])
   return (
     <TooltipProvider>
       <div className="flex h-full flex-col">
@@ -84,6 +88,7 @@ export default function App() {
           {page === 'log' && <LogPage />}
           {page === 'sources' && <SourcesPage />}
         </main>
+        <DashTourCaption />
       </div>
     </TooltipProvider>
   )
