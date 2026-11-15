@@ -56,6 +56,10 @@ The terrain colour is approximate, and the dust is set dressing.
 [solway-live.vercel.app](https://solway-live.vercel.app) is the same dashboard with a planning engine that runs in the
 browser, so it works with no server and keeps working after the event. On top of the recorded run it adds:
 
+- **Storm drill and quake drill from any point.** Click *Storm drill* (or *Quake drill*), then click where the crew is:
+  the browser plans a route to every open shelter, walks 1,000 virtual crews on each, closes shelters inside the
+  rockfall band for a quake, and the dashboard shows the result as an incident in its usual panel: where to go, walk
+  time against the 30-minute rule, routes compared, what is left on arrival.
 - **Plan a walk, live.** Turn on *Plan a walk* and click any point: the browser plans the route on the 5 m HiRISE grid
   and walks 1,000 virtual crews along it, then answers in the usual panel (walk time, what is left on arrival, failure
   rate with its 95 % interval, metres without radio line of sight). Shift-click sets another start. About 1–3 s on a laptop.
