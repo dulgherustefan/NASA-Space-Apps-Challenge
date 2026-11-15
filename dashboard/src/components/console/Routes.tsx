@@ -26,7 +26,7 @@ function Stat({ label, value, unit }: { label: string; value: string; unit?: str
   return (
     <div className="min-w-0">
       <div className="cap">{label}</div>
-      <div className="num text-[14px] text-ink">{value}{unit && <span className="ml-0.5 text-[11.5px] text-ink3">{unit}</span>}</div>
+      <div className="num text-[14px] text-ink">{value}{unit && <span className="ml-0.5 text-[12px] text-ink3">{unit}</span>}</div>
     </div>
   )
 }
@@ -74,7 +74,7 @@ function Failures({ list }: { list: Failure[] }) {
           const drivers = (f.events ?? []).filter((ev) => ev.log_p <= DRIVER_LOGP).sort((a, b) => a.log_p - b.log_p).slice(0, 3)
           return (
             <li key={i} className="flex items-start gap-2.5">
-              <span className="num mt-[1px] flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border border-hazard/60 text-[11px] text-hazard">{i + 1}</span>
+              <span className="num mt-[1px] flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border border-hazard/60 text-[11.5px] text-hazard">{i + 1}</span>
               <div className="min-w-0 flex-1">
                 <div className="flex items-baseline justify-between gap-2">
                   <span className="text-[13px] font-medium text-hazard">{FAIL_LABEL[f.class] ?? f.class}</span>
@@ -113,9 +113,8 @@ function RouteRow({ r, bundle, open }: { r: RouteSummary; bundle: IncidentBundle
   return (
     <li ref={li} className={cn('border-b border-rule last:border-b-0', r.status === 'infeasible' && 'opacity-60')} data-route={r.id} data-status={r.status}>
       <button type="button" onClick={() => { store.set({ selectedRoute: open ? null : r.id }); if (!open) reveal() }} aria-expanded={open}
-        className={cn('card-hover tap relative flex w-full items-center gap-3 py-2.5 pl-4 pr-3 text-left', open && 'bg-panel2')}>
-        <span className="absolute inset-y-0 left-0 w-[3px]" style={{ background: style.color, opacity: open || r.status === 'chosen' ? 1 : 0.45 }} />
-        <span className="num flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[12px] text-ink" style={{ borderColor: style.color }}>{r.id}</span>
+        className={cn('card-hover relative flex min-h-[56px] w-full items-center gap-3 py-2.5 pl-4 pr-3 text-left', open && 'bg-panel2')}>
+        <span className="num flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-[1.5px] text-[12.5px] text-ink" style={r.status === 'chosen' ? { borderColor: style.color, background: `color-mix(in srgb, ${style.color} 18%, transparent)` } : { borderColor: style.color }}>{r.id}</span>
         <div className="min-w-0 flex-1">
           <div className={cn('truncate text-[14px] font-medium text-ink', r.status === 'rejected' && 'text-ink2')}>{name}{variant && <span className="font-normal text-ink3"> · {variant}</span>}</div>
           <div className="flex items-center gap-2 text-[12px]">
@@ -133,7 +132,7 @@ function RouteRow({ r, bundle, open }: { r: RouteSummary; bundle: IncidentBundle
         <ChevronDown size={15} className={cn('shrink-0 text-ink3 transition-transform', open && 'rotate-180')} />
       </button>
       {open && (
-        <div className="anim-fade bg-panel2 px-4 pb-4 pt-1">
+        <div className="anim-fade bg-panel2 px-4 pb-5 pt-2">
           <div className="grid grid-cols-4 gap-3">
             <Stat label="Length" value={num(r.length_m)} unit="m" />
             <Stat label="Ascent" value={`+${num(r.ascent_m)}`} unit="m" />
@@ -171,17 +170,16 @@ export function Routes() {
   const rank = (r: RouteSummary) => (r.status === 'chosen' ? 0 : r.status === 'infeasible' ? 2 : 1)
   const sorted = routes ? [...routes].sort((a, b) => rank(a) - rank(b) || a.time_s - b.time_s) : []
   return (
-    <section className="border-t border-rule pt-4">
-      <div className="mb-2.5 flex items-baseline justify-between gap-3 px-4">
-        <h3 className="text-[13px] font-semibold tracking-tight text-ink">Routes</h3>
-        {routes && <div className="text-[12px] text-ink3">{done} of {testable} stress-tested</div>}
-      </div>
+    <section>
       {!routes ? (
-        <div className="px-4 pb-4"><Empty>The planner proposes a route to every open shelter. Each is then walked by virtual crews under disturbances.</Empty></div>
+        <div className="px-4 py-5"><Empty>No routes yet. After an incident the planner proposes one to every open shelter, and virtual crews walk each under disturbances.</Empty></div>
       ) : (
-        <ul className="border-t border-rule">
-          {sorted.map((r) => <RouteRow key={r.id} r={r} bundle={bundle!} open={selectedRoute === r.id} />)}
-        </ul>
+        <>
+          <ul>
+            {sorted.map((r) => <RouteRow key={r.id} r={r} bundle={bundle!} open={selectedRoute === r.id} />)}
+          </ul>
+          <p className="border-t border-rule px-4 py-3 text-[12px] text-ink3">{done} of {testable} stress-tested. Model-based, not crew-tested.</p>
+        </>
       )}
     </section>
   )

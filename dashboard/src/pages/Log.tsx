@@ -31,7 +31,7 @@ export function LogPage() {
       <div className="mb-4 flex flex-wrap items-center gap-2">
         {TYPES.map((t) => (
           <button key={t} onClick={() => setOn((o) => ({ ...o, [t]: !(o[t] !== false) }))} aria-pressed={on[t] !== false}
-            className={cn('h-7 rounded-[3px] border px-2.5 font-mono text-[11px] uppercase tracking-wider', on[t] !== false ? 'border-rule2 bg-panel2 text-ink' : 'border-rule text-ink3')}>
+            className={cn('h-7 rounded-[3px] border px-2.5 text-[12px]', on[t] !== false ? 'border-rule2 bg-panel2 text-ink' : 'border-rule text-ink3')}>
             <span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full align-middle" style={{ background: TYPE_COLOR[t], opacity: on[t] !== false ? 1 : 0.3 }} />{t}
           </button>
         ))}
@@ -45,7 +45,7 @@ export function LogPage() {
             <li key={l.n} className="rule-b">
               <button onClick={() => setOpen(open === l.n ? null : l.n)} className="card-hover grid w-full grid-cols-[96px_150px_1fr] items-baseline gap-3 px-2 py-2 text-left" aria-expanded={open === l.n}>
                 <span className="num text-[11px] text-ink3">{missionT(l.t)}</span>
-                <span className="font-mono text-[10.5px] uppercase tracking-wider" style={{ color: TYPE_COLOR[l.type] }}>{l.type}{l.incident_id ? ` · ${l.incident_id}` : ''}</span>
+                <span className="text-[12px] font-medium" style={{ color: TYPE_COLOR[l.type] }}>{l.type}{l.incident_id ? ` · ${l.incident_id}` : ''}</span>
                 <span className="min-w-0">
                   <span className={cn('text-[13px]', l.level === 'warn' ? 'text-caution' : l.level === 'error' ? 'text-hazard' : 'text-ink')}>{l.title}</span>
                   {l.detail && <span className="mt-0.5 block text-[12px] leading-snug text-ink3">{l.detail}</span>}

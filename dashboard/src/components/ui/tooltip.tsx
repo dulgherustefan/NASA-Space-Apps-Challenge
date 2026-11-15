@@ -57,7 +57,7 @@ const TooltipContent = React.forwardRef<
       ref={ref}
       sideOffset={sideOffset}
       collisionPadding={8}
-      className={cn('z-50 max-w-[320px] rounded-[4px] border border-rule2 bg-panel3 px-2.5 py-2 text-[12.5px] leading-snug text-ink shadow-[0_8px_24px_rgba(0,0,0,.5)] anim-fade', className)}
+      className={cn('z-50 max-w-[320px] rounded-[6px] bg-panel3 px-3 py-2 text-[12.5px] leading-snug text-ink shadow-[0_8px_24px_rgba(0,0,0,.5)] anim-fade', className)}
       {...props}
     />
   </TooltipPrimitive.Portal>

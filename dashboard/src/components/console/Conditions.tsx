@@ -1,9 +1,9 @@
 import { useStore } from '@/lib/store'
-import { hm, num } from '@/lib/format'
+import { hm, lightTime, num } from '@/lib/format'
 import type { Kind, Spread } from '@/lib/types'
 import { Fig } from '../Kind'
 import { Sensors } from '../Sensors'
-import { Section } from './parts'
+import { More, Section } from './parts'
 
 const SUN_NOTE = 'Geometric sunset of the Sun’s centre over a flat horizon. The canyon wall can shade the ground earlier.'
 const minus = (x: number) => num(Math.round(x), 0).replace('-', '−')
@@ -26,19 +26,21 @@ export function Conditions() {
   const env = useStore((s) => s.snapshot?.env)
   const tau = useStore((s) => s.snapshot?.sensors.tau)
   const w = useStore((s) => s.hello?.weather)
+  const light = useStore((s) => s.snapshot?.light_time_s)
   const sunSrc = `${env?.sun_source ?? 'Sun position'}. ${SUN_NOTE}`
   const wSrc = w ? `${w.source} (${w.sols} sols). ${w.credit}. ${w.note}` : ''
   const season = env?.mars_year !== undefined && env?.ls !== undefined ? `Mars Year ${env.mars_year} · Ls ${num(env.ls, 0)}°` : undefined
   return (
     <Section title="Conditions" aside={season}>
-      <div className="grid grid-cols-3 gap-x-3">
+      <div className="grid grid-cols-2 gap-x-4 gap-y-3">
         <Tile label="Daylight left" value={env?.daylight_s === undefined ? undefined : env.daylight_s > 0 ? hm(env.daylight_s, true) : 'Sun down'} kind="model" source={sunSrc} />
         <Tile label="Sun height" value={env?.sun_el} unit="°" digits={0} kind="model" source={sunSrc} />
         <Tile label="Dust opacity" value={tau} digits={2} kind="model" source="Daily mean dust optical depth for the site and season from a climate model (see Parameters). No dust storm in this scenario." />
+        <Tile label="Earth, one way" value={light === undefined ? undefined : lightTime(light)} kind="model" source="One-way light time to Earth, from JPL Horizons distances. A question and its answer take twice this, so the crew decides locally." />
       </div>
       {w && (
-        <div className="mt-3 border-t border-rule pt-3">
-          <div className="cap mb-2">Same season at Gale crater, measured by Curiosity. An analogue, not this site.</div>
+        <More label="Season reference from Curiosity">
+          <div className="cap mb-1 mt-1">Same season at Gale crater, measured by Curiosity. An analogue, not this site.</div>
           <dl>
             {([['Ground, night to day', range(w.ground_min_c, w.ground_max_c), '°C'], ['Air, night to day', range(w.air_min_c, w.air_max_c), '°C'], ['UV index', w.uv_index_usual, undefined]] as const).map(([label, value, unit]) => (
               <div key={label} className="flex items-baseline justify-between gap-3 py-[5px] text-[13px]">
@@ -47,9 +49,9 @@ export function Conditions() {
               </div>
             ))}
           </dl>
-        </div>
+        </More>
       )}
-      <div className="mt-3 border-t border-rule pt-1">
+      <div className="mt-2">
         <Sensors kind="scenario" kindSource="Sensor reading produced by the engine for this scenario. Not an instrument observation." />
       </div>
     </Section>

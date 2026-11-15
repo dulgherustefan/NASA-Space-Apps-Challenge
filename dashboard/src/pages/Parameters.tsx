@@ -55,7 +55,7 @@ export function ParametersPage() {
           <div className="overflow-x-auto"><table className="w-full min-w-[760px] table-fixed border-collapse text-left text-[13px]">
             <colgroup><col style={{ width: '27%' }} /><col style={{ width: '13%' }} /><col style={{ width: '12%' }} /><col style={{ width: '48%' }} /></colgroup>
             <thead>
-              <tr className="border-y border-rule text-ink3"><th className="py-1.5 pr-3 font-mono text-[10px] font-medium uppercase tracking-wider">Parameter</th><th className="py-1.5 pr-3 font-mono text-[10px] font-medium uppercase tracking-wider">Value</th><th className="py-1.5 pr-3 font-mono text-[10px] font-medium uppercase tracking-wider">Kind</th><th className="py-1.5 font-mono text-[10px] font-medium uppercase tracking-wider">Source and note</th></tr>
+              <tr className="border-y border-rule text-ink3"><th className="py-1.5 pr-3 text-[12px] font-medium">Parameter</th><th className="py-1.5 pr-3 text-[12px] font-medium">Value</th><th className="py-1.5 pr-3 text-[12px] font-medium">Kind</th><th className="py-1.5 text-[12px] font-medium">Source and note</th></tr>
             </thead>
             <tbody>
               {items.map((p) => (

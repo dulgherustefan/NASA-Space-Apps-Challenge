@@ -1,6 +1,7 @@
 import { focusBundle, store, useStore } from '@/lib/store'
 import { LAYERS, LAYER_LABEL, type Layer } from '@/lib/config'
-import { cn } from '@/lib/utils'
+import { ChevronDown, Layers } from 'lucide-react'
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../ui/dropdown-menu'
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip'
 
 // Colour ramps and ranges as the engine paints them (engine/hazards.py).
@@ -16,45 +17,79 @@ export const LAYER_INFO: Record<Layer, { what: string; ramp: string; lo: string;
   failures: { what: 'Where virtual crews failed in the stress test, weighted by likelihood. Model.', ramp: 'linear-gradient(90deg, rgb(140,41,100), rgb(249,142,9), rgb(252,255,164))', lo: 'few', hi: 'many' },
 }
 
-export function LayerSwitch() {
+const SHORT: Record<Layer, string> = {
+  hazard: 'Slope, rockfall band and loose sand together',
+  slope: 'Slope over 10 m',
+  rockfall: 'Runout band below steep faces',
+  sand: 'Loose sand likelihood, an image proxy',
+  sky: 'Sky blocked by terrain, which shields from radiation',
+  dose: 'Dose rate at the storm peak',
+  comm: 'Ground without radio line of sight',
+  failures: 'Where virtual crews failed in the stress test',
+}
+
+/** One control for what the map shows: the colour layer, and the two line overlays. */
+export function LayerMenu() {
   const layer = useStore((s) => s.overlay.layer)
+  const contours = useStore((s) => s.contours)
+  const showReplays = useStore((s) => s.showReplays)
   const bundle = useStore(focusBundle)
   const fromEngine = new Set((bundle?.assessment?.overlays ?? []).map((o) => o.layer))
   const set = (l: string | null) => store.set((s) => ({ overlay: { ...s.overlay, layer: l, userSet: true } }))
-  const items: (Layer | null)[] = [null, ...LAYERS]
+  const current = layer && layer in LAYER_LABEL ? LAYER_LABEL[layer as Layer] : 'Image only'
   return (
-    <div className="flex max-w-full gap-1 overflow-x-auto rounded-[6px] border border-rule2 bg-bg/85 p-1 backdrop-blur-sm" role="radiogroup" aria-label="Map layer">
-      {items.map((l) => {
-        const on = layer === l
-        const updated = l ? fromEngine.has(l) : false
-        return (
-          <Tooltip key={l ?? 'off'}>
-            <TooltipTrigger asChild>
-              <button type="button" role="radio" aria-checked={on} onClick={() => set(l)}
-                className={cn('relative h-8 shrink-0 rounded-[4px] px-2.5 text-[12.5px] transition-colors', on ? 'bg-accent text-[#16110a]' : 'text-ink2 hover:bg-panel3 hover:text-ink')}>
-                {l ? LAYER_LABEL[l] : 'Image'}
-                {updated && !on && <span className="absolute right-1 top-1 h-[5px] w-[5px] rounded-full bg-accent" />}
-              </button>
-            </TooltipTrigger>
-            <TooltipContent>{l ? LAYER_INFO[l].what + (updated ? ' Updated by this incident.' : '') : 'HiRISE orthoimage only.'}</TooltipContent>
-          </Tooltip>
-        )
-      })}
-    </div>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button type="button" aria-label={`Map layer: ${current}`}
+          className="flex h-10 items-center gap-2 rounded-[8px] bg-bg/90 pl-3 pr-2.5 text-[13.5px] text-ink shadow-[0_4px_16px_rgba(0,0,0,.45)] transition-colors hover:bg-panel2 data-[state=open]:bg-panel2">
+          <Layers size={15} className="text-ink2" />
+          <span className="text-ink3">Layer</span>{current}
+          <ChevronDown size={14} className="text-ink3" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-[304px]">
+        <DropdownMenuLabel>Colour the map by</DropdownMenuLabel>
+        <DropdownMenuRadioGroup value={layer ?? 'off'} onValueChange={(v) => set(v === 'off' ? null : v)}>
+          {LAYERS.map((l) => (
+            <DropdownMenuRadioItem key={l} value={l}>
+              <div className="min-w-0">
+                <div className="flex items-baseline gap-2 leading-tight">{LAYER_LABEL[l]}{fromEngine.has(l) && <span className="text-[12px] text-accent">updated by this incident</span>}</div>
+                <div className="text-[12px] leading-snug text-ink3">{SHORT[l]}</div>
+              </div>
+            </DropdownMenuRadioItem>
+          ))}
+          <DropdownMenuRadioItem value="off">
+            <div className="min-w-0">
+              <div className="leading-tight">Image only</div>
+              <div className="text-[12px] leading-snug text-ink3">HiRISE orthoimage, no colour layer</div>
+            </div>
+          </DropdownMenuRadioItem>
+        </DropdownMenuRadioGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel>Also draw</DropdownMenuLabel>
+        <DropdownMenuCheckboxItem checked={contours} onCheckedChange={(v) => store.set({ contours: !!v })} onSelect={(e) => e.preventDefault()}>Elevation contours, every 20 m</DropdownMenuCheckboxItem>
+        <DropdownMenuCheckboxItem checked={showReplays} onCheckedChange={(v) => store.set({ showReplays: !!v })} onSelect={(e) => e.preventDefault()}>Virtual crews from the stress test</DropdownMenuCheckboxItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }
 
-/** What the colours of the current layer mean. */
+/** What the colours of the current layer mean. Hover or tap for the full definition. */
 export function LayerLegend() {
   const layer = useStore((s) => s.overlay.layer) as Layer | null
   if (!layer || !LAYER_INFO[layer]) return null
   const info = LAYER_INFO[layer]
   return (
-    <div className="flex items-center gap-2 text-[12px] text-ink2" title={info.what}>
-      <span className="hidden text-ink sm:inline">{LAYER_LABEL[layer]}</span>
-      <span className="text-ink3">{info.lo}</span>
-      <span className="h-2 w-20 rounded-[2px]" style={{ background: info.ramp }} />
-      <span className="text-ink3">{info.hi}</span>
-    </div>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div tabIndex={0} className="flex cursor-help items-center gap-2 text-[12px] text-ink2">
+          <span className="hidden text-ink sm:inline">{LAYER_LABEL[layer]}</span>
+          <span className="text-ink3">{info.lo}</span>
+          <span className="h-2 w-20 rounded-[2px]" style={{ background: info.ramp }} />
+          <span className="text-ink3">{info.hi}</span>
+        </div>
+      </TooltipTrigger>
+      <TooltipContent side="top">{info.what}</TooltipContent>
+    </Tooltip>
   )
 }

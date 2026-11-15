@@ -36,7 +36,7 @@ function Step({ phase, last }: { phase: Exclude<Phase, 'idle'>; last: boolean })
         state === 'active' ? 'pulse-dot border-accent bg-accent text-[#16110a]' : state === 'done' ? 'border-ink3 text-ink2' : 'border-rule2 text-transparent')}>
         {state === 'done' ? <Check size={11} strokeWidth={2.5} /> : <span className={cn('h-1.5 w-1.5 rounded-full', state === 'active' ? 'bg-[#16110a]' : 'bg-rule2')} />}
       </span>
-      <span className={cn('whitespace-nowrap text-[12.5px] transition-colors', state === 'active' ? 'font-medium text-accent' : state === 'done' ? 'text-ink2' : 'text-ink3')}>{PHASE_META[phase].title}</span>
+      <span className={cn('whitespace-nowrap text-[13px] transition-colors', state === 'active' ? 'font-medium text-accent' : state === 'done' ? 'text-ink2' : 'text-ink3')}>{PHASE_META[phase].title}</span>
       {!last && <span className={cn('mx-1 h-px min-w-2 flex-1', state === 'done' ? 'bg-ink3' : 'bg-rule2')} />}
     </li>
   )
@@ -53,10 +53,10 @@ export function PhaseSteps() {
 
 export function Section({ title, aside, children, className }: { title: string; aside?: ReactNode; children: ReactNode; className?: string }) {
   return (
-    <section className={cn('border-t border-rule px-4 py-4', className)}>
+    <section className={cn('border-t border-rule px-4 pb-5 pt-5', className)}>
       <div className="mb-2.5 flex items-baseline justify-between gap-3">
-        <h3 className="text-[13px] font-semibold tracking-tight text-ink">{title}</h3>
-        {aside && <div className="text-[12px] text-ink3">{aside}</div>}
+        <h3 className="text-[14px] font-semibold text-ink">{title}</h3>
+        {aside && <div className="text-[12.5px] text-ink3">{aside}</div>}
       </div>
       {children}
     </section>
@@ -73,7 +73,7 @@ export function More({ label, children }: { label: string; children: ReactNode }
   return (
     <div>
       <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open}
-        className="mt-1 flex h-8 items-center gap-1 text-[12.5px] text-ink2 hover:text-ink">
+        className="mt-1 flex h-9 items-center gap-1 text-[13px] text-ink2 hover:text-ink">
         <ChevronDown size={14} className={cn('transition-transform', open && 'rotate-180')} />{open ? 'Show less' : label}
       </button>
       {open && <div className="anim-fade">{children}</div>}

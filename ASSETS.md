@@ -116,8 +116,8 @@ Boulder positions in the rockfall band are illustrative (seeded, `tools/make_sce
 
 | Component | Author | Licence |
 |---|---|---|
-| Instrument Sans (npm `@fontsource-variable/instrument-sans` 5.3.0) | Instrument | SIL Open Font License 1.1 |
-| JetBrains Mono (npm `@fontsource-variable/jetbrains-mono` 5.3.0) | JetBrains | SIL Open Font License 1.1 |
+| Atkinson Hyperlegible Next (npm `@fontsource-variable/atkinson-hyperlegible-next` 5.3.0) | Braille Institute of America | SIL Open Font License 1.1 |
+| Atkinson Hyperlegible Mono (npm `@fontsource-variable/atkinson-hyperlegible-mono` 5.3.0) | Braille Institute of America | SIL Open Font License 1.1 |
 | lucide-react 1.73.0 (icons) | Lucide contributors | ISC |
 | React, React DOM, Recharts, Radix UI, clsx, tailwind-merge, Tailwind CSS, Electron | their authors | MIT |
 | class-variance-authority | its authors | Apache-2.0 |

@@ -20,7 +20,7 @@ export function normKind(k: string | undefined): Kind {
 }
 
 /** Shape plus colour, so the kind never depends on colour alone. */
-export function KindGlyph({ kind, size = 9, className }: { kind: Kind; size?: number; className?: string }) {
+export function KindGlyph({ kind, size = 7, className }: { kind: Kind; size?: number; className?: string }) {
   const c = KIND_INFO[kind].color
   const s = size
   return (
@@ -41,12 +41,12 @@ export function KindDetail({ kind, source, label }: { kind: Kind; source?: strin
       {label && <div className="font-medium text-ink">{label}</div>}
       <div className="flex items-center gap-1.5">
         <KindGlyph kind={kind} size={10} />
-        <span className="font-mono text-[11px] uppercase tracking-wide" style={{ color: info.color }}>{info.label}</span>
+        <span className="text-[12px] font-medium" style={{ color: info.color }}>{info.label}</span>
       </div>
       <div className="text-ink2">{info.def}</div>
       <div className="border-t border-rule2 pt-1.5 text-ink2">
-        <span className="eyebrow mr-1.5">Source</span>
-        {source || 'Not given by the engine'}
+        <span className="text-ink3">Source: </span>
+        {source || 'not given by the engine'}
       </div>
     </div>
   )
@@ -58,9 +58,8 @@ export function KindBadge({ kind, source, label, className }: { kind: Kind; sour
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <span tabIndex={0} className={cn('inline-flex items-center gap-1 rounded-[2px] border px-1 py-[1px] font-mono text-[9.5px] uppercase leading-none tracking-wider', className)}
-          style={{ color: info.color, borderColor: `color-mix(in srgb, ${info.color} 38%, transparent)`, borderStyle: kind === 'scenario' || kind === 'assumption' ? 'dashed' : 'solid' }}>
-          <KindGlyph kind={kind} size={7} />
+        <span tabIndex={0} className={cn('inline-flex cursor-help items-center gap-1 whitespace-nowrap text-[12px] text-ink2', className)}>
+          <KindGlyph kind={kind} size={8} />
           {info.label}
         </span>
       </TooltipTrigger>
@@ -81,7 +80,7 @@ export function Fig({ value, unit, kind, source, label, digits, className, value
           {glyphFirst && <KindGlyph kind={kind} className="self-center" />}
           <span className={cn('num text-ink', valueClassName)}>{num(value, digits)}</span>
           {unit && <span className="num text-[0.78em] text-ink3">{unit}</span>}
-          {!glyphFirst && <KindGlyph kind={kind} className="self-center opacity-90" />}
+          {!glyphFirst && <KindGlyph kind={kind} className="self-center opacity-75" />}
         </span>
       </TooltipTrigger>
       <TooltipContent><KindDetail kind={kind} source={source} label={label} /></TooltipContent>

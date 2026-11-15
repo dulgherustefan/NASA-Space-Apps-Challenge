@@ -1,22 +1,24 @@
 @import "tailwindcss";
-@import "@fontsource-variable/instrument-sans/index.css";
-@import "@fontsource-variable/jetbrains-mono/index.css";
+@import "@fontsource-variable/atkinson-hyperlegible-next/index.css";
+@import "@fontsource-variable/atkinson-hyperlegible-mono/index.css";
 
 @theme {
-  --font-sans: "Instrument Sans Variable", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono Variable", ui-monospace, "SF Mono", Menlo, monospace;
+  /* Atkinson Hyperlegible: drawn so that 0/O, 1/l/I and 5/S cannot be mistaken for each other. */
+  --font-sans: "Atkinson Hyperlegible Next Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Atkinson Hyperlegible Mono Variable", ui-monospace, "SF Mono", Menlo, monospace;
 
-  --color-bg: #0b0d10;
-  --color-panel: #111418;
-  --color-panel2: #171b20;
-  --color-panel3: #1e232a;
-  --color-rule: #232830;
-  --color-rule2: #313844;
-  --color-ink: #e7eaee;
-  --color-ink2: #a3acb8;
-  --color-ink3: #6e7886;
+  /* neutrals lean toward the ochre of the terrain, so the map and the panels read as one surface */
+  --color-bg: #0c0b0a;
+  --color-panel: #131210;
+  --color-panel2: #1b1917;
+  --color-panel3: #25221f;
+  --color-rule: #272421;
+  --color-rule2: #3a3631;
+  --color-ink: #efebe4;
+  --color-ink2: #b9b2a7;
+  --color-ink3: #8d867b;
 
-  /* one warm accent: brand and the active phase */
+  /* one warm accent: the primary action and the active step */
   --color-accent: #e3b472;
   --color-accent-dim: #e3b4721f;
   /* hazard colours: hazards and failures only */
@@ -25,7 +27,7 @@
   /* good state: chosen route, open shelter, healthy margin */
   --color-safe: #4fd1b0;
   /* neutral data ink for traces and unselected routes */
-  --color-data: #7fa9cf;
+  --color-data: #9db4c4;
 
   /* kinds of number */
   --color-k-measured: #7cc4ff;
@@ -33,6 +35,8 @@
   --color-k-requirement: #6fd3b5;
   --color-k-assumption: #b8c0cb;
   --color-k-scenario: #f29cc1;
+
+  --ease-out-expo: cubic-bezier(.16, 1, .3, 1);
 }
 
 :root { color-scheme: dark; }
@@ -45,19 +49,21 @@ body {
   line-height: 1.45;
   -webkit-font-smoothing: antialiased;
   overflow: hidden;
-  font-feature-settings: "ss01", "cv11";
 }
-* { scrollbar-width: thin; scrollbar-color: #2b323c transparent; }
+* { scrollbar-width: thin; scrollbar-color: var(--color-rule2) transparent; }
 ::selection { background: #e3b47244; }
 button { cursor: pointer; }
-:focus-visible { outline: 1.5px solid var(--color-accent); outline-offset: 1px; }
+:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; border-radius: 3px; }
+input, textarea { caret-color: var(--color-accent); }
+a { text-underline-offset: 3px; }
 
 @layer components {
-  .eyebrow { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-ink3); font-weight: 500; }
+  /* small label for a group; plain text, never a kicker above a heading */
+  .eyebrow { font-size: 12px; color: var(--color-ink3); font-weight: 500; }
   /* quiet caption above a value or a group */
   .cap { font-size: 12px; line-height: 1.3; color: var(--color-ink3); }
   .tap { min-height: 44px; }
-  .num { font-family: var(--font-mono); font-variant-numeric: tabular-nums slashed-zero; letter-spacing: -0.01em; }
+  .num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
   .section-h { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 14px 0 6px; }
   .rule-t { border-top: 1px solid var(--color-rule); }
   .rule-b { border-bottom: 1px solid var(--color-rule); }
@@ -72,8 +78,8 @@ button { cursor: pointer; }
 @keyframes march { to { background-position: 16px 0; } }
 @keyframes strike { 0% { opacity: 0; transform: scaleX(0); } 100% { opacity: 1; transform: scaleX(1); } }
 
-.anim-slide { animation: slide-in 280ms cubic-bezier(.2,.7,.2,1) both; }
-.anim-rise { animation: rise 220ms ease-out both; }
+.anim-slide { animation: slide-in 280ms var(--ease-out-expo) both; }
+.anim-rise { animation: rise 260ms var(--ease-out-expo) both; }
 .anim-fade { animation: fade-in 200ms ease-out both; }
 .pulse-dot { animation: pulse-ring 1.4s ease-out infinite; }
 .testing-bar { background-image: repeating-linear-gradient(90deg, var(--color-accent) 0 8px, transparent 8px 16px); animation: march 700ms linear infinite; }

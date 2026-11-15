@@ -6,7 +6,7 @@ import { compass, deadlineOf, walkView, type Deadline, type WalkView } from '@/l
 import { dur, missionT, num, splitLabel } from '@/lib/format'
 import type { Decision, RouteSummary } from '@/lib/types'
 import { cn } from '@/lib/utils'
-import { Fig, KindBadge } from '../Kind'
+import { Fig, GroupKind } from '../Kind'
 import { Meter } from '../Meter'
 import { INCIDENT_ICON, More, PHASE_META, PhaseSteps } from './parts'
 
@@ -15,13 +15,15 @@ const MODEL_SRC = 'Engine run-time model (walk physiology and suit model). Not a
 function IncidentLine({ b }: { b: IncidentBundle }) {
   const Icon = INCIDENT_ICON[b.incident.kind]
   return (
-    <div className="flex items-center justify-between gap-3">
+    <div className="flex items-center justify-between gap-3 text-[13px]">
       <div className="flex min-w-0 items-center gap-2">
         <Icon size={16} strokeWidth={1.8} className="shrink-0 text-ink2" />
-        <span className="truncate text-[13.5px] font-medium text-ink">{b.incident.title}</span>
-        <span className="num hidden shrink-0 text-[11.5px] text-ink3 sm:inline">{missionT(b.incident.t)}</span>
+        <span className="truncate font-medium text-ink">{b.incident.title}</span>
+        <span className="num hidden shrink-0 text-[12px] text-ink3 sm:inline">{missionT(b.incident.t)}</span>
       </div>
-      <KindBadge kind={b.incident.scenario ? 'scenario' : 'measured'} label={b.incident.scenario ? 'Scripted incident' : 'Observation'} source={b.incident.source} className="shrink-0" />
+      <GroupKind kind={b.incident.scenario ? 'scenario' : 'measured'} label={b.incident.scenario ? 'Scripted incident' : 'Observation'} source={b.incident.source}>
+        <span className="text-[12px] text-ink3">{b.incident.scenario ? 'scripted' : 'observed'}</span>
+      </GroupKind>
     </div>
   )
 }
@@ -35,12 +37,12 @@ function Budget({ time_s, deadline }: { time_s: number; deadline: Deadline }) {
   const span = Math.max(allowed, time_s) * 1.04
   const rule = deadline.rule_min ? `the ${num(deadline.rule_min)}-minute shelter rule` : 'the shelter rule'
   return (
-    <div className="mt-4">
+    <div className="mt-3.5">
       <div className="relative h-2 rounded-[2px] bg-rule">
         <div className="absolute inset-y-0 left-0 rounded-[2px] transition-[width] duration-500" style={{ width: `${(time_s / span) * 100}%`, background: ok ? 'var(--color-safe)' : 'var(--color-hazard)' }} />
         <div className="absolute -inset-y-1 w-[2px] bg-ink" style={{ left: `${(allowed / span) * 100}%` }} aria-hidden />
       </div>
-      <div className="mt-1.5 flex items-baseline justify-between gap-3 text-[12.5px]">
+      <div className="mt-2 flex items-baseline justify-between gap-3 text-[13px]">
         <span className={ok ? 'text-ink2' : 'text-hazard'}>
           {ok ? <><span className="num text-ink">{dur(spare)}</span> spare under {rule}</> : <>Misses {rule} by <span className="num">{dur(-spare)}</span></>}
         </span>
@@ -54,17 +56,18 @@ function Heading({ walk }: { walk: WalkView }) {
   const p = walk.progress
   if (!p || walk.phase === 'arrived') return null
   return (
-    <div className="mt-4 flex items-center gap-3 border-t border-rule pt-3.5">
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-rule2" aria-hidden>
+    <div className="flex items-center gap-2.5 pb-1">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-panel3" aria-hidden>
         <ArrowUp size={20} strokeWidth={2.2} className="text-accent transition-transform duration-500" style={{ transform: `rotate(${p.bearing}deg)` }} />
       </span>
-      <div className="min-w-0">
-        <div className="text-[14px] text-ink">
-          Head <span className="num font-medium">{String(Math.round(p.bearing)).padStart(3, '0')}°</span> {compass(p.bearing)}
+      <div className="min-w-0 leading-tight">
+        <div className="whitespace-nowrap text-[14px] text-ink">
+          <span className="num font-medium">{String(Math.round(p.bearing)).padStart(3, '0')}°</span> {compass(p.bearing)}
         </div>
-        <div className="cap">
-          <span className="num text-ink2">{num(Math.round(p.left_m / 5) * 5)} m</span> to go{p.off_m > 25 ? <span className="text-caution"> · {num(Math.round(p.off_m))} m off the route</span> : ''}
+        <div className="whitespace-nowrap text-[12.5px] text-ink3">
+          <span className="num text-ink2">{num(Math.round(p.left_m / 5) * 5)} m</span> to go
         </div>
+        {p.off_m > 25 && <div className="whitespace-nowrap text-[12.5px] text-caution">{num(Math.round(p.off_m))} m off the route</div>}
       </div>
     </div>
   )
@@ -77,10 +80,9 @@ function ArrivalView({ placeId, name }: { placeId: string | undefined; name: str
   const path = item ? (item.file.includes('/') ? item.file : `data/site/pov/${item.file}`) : ''
   if (!item || failed || !fileUrl(path)) return null
   return (
-    <figure className="mt-4 border-t border-rule pt-3.5">
-      <div className="mb-2 text-[12.5px] text-ink2">View on arrival</div>
-      <img src={fileUrl(path)} alt={`Rendered view of ${name} from the approach`} loading="lazy" onError={() => setFailed(true)} className="aspect-video w-full rounded-[4px] border border-rule2 object-cover" />
-      <figcaption className="mt-1.5 text-[12px] leading-snug text-ink3">{item.caption ?? 'Rendered from the HiRISE elevation model. Colour is approximate; ground detail and rocks are set dressing.'}</figcaption>
+    <figure className="mt-5">
+      <img src={fileUrl(path)} alt={`Rendered view of ${name} from the approach`} loading="lazy" onError={() => setFailed(true)} className="aspect-[21/9] w-full rounded-[8px] object-cover" />
+      <figcaption className="mt-1.5 text-[12px] leading-snug text-ink3">View on arrival. {item.caption ?? 'Rendered from the HiRISE elevation model. Colour is approximate; ground detail and rocks are set dressing.'}</figcaption>
     </figure>
   )
 }
@@ -100,52 +102,43 @@ function Decided({ b, d, route, compact }: { b: IncidentBundle; d: Decision; rou
   const big = walk.phase === 'walking' && walk.left_s !== null ? walk.left_s : d.time_to_shelter_s
   return (
     <div key={`${b.id}:${d.route_id}`} className="anim-rise">
-      <div className="mt-4 flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className={cn('text-[13px] font-medium', tone === 'hazard' ? 'text-hazard' : 'text-safe')}>{lead}</div>
-          <div className="text-[24px] font-semibold leading-tight tracking-tight text-ink">{name}</div>
-        </div>
-        <span className="mt-1 shrink-0 text-right text-[12px] leading-snug text-ink3">Route {d.route_id} · {d.auto === false ? 'operator choice' : 'automatic'}{variant && <><br />{variant}</>}</span>
-      </div>
+      <h2 className="mt-5 text-balance text-[24px] font-semibold leading-[1.15] tracking-[-0.02em] text-ink">
+        <span className={tone === 'hazard' ? 'text-hazard' : 'text-safe'}>{lead}</span> {name}
+      </h2>
+      <p className="mt-1 text-[12.5px] text-ink3">Route {d.route_id}{variant && `, ${variant}`} · {d.auto === false ? 'chosen by the operator' : 'chosen automatically'}</p>
 
       {walk.phase === 'arrived' ? (
-        <div className="mt-3 flex items-center gap-2 text-[15px] text-safe"><CircleCheck size={18} />{sortie ? 'Crew back at the start' : `Crew at ${name}`}</div>
+        <div className="mt-4 flex items-center gap-2 text-[15px] text-safe"><CircleCheck size={18} />{sortie ? 'Crew back at the start' : `Crew at ${name}`}</div>
       ) : (
-        <div className="mt-2 flex items-baseline gap-2">
-          <Fig value={dur(big)} kind="model" source={MODEL_SRC + ' Planner walking time on the chosen route.'} label={walk.phase === 'walking' ? 'Walking time left' : 'Walking time to shelter'}
-            valueClassName={cn('font-medium leading-none tracking-tight', compact ? 'text-[44px]' : 'text-[52px]')} />
-          <span className="text-[13px] text-ink3">{walk.phase === 'walking' ? 'left' : 'walk'}</span>
+        <div className="mt-4 flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
+          <div className="flex items-baseline gap-2">
+            <Fig value={dur(big)} kind="model" source={MODEL_SRC + ' Planner walking time on the chosen route.'} label={walk.phase === 'walking' ? 'Walking time left' : 'Walking time to shelter'}
+              valueClassName={cn('font-medium leading-none tracking-[-0.03em]', compact ? 'text-[46px]' : 'text-[56px]')} />
+            <span className="text-[13px] text-ink3">{walk.phase === 'walking' ? 'left' : 'walk'}</span>
+          </div>
+          <Heading walk={walk} />
         </div>
       )}
 
       {walk.phase !== 'arrived' && <Budget time_s={d.time_to_shelter_s} deadline={deadline} />}
       {late && deadline.allowed_s === null && route?.rule_reasons?.length ? (
-        <p className="mt-2 flex gap-2 text-[12.5px] leading-snug text-hazard"><TriangleAlert size={14} className="mt-[2px] shrink-0" />Route {route.rule_reasons.join('; ')}</p>
+        <p className="mt-2 flex gap-2 text-[13px] leading-snug text-hazard"><TriangleAlert size={14} className="mt-[2px] shrink-0" />Route {route.rule_reasons.join('; ')}</p>
       ) : null}
-      <Heading walk={walk} />
 
-      <div className="mt-4 border-t border-rule pt-3.5">
-        <div className="mb-2 flex items-center justify-between">
-          <span className="text-[12.5px] text-ink2">Left on arrival</span>
-          <KindBadge kind="model" source={MODEL_SRC} label="Margins on arrival" />
-        </div>
-        <div className="grid grid-cols-3 gap-3">
-          <Meter label="Oxygen" frac={d.margins.o2} source={MODEL_SRC} hint="usable oxygen left on arrival" />
-          <Meter label="Heat" frac={d.margins.heat} source={MODEL_SRC} hint="room left before the heat-storage limit on arrival" />
-          <div>
-            <div className="mb-1 flex items-baseline justify-between gap-2">
-              <span className="text-[11.5px] text-ink2">Dose</span>
-              <Fig value={d.dose_msv ?? route?.dose ?? null} unit="mSv" digits={2} kind="model" source={MODEL_SRC} label="Dose on this walk" />
-            </div>
-            <div className="text-[11.5px] leading-tight text-ink3">{Math.round(d.margins.dose * 100)}% less than staying in the open</div>
-          </div>
+      <div className="mt-5 grid grid-cols-3 gap-4">
+        <Meter label="Oxygen" frac={d.margins.o2} source={MODEL_SRC} hint="usable oxygen left on arrival" />
+        <Meter label="Heat" frac={d.margins.heat} source={MODEL_SRC} hint="room left before the heat-storage limit on arrival" />
+        <div className="flex items-baseline justify-between gap-2">
+          <span className="text-[11.5px] text-ink2">Dose</span>
+          <Fig value={d.dose_msv ?? route?.dose ?? null} unit="mSv" digits={2} kind="model" source={MODEL_SRC} label="Dose on this walk" />
         </div>
       </div>
+      <p className="mt-2 text-[12px] leading-snug text-ink3">Left on arrival, from the walk model. Dose is {Math.round(d.margins.dose * 100)}% lower than staying in the open.</p>
 
-      {walk.phase !== 'arrived' && <ArrivalView placeId={sortie ? (b.incident.kind === 'science' ? 'B' : d.shelter) : d.shelter} name={name} />}
+      {!compact && walk.phase !== 'arrived' && <ArrivalView placeId={sortie ? (b.incident.kind === 'science' ? 'B' : d.shelter) : d.shelter} name={name} />}
 
       {!compact && (
-        <div className="mt-4 border-t border-rule pt-3.5">
+        <div className="mt-5">
           <ul className="space-y-1.5">
             {d.reasons.slice(0, 2).map((r, i) => (
               <li key={i} className="flex gap-2 text-[13px] leading-snug text-ink"><Check size={14} className="mt-[2px] shrink-0 text-safe" />{r}</li>
@@ -184,15 +177,14 @@ function Planning({ b }: { b: IncidentBundle }) {
     : PHASE_META[phase === 'respond' ? 'respond' : phase as 'detect' | 'assess' | 'simulate'].doing
   const frac = routes && testable ? done / testable : phase === 'assess' ? 0.15 : 0.05
   return (
-    <div className="mt-4">
-      <div className={cn('text-[20px] font-semibold leading-tight tracking-tight', stalled && routes && testable === 0 ? 'text-hazard' : 'text-ink')}>{line}</div>
-      {b.incident.summary && <p className="mt-1.5 text-[13.5px] leading-snug text-ink2">{b.incident.summary}</p>}
+    <div className="mt-5">
+      <h2 className={cn('text-balance text-[22px] font-semibold leading-[1.15] tracking-[-0.02em]', stalled && routes && testable === 0 ? 'text-hazard' : 'text-ink')}>{line}</h2>
+      {b.incident.summary && <p className="mt-2 text-[14px] leading-snug text-ink2">{b.incident.summary}</p>}
       {!stalled && (
         <div className="mt-4 h-1 overflow-hidden rounded-[2px] bg-rule" role="progressbar" aria-valuemin={0} aria-valuemax={1} aria-valuenow={frac} aria-label="Planning progress">
           <div className="h-full bg-accent transition-[width] duration-500" style={{ width: `${Math.max(0.05, frac) * 100}%` }} />
         </div>
       )}
-      <p className="mt-3 text-[12.5px] text-ink3">The route appears here as soon as the stress tests are in.</p>
     </div>
   )
 }
@@ -206,21 +198,22 @@ function Idle() {
   if (!hello) {
     return (
       <div>
-        <div className="text-[20px] font-semibold leading-tight tracking-tight text-ink">{conn === 'offline' ? 'Engine not running' : 'Connecting to the engine'}</div>
-        <p className="mt-1.5 text-[13.5px] leading-snug text-ink2">The console shows the response as soon as the engine answers.</p>
+        <h2 className="text-[22px] font-semibold leading-[1.15] tracking-[-0.02em] text-ink">{conn === 'offline' ? 'Engine not running' : 'Connecting to the engine'}</h2>
+        <p className="mt-2 text-[14px] leading-snug text-ink2">The response shows here as soon as the engine answers.</p>
       </div>
     )
   }
   const next = hello.scenario.find((s) => s.at_s > t)
   return (
     <div>
-      <div className="text-[13px] font-medium text-safe">No active incident</div>
-      <div className="text-[24px] font-semibold leading-tight tracking-tight text-ink">{started ? 'Walk is nominal' : 'Ready'}</div>
-      <p className="mt-1.5 text-[13.5px] leading-snug text-ink2">
+      <h2 className="flex items-center gap-2.5 text-[22px] font-semibold leading-[1.15] tracking-[-0.02em] text-ink">
+        <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-safe" aria-hidden />{started ? 'Walk is nominal' : 'Ready'}
+      </h2>
+      <p className="mt-2 text-[14px] leading-snug text-ink2">
         {crew?.length ? `${crew.map((c) => c.name ?? `EV${c.id + 1}`).join(' and ')} at ${hello.site.name}. ` : ''}
-        When an incident is detected, the route to shelter and its margins appear here.
+        No incident. If one is detected, the route to shelter shows here.
       </p>
-      {next && <p className="mt-3 text-[12.5px] text-ink3">Scenario script: {next.title} at <span className="num">{missionT(next.at_s)}</span>. Run the demo to play it.</p>}
+      {next && <p className="mt-2 text-[12.5px] text-ink3">Next in the script: {next.title} at <span className="num">{missionT(next.at_s)}</span>.{started ? '' : ' Run the demo to play it.'}</p>}
     </div>
   )
 }
@@ -239,7 +232,7 @@ function AlertStrip({ b }: { b: IncidentBundle }) {
   if (!on) return null
   const urgent = b.incident.kind !== 'science'
   return (
-    <div role="alert" className={cn('anim-slide -mx-4 -mt-4 mb-3 flex items-center gap-2 px-4 py-2 text-[13px] font-medium', urgent ? 'bg-hazard text-[#1a0807]' : 'bg-accent text-[#16110a]')}>
+    <div role="alert" className={cn('anim-slide -mx-4 -mt-4 mb-4 flex items-center gap-2 px-4 py-2.5 text-[13.5px] font-medium', urgent ? 'bg-hazard text-[#1a0807]' : 'bg-accent text-[#16110a]')}>
       <TriangleAlert size={15} strokeWidth={2.2} />{urgent ? 'Alert' : 'New task'}: {b.incident.title}
     </div>
   )
@@ -251,12 +244,12 @@ export function ActionCard({ compact }: { compact?: boolean }) {
   const d = b?.decision
   const route = b?.routes?.find((r) => r.id === d?.route_id)
   return (
-    <div className="overflow-hidden p-4" aria-live="polite">
+    <div className="overflow-hidden px-4 pb-6 pt-4" aria-live="polite">
       {b ? (
         <>
           <AlertStrip b={b} />
           <IncidentLine b={b} />
-          <div className="mt-3"><PhaseSteps /></div>
+          <div className="mt-3.5"><PhaseSteps /></div>
           {d ? <Decided b={b} d={d} route={route} compact={compact} /> : <Planning b={b} />}
         </>
       ) : <Idle />}

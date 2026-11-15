@@ -31,7 +31,7 @@ function Incidents() {
   const focusId = useStore(focusIncidentId)
   const liveId = useStore((s) => s.snapshot?.incident_id ?? null)
   const focus = focusId ? incidents[focusId]?.incident : undefined
-  if (!order.length) return <Empty>Nothing detected. Dose rate, ground motion and dust are watched below.</Empty>
+  if (!order.length) return <Empty>Nothing detected. Dose rate and ground motion are watched under Conditions.</Empty>
   return (
     <>
       <ul className="-mx-2 space-y-0.5">

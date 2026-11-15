@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Maximize2, Minus, Mountain, Plus, Route, Users } from 'lucide-react'
+import { Minus, Plus, Scan } from 'lucide-react'
 import { CORE_DEFAULT, LAYER_LABEL, ORTHO_PATH, fileUrl, type Layer } from '@/lib/config'
 import { focusBundle, focusIncidentId, store, useStore } from '@/lib/store'
 import { ROUTE_STYLE, OUTCOME_FAIL, FAIL_LABEL } from '@/lib/routeStyle'
 import type { RouteStatus } from '@/lib/types'
 import { cn } from '@/lib/utils'
-import { LayerLegend, LayerSwitch } from './console/Layers'
+import { LayerLegend, LayerMenu } from './console/Layers'
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip'
 
 interface Img { el: HTMLImageElement; ready: boolean; failed: boolean; at: number }
@@ -34,11 +34,12 @@ function getImg(url: string, online: boolean): Img | null {
 
 interface View { k: number; ox: number; oy: number; fit: number; w: number; h: number; fitted: boolean }
 interface Hit { x: number; y: number; r: number; title: string; lines: string[] }
-const INK = '#e7eaee'
-const MONO = '11px "JetBrains Mono Variable", ui-monospace, monospace'
+const INK = '#efebe4'
+const FACE = '"Atkinson Hyperlegible Next Variable", system-ui, sans-serif'
+const LABEL = `500 12px ${FACE}`
 
 function halo(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, color = INK, align: CanvasTextAlign = 'left') {
-  ctx.font = MONO; ctx.textAlign = align; ctx.textBaseline = 'middle'
+  ctx.font = LABEL; ctx.textAlign = align; ctx.textBaseline = 'middle'
   ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(8,10,13,.85)'; ctx.lineJoin = 'round'
   ctx.strokeText(text, x, y); ctx.fillStyle = color; ctx.fillText(text, x, y)
 }
@@ -56,11 +57,8 @@ export function MapView() {
   const hoverRef = useRef<{ x: number; y: number } | null>(null)
   const [tip, setTip] = useState<{ x: number; y: number; title: string; lines: string[] } | null>(null)
   const [coord, setCoord] = useState<{ e: number; s: number } | null>(null)
-  const showReplays = useStore((s) => s.showReplays)
-  const contours = useStore((s) => s.contours)
   const focusId = useStore(focusIncidentId)
   const routesFileInc = useStore((s) => s.routesFile?.incident_id)
-  const phase = useStore((s) => s.snapshot?.phase ?? 'idle')
   const helloCore = useStore((s) => s.hello?.site.core)
   const core = helloCore ?? CORE_DEFAULT
   const { e0, s0, size } = core
@@ -287,7 +285,7 @@ export function MapView() {
           ctx.globalAlpha = back ? 0.7 : 1
           ctx.fillStyle = '#0a0c0f'; ctx.strokeStyle = back ? '#aab3bf' : sty.color; ctx.lineWidth = sel ? 2 : 1.4
           ctx.beginPath(); ctx.arc(tx, ty, sel ? 10 : 9, 0, 6.283); ctx.fill(); ctx.stroke()
-          ctx.font = '600 11px "JetBrains Mono Variable", monospace'; ctx.fillStyle = INK; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+          ctx.font = `700 11.5px ${FACE}`; ctx.fillStyle = INK; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
           ctx.fillText(String(r.id), tx, ty + 0.5)
           ctx.globalAlpha = 1
         }
@@ -307,7 +305,7 @@ export function MapView() {
             ctx.globalAlpha = isSel || selId === null ? 1 : 0.55
             ctx.fillStyle = '#ff5f57'; ctx.strokeStyle = '#0a0c0f'; ctx.lineWidth = 1.5
             ctx.beginPath(); ctx.moveTo(x, y - rr); ctx.lineTo(x + rr, y); ctx.lineTo(x, y + rr); ctx.lineTo(x - rr, y); ctx.closePath(); ctx.stroke(); ctx.fill()
-            if (isSel) { ctx.font = '600 9px "JetBrains Mono Variable", monospace'; ctx.fillStyle = '#1a0807'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(String(i + 1), x, y + 0.5) }
+            if (isSel) { ctx.font = `700 9.5px ${FACE}`; ctx.fillStyle = '#1a0807'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(String(i + 1), x, y + 0.5) }
             ctx.globalAlpha = 1
             hits.push({ x, y, r: rr + 4, title: `Route ${stress.route_id}: ${FAIL_LABEL[f.class] ?? f.class} (failure ${i + 1})`, lines: [f.summary ?? '', `log p ${f.log_p.toFixed(1)}`] })
           })
@@ -373,7 +371,7 @@ export function MapView() {
       ctx.fillStyle = 'rgba(10,12,15,.75)'; ctx.beginPath(); ctx.arc(nx, ny, 17, 0, 6.283); ctx.fill()
       ctx.strokeStyle = 'rgba(231,234,238,.3)'; ctx.lineWidth = 1; ctx.stroke()
       ctx.beginPath(); ctx.moveTo(nx, ny - 12); ctx.lineTo(nx + 4.5, ny + 3); ctx.lineTo(nx, ny); ctx.lineTo(nx - 4.5, ny + 3); ctx.closePath(); ctx.fillStyle = INK; ctx.fill()
-      ctx.font = '600 9px "JetBrains Mono Variable", monospace'; ctx.fillStyle = INK; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText('N', nx, ny + 4)
+      ctx.font = `700 9.5px ${FACE}`; ctx.fillStyle = INK; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText('N', nx, ny + 4)
 
       if (overlayNote) halo(ctx, overlayNote, v.w / 2, v.h - 14, '#a3acb8', 'center')
 
@@ -392,42 +390,32 @@ export function MapView() {
     return () => cancelAnimationFrame(raf)
   }, [e0, s0, size])
 
-  const mapBtn = 'flex h-9 w-9 items-center justify-center rounded-[4px] text-ink2 hover:bg-panel3 hover:text-ink'
+  const mapBtn = 'flex h-10 w-10 items-center justify-center text-ink2 transition-colors hover:bg-panel3 hover:text-ink'
   const hasRoutes = !!routesFileInc && routesFileInc === focusId
   return (
     <div className="flex h-full min-h-0 flex-col bg-bg">
       <div ref={wrap} className="relative min-h-0 flex-1 overflow-hidden">
         <canvas ref={cv} className="absolute inset-0 cursor-grab touch-none" aria-label="Map of the 4 by 4 km walk area" />
-        <div className="absolute left-3 right-[60px] top-3 flex"><LayerSwitch /></div>
-        <div className="absolute right-3 top-3 flex flex-col rounded-[6px] border border-rule2 bg-bg/85 p-0.5 backdrop-blur-sm">
-          <Tooltip><TooltipTrigger asChild><button type="button" className={mapBtn} aria-label="Zoom in" onClick={() => zoomAt(1.5)}><Plus size={16} /></button></TooltipTrigger><TooltipContent side="left">Zoom in</TooltipContent></Tooltip>
-          <Tooltip><TooltipTrigger asChild><button type="button" className={mapBtn} aria-label="Zoom out" onClick={() => zoomAt(1 / 1.5)}><Minus size={16} /></button></TooltipTrigger><TooltipContent side="left">Zoom out</TooltipContent></Tooltip>
-          <Tooltip><TooltipTrigger asChild><button type="button" className={mapBtn} aria-label="Frame the routes" onClick={fitRoutes}><Route size={16} /></button></TooltipTrigger><TooltipContent side="left">Frame the routes and the crew</TooltipContent></Tooltip>
-          <Tooltip><TooltipTrigger asChild><button type="button" className={mapBtn} aria-label="Whole walk area" onClick={fitView}><Maximize2 size={15} /></button></TooltipTrigger><TooltipContent side="left">Whole 4 by 4 km walk area</TooltipContent></Tooltip>
+        <div className="absolute left-3 top-3"><LayerMenu /></div>
+        <div className="absolute right-3 top-3 flex flex-col overflow-hidden rounded-[8px] bg-bg/90 shadow-[0_4px_16px_rgba(0,0,0,.45)]">
+          <button type="button" className={mapBtn} aria-label="Zoom in" onClick={() => zoomAt(1.5)}><Plus size={16} /></button>
+          <button type="button" className={mapBtn} aria-label="Zoom out" onClick={() => zoomAt(1 / 1.5)}><Minus size={16} /></button>
           <Tooltip>
-            <TooltipTrigger asChild>
-              <button type="button" onClick={() => store.set((s) => ({ contours: !s.contours }))} aria-pressed={contours} aria-label="Elevation contours" className={cn(mapBtn, contours && 'text-accent')}><Mountain size={16} /></button>
-            </TooltipTrigger>
-            <TooltipContent side="left">Elevation contours every 20 m, heavier every 100 m, from the HiRISE elevation model</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button type="button" onClick={() => store.set((s) => ({ showReplays: !s.showReplays }))} aria-pressed={showReplays} aria-label="Virtual crews" className={cn(mapBtn, showReplays && 'text-accent')}><Users size={16} /></button>
-            </TooltipTrigger>
-            <TooltipContent side="left">Virtual crews from the stress test, replayed on the map. {phase === 'simulate' ? 'Playing now.' : 'Shown faintly outside the Simulate step.'}</TooltipContent>
+            <TooltipTrigger asChild><button type="button" className={mapBtn} aria-label={hasRoutes ? 'Frame the routes' : 'Whole walk area'} onClick={hasRoutes ? fitRoutes : fitView}><Scan size={16} /></button></TooltipTrigger>
+            <TooltipContent side="left">{hasRoutes ? 'Frame the routes and the crew' : 'Whole 4 by 4 km walk area'}</TooltipContent>
           </Tooltip>
         </div>
         {tip && (
-          <div className="pointer-events-none absolute z-10 max-w-[260px] rounded-[4px] border border-rule2 bg-panel3 px-2.5 py-1.5 text-[12.5px] shadow-lg" style={{ left: Math.min(tip.x + 14, (wrap.current?.clientWidth ?? 400) - 270), top: Math.max(6, tip.y - 12) }}>
+          <div className="pointer-events-none absolute z-10 max-w-[260px] rounded-[6px] bg-panel3 px-2.5 py-1.5 text-[12.5px] shadow-[0_8px_24px_rgba(0,0,0,.5)]" style={{ left: Math.min(tip.x + 14, (wrap.current?.clientWidth ?? 400) - 270), top: Math.max(6, tip.y - 12) }}>
             <div className="font-medium text-ink">{tip.title}</div>
             {tip.lines.map((l, i) => <div key={i} className="text-ink2">{l}</div>)}
           </div>
         )}
       </div>
-      <div className="flex shrink-0 flex-wrap items-center justify-between gap-x-5 gap-y-1 border-t border-rule px-3 py-2">
+      <div className="flex min-h-[36px] shrink-0 flex-wrap items-center justify-between gap-x-5 gap-y-1 border-t border-rule bg-panel px-3 py-2">
         <Legend hasRoutes={hasRoutes} decided={chosenRoute !== undefined} />
         <LayerLegend />
-        <div className="num hidden text-[11.5px] text-ink3 md:block">{coord ? `e ${Math.round(coord.e)}  s ${Math.round(coord.s)} m` : 'HiRISE 1 m, NASA/JPL/University of Arizona'}</div>
+        <div className={cn('hidden text-[12px] text-ink3 md:block', coord && 'num')}>{coord ? `e ${Math.round(coord.e)}  s ${Math.round(coord.s)} m` : 'HiRISE 1 m, NASA/JPL/University of Arizona'}</div>
       </div>
     </div>
   )
