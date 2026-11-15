@@ -52,6 +52,8 @@ export interface RouteSummary {
   o2_margin: number; heat_margin: number; dose: number; robustness_nats: number | null; mc_fail_rate: number | null; status: RouteStatus
   /** Planner extras: metres inside the rockfall band, and whether the route meets the incident's rules. */
   band_m?: number; rule_ok?: boolean; rule_reasons?: string[]
+  /** metres of the route without radio line of sight to the habitat or the rover */
+  nolos_m?: number
 }
 export interface RoutesMsg { type: 'routes'; t: number; incident_id: string; file?: string; routes: RouteSummary[] }
 export interface FailureEvent { t: number; channel: string; value: number; log_p: number }

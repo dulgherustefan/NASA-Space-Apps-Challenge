@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Maximize2, Minus, Plus, Route, Users } from 'lucide-react'
+import { Maximize2, Minus, Mountain, Plus, Route, Users } from 'lucide-react'
 import { CORE_DEFAULT, LAYER_LABEL, ORTHO_PATH, fileUrl, type Layer } from '@/lib/config'
 import { focusBundle, focusIncidentId, store, useStore } from '@/lib/store'
 import { ROUTE_STYLE, OUTCOME_FAIL, FAIL_LABEL } from '@/lib/routeStyle'
@@ -56,6 +56,7 @@ export function MapView() {
   const [tip, setTip] = useState<{ x: number; y: number; title: string; lines: string[] } | null>(null)
   const [coord, setCoord] = useState<{ e: number; s: number } | null>(null)
   const showReplays = useStore((s) => s.showReplays)
+  const contours = useStore((s) => s.contours)
   const focusId = useStore(focusIncidentId)
   const routesFileInc = useStore((s) => s.routesFile?.incident_id)
   const phase = useStore((s) => s.snapshot?.phase ?? 'idle')
@@ -184,12 +185,18 @@ export function MapView() {
       else { ctx.fillStyle = '#14181d'; ctx.fillRect(x0, y0, sz, sz) }
       ctx.fillStyle = 'rgba(7,9,12,.5)'; ctx.fillRect(x0, y0, sz, sz)
 
+      // elevation contours under the hazard layer
+      if (st.contours) {
+        const ct = getImg(fileUrl('runtime/overlay_contours.png'), online)
+        if (ct?.ready) { ctx.globalAlpha = 0.75; ctx.drawImage(ct.el, x0, y0, sz, sz); ctx.globalAlpha = 1 }
+      }
+
       // overlay
       const layer = st.overlay.layer
       let overlayNote = ''
       if (layer) {
         const ov = getImg(fileUrl(`runtime/overlay_${layer}.png`, st.overlayV), online)
-        if (ov?.ready) { ctx.globalAlpha = st.overlay.opacity; ctx.drawImage(ov.el, x0, y0, sz, sz); ctx.globalAlpha = 1 }
+        if (ov?.ready) { ctx.globalAlpha = layer === 'comm' ? 1 : st.overlay.opacity; ctx.drawImage(ov.el, x0, y0, sz, sz); ctx.globalAlpha = 1 }
         else if (ov?.failed) overlayNote = `${LAYER_LABEL[layer as Layer] ?? layer} overlay not available yet`
       }
 
@@ -396,6 +403,12 @@ export function MapView() {
           <Tooltip><TooltipTrigger asChild><button type="button" className={mapBtn} aria-label="Zoom out" onClick={() => zoomAt(1 / 1.5)}><Minus size={16} /></button></TooltipTrigger><TooltipContent side="left">Zoom out</TooltipContent></Tooltip>
           <Tooltip><TooltipTrigger asChild><button type="button" className={mapBtn} aria-label="Frame the routes" onClick={fitRoutes}><Route size={16} /></button></TooltipTrigger><TooltipContent side="left">Frame the routes and the crew</TooltipContent></Tooltip>
           <Tooltip><TooltipTrigger asChild><button type="button" className={mapBtn} aria-label="Whole walk area" onClick={fitView}><Maximize2 size={15} /></button></TooltipTrigger><TooltipContent side="left">Whole 4 by 4 km walk area</TooltipContent></Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button type="button" onClick={() => store.set((s) => ({ contours: !s.contours }))} aria-pressed={contours} aria-label="Elevation contours" className={cn(mapBtn, contours && 'text-accent')}><Mountain size={16} /></button>
+            </TooltipTrigger>
+            <TooltipContent side="left">Elevation contours every 20 m, heavier every 100 m, from the HiRISE elevation model</TooltipContent>
+          </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
               <button type="button" onClick={() => store.set((s) => ({ showReplays: !s.showReplays }))} aria-pressed={showReplays} aria-label="Virtual crews" className={cn(mapBtn, showReplays && 'text-accent')}><Users size={16} /></button>

@@ -145,6 +145,7 @@ function RouteRow({ r, bundle, open }: { r: RouteSummary; bundle: IncidentBundle
             <Meter label="Heat margin on arrival" frac={r.heat_margin} source={PLANNER_SRC} />
           </div>
           {r.band_m !== undefined && r.band_m >= 1 && <p className="mt-2 text-[12.5px] text-caution">Crosses {num(r.band_m)} m of the rockfall runout band.</p>}
+          {r.nolos_m !== undefined && r.nolos_m >= 1 && <p className="mt-2 text-[12.5px] text-ink2">{num(r.nolos_m)} m without radio line of sight to the habitat or the rover.</p>}
           {r.rule_reasons?.map((why, i) => <p key={i} className="mt-2 flex gap-1.5 text-[12.5px] text-hazard"><TriangleAlert size={13} className="mt-[2px] shrink-0" />Route {why}</p>)}
           <div className="mt-3 border-t border-rule pt-3"><StressDetail r={r} st={st} /></div>
           {st && <Failures list={st.failures} />}

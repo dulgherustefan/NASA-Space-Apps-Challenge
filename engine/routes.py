@@ -191,7 +191,10 @@ def plan_round_trip(site, ctx, home, target, variants):
 def public_route(r):
     keys = ["id", "shelter", "label", "length_m", "time_s", "ascent_m", "max_slope", "o2_margin", "heat_margin", "dose",
             "robustness_nats", "mc_fail_rate", "status", "band_m", "steep_m", "sand_m", "plan_time_s", "rule_ok", "rule_reasons"]
-    return {k: r[k] for k in keys}
+    out = {k: r[k] for k in keys}
+    if "nolos_m" in r:                       # metres without radio line of sight to the habitat or the rover
+        out["nolos_m"] = r["nolos_m"]
+    return out
 
 
 def write_routes_json(incident_id, routes, path=None):

@@ -32,7 +32,9 @@ An incident goes through four phases.
    with its source and a flag that says it is a scenario, not an observation.
 2. **Assess.** The engine updates the hazard layers over the 4 × 4 km core box (800 × 800 cells of 5 m): combined hazard,
    slope, rockfall runout band, loose-sand likelihood, blocked sky, dose rate in the open, and where virtual crews failed.
-   Shelters that fall inside an active rockfall band are closed.
+   Shelters that fall inside an active rockfall band are closed. The dashboard map adds elevation contours and a radio
+   layer: the ground with no direct line of sight to the habitat or rover antenna, and for each route how many metres
+   of it are out of sight.
 3. **Simulate.** A grid planner (goal-rooted Dijkstra on the 5 m grid) proposes candidate routes from the crew to each
    open shelter. Each route is then stress-tested with a walk model of one suited walker (pace, stored heat, oxygen,
    falls, dose). The result is a failure rate from Monte Carlo runs with its confidence interval. When results of an
@@ -217,7 +219,8 @@ the REMS weather reports (from Gale crater, not from the demo site), and the pub
 
 Derived from real data by our own models, not measured: slope, roughness, the rockfall runout band
 (an energy-line cone from every source cell steeper than 32°, reach angle 27.8°), blocked sky and dose shielding, closed
-depressions, and the loose-sand layer, which is a proxy from image brightness and smoothness.
+depressions, elevation contours, radio line of sight (straight rays between assumed antenna heights, no diffraction),
+and the loose-sand layer, which is a proxy from image brightness and smoothness.
 
 Modelled: the walking and consumables model (speed, soil slowdown, metabolic rate, stored heat against the suit cooling
 limit, oxygen use, falls, dose), the disturbances applied in the stress test, and all margins and failure rates. Each

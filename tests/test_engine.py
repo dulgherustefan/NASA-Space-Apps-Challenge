@@ -323,3 +323,23 @@ def test_weather_reference_is_labelled_as_an_analogue(demo_run):
     w = d.hello()["weather"]
     assert w["kind"] == "measured" and w["analogue"] is True and "Gale" in w["note"]
     assert w["ground_min_c"]["median"] < w["ground_max_c"]["median"]
+
+
+def test_radio_line_of_sight_layer(site, scen):
+    from engine import maplayers
+    from engine.params import PARAMS
+    hab, rover = scen.place("H"), scen.place("R")
+    seen = maplayers.ensure(site, [(rover["x"], rover["y"], PARAMS["antRoverM"]), (hab["x"], hab["y"], PARAMS["antHabitatM"])])
+    assert seen.shape == (site.n, site.n)
+    assert seen[site.cell_ij(hab["x"], hab["y"])] and seen[site.cell_ij(rover["x"], rover["y"])]
+    assert 0.2 < seen.mean() < 0.95                      # the canyon wall hides part of the box, not all of it
+    for name, size in (("overlay_comm.png", (800, 800)), ("overlay_contours.png", (1600, 1600))):
+        from PIL import Image
+        with Image.open(os.path.join(RUNTIME, name)) as im:
+            assert im.size == size and im.mode == "RGBA"
+
+
+def test_routes_report_metres_without_radio_sight(demo_run):
+    _, msgs, _ = demo_run
+    routes = [m for m in msgs if m["type"] == "routes"][0]["routes"]
+    assert all("nolos_m" in r and 0 <= r["nolos_m"] <= r["length_m"] + 5 for r in routes)

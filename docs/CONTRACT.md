@@ -182,6 +182,10 @@ ignores them keeps working, and the dashboard works without them.
 | `snapshot` | `env` {daylight_s, sun_el, sun_source, ls, mars_year} | Seconds to sunset (0 when the Sun is down), Sun elevation in degrees and its source, solar longitude, Mars year |
 | `snapshot` | `walk` {route_id, incident_id, elapsed_s, time_s} | Present while the crew walks a chosen route |
 | `assessment` | `limits` {shelter_s, peak_s} | Seconds allowed from the first step under the shelter rule and before the expected dose-rate peak; null when the incident sets no deadline |
-| `routes[]` | `rule_ok`, `rule_reasons`, `band_m` | Whether the route meets the incident's rules, why not, and metres inside the rockfall runout band |
+| `routes[]` | `rule_ok`, `rule_reasons`, `band_m`, `nolos_m` | Whether the route meets the incident's rules, why not, metres inside the rockfall runout band, and metres without radio line of sight to the habitat or the rover |
 | `decision` | `dose_msv`, `label` | Dose on the chosen walk and the route label |
+
+Two more files in `runtime/` are for the dashboard map only and are not sent to the 3D window:
+`overlay_contours.png` (1600 × 1600, elevation contours every 20 m) and `overlay_comm.png` (800 × 800, ground without
+radio line of sight to the habitat or the rover, dimmed).
 The product name is sent in `hello.product`; nothing else hard-codes it.

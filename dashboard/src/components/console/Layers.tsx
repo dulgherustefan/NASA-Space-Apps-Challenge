@@ -12,6 +12,7 @@ export const LAYER_INFO: Record<Layer, { what: string; ramp: string; lo: string;
   sand: { what: 'Loose sand likelihood. A proxy from image brightness and smoothness, not a measurement.', ramp: 'linear-gradient(90deg, rgb(240,228,66), rgb(230,159,0))', lo: 'possible', hi: 'likely' },
   sky: { what: 'Share of the sky blocked by terrain. Blocked sky shields from particle radiation. Model.', ramp: 'linear-gradient(90deg, rgb(86,180,233), rgb(0,114,178))', lo: '15% blocked', hi: '45%' },
   dose: { what: 'Dose rate at each cell at the storm peak, after terrain shielding. Model.', ramp: 'linear-gradient(90deg, rgb(204,121,167), rgb(120,40,140))', lo: 'shielded', hi: 'exposed' },
+  comm: { what: 'Dimmed ground has no direct radio line of sight to the habitat or the rover antenna. Geometric model on the HiRISE elevation; antenna heights are assumptions, diffraction and relay satellites are not included.', ramp: 'linear-gradient(90deg, rgba(16,20,28,.85), rgba(16,20,28,.85))', lo: 'dimmed:', hi: 'no line of sight' },
   failures: { what: 'Where virtual crews failed in the stress test, weighted by likelihood. Model.', ramp: 'linear-gradient(90deg, rgb(140,41,100), rgb(249,142,9), rgb(252,255,164))', lo: 'few', hi: 'many' },
 }
 

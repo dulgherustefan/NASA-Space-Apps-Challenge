@@ -11,6 +11,7 @@ from concurrent.futures import Future
 import numpy as np
 
 from . import PRODUCT, VERSION
+from . import maplayers
 from . import routes as R
 from . import stress as S
 from .climate import load_weather
@@ -60,9 +61,29 @@ class Director:
         self.clock = MissionClock(parse_utc(m["start_utc"]), m["site_east_lon"], m["site_lat"], speed=1.0)
         self.crew = [CrewMember(c) for c in m["crew"]]
         self.weather = load_weather()
+        self.comm_job = self.ex.submit(maplayers.ensure, site, self._comm_sources())
         self.pace = dict(nominal=PARAMS["paceNominal"], storm=PARAMS["paceStorm"])
         self.outbox = []
         self.reset(emit=False)
+
+    def _comm_sources(self):
+        """Radio antennas a walker can talk to directly: habitat and rover (core metres, height above ground)."""
+        out = []
+        for p in self.sc.places.values():
+            if p["kind"] == "habitat":
+                out.append((p["x"], p["y"], PARAMS["antHabitatM"]))
+            elif p["kind"] == "rover":
+                out.append((p["x"], p["y"], PARAMS["antRoverM"]))
+        return out
+
+    def _comm_seen(self):
+        """Line-of-sight mask once it is ready; None while it is still being computed or if it failed."""
+        job = self.comm_job
+        if isinstance(job, Future):
+            if not job.done() or job.exception() is not None:
+                return None
+            return job.result()
+        return job
 
     # ------------------------------------------------------------------------------------ state
     def reset(self, emit=True):
@@ -500,6 +521,10 @@ class Director:
             self.log("No route found to any open shelter", "error")
             self._phase("idle", 0.0)
             return
+        seen = self._comm_seen()
+        if seen is not None:
+            for r in routes:
+                r["nolos_m"] = round(maplayers.metres_without_sight(self.site, seen, r["points"]), 0)
         rfile = R.write_routes_json(iid, routes)
         self.osc.reload("routes")
         for r in routes:

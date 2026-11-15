@@ -54,6 +54,7 @@ export interface State {
   params: { status: 'idle' | 'loading' | 'missing' | 'ready' | 'error'; items: ParamDef[] }
   training: TrainingState
   overlay: { layer: string | null; opacity: number; userSet: boolean }
+  contours: boolean
   selectedRoute: number | null
   showReplays: boolean
   routeChangedAt: Record<string, number>
@@ -67,7 +68,7 @@ const initial = (): State => ({
   incidents: {}, order: [], focusId: null, sensors: [], log: [],
   routesFile: null, routesV: 0, trajFile: null, trajV: 0, overlayV: 0,
   params: { status: 'idle', items: [] }, training: { status: 'idle' },
-  overlay: { layer: 'hazard', opacity: 0.42, userSet: false }, selectedRoute: null, showReplays: true,
+  overlay: { layer: 'hazard', opacity: 0.42, userSet: false }, contours: true, selectedRoute: null, showReplays: true,
   routeChangedAt: {}, trails: {}, alertAt: 0,
 })
 
@@ -119,7 +120,7 @@ export function applyMessage(msg: EngineMsg) {
       logN = 0
       lastSensorWall = 0
       const keepConn = state.conn
-      state = { ...initial(), mode: state.mode, conn: keepConn, hello: msg, lastMsgAt: now, params: state.params, training: state.training, overlay: { ...state.overlay, userSet: false } }
+      state = { ...initial(), mode: state.mode, conn: keepConn, hello: msg, lastMsgAt: now, params: state.params, training: state.training, overlay: { ...state.overlay, userSet: false }, contours: state.contours }
       state.log = pushLog({ t: msg.t, type: 'hello', title: `Connected to ${msg.product} ${msg.version}`, detail: msg.site.name, source: 'engine', raw: msg })
       listeners.forEach((l) => l())
       return

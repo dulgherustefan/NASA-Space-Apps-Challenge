@@ -59,8 +59,8 @@ export function fileUrl(repoPath: string, version?: number | string): string {
 
 export const ORTHO_PATH = 'data/site/core_ortho.webp'
 export const CORE_DEFAULT = { e0: 1650, s0: 6600, size: 4000 }
-export const LAYERS = ['hazard', 'slope', 'rockfall', 'sand', 'sky', 'dose', 'failures'] as const
+export const LAYERS = ['hazard', 'slope', 'rockfall', 'sand', 'sky', 'dose', 'comm', 'failures'] as const
 export type Layer = (typeof LAYERS)[number]
 export const LAYER_LABEL: Record<Layer, string> = {
-  hazard: 'Hazard', slope: 'Slope', rockfall: 'Rockfall', sand: 'Sand', sky: 'Sky', dose: 'Dose', failures: 'Failures',
+  hazard: 'Hazard', slope: 'Slope', rockfall: 'Rockfall', sand: 'Sand', sky: 'Sky', dose: 'Dose', comm: 'Radio', failures: 'Failures',
 }

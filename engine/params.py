@@ -111,6 +111,13 @@ PARAM_DEFS = [
     _p("skyShelterMin", "Natural shelter: min. blocked sky", 0.27, "", "model", "Radiation",
        "Terrain cells that hide at least this fraction of the sky are offered as stop-gap shelters.", "Team model",
        min=0.2, max=0.45, step=0.01),
+    # ---------------------------------------------------------------- communications
+    _p("antHabitatM", "Habitat antenna height", 6, "m", "assumption", "Communications",
+       "Height above the ground of the habitat radio mast, for the line-of-sight layer.", "Team assumption", min=2, max=15, step=1),
+    _p("antRoverM", "Rover antenna height", 3, "m", "assumption", "Communications",
+       "Height above the ground of the rover antenna, for the line-of-sight layer.", "Team assumption", min=1, max=6, step=0.5),
+    _p("antCrewM", "Suit antenna height", 1.8, "m", "assumption", "Communications",
+       "Height above the ground of the antenna on a suit backpack.", "Team assumption", min=1, max=2.5, step=0.1),
     # ---------------------------------------------------------------- simulation (engine)
     _p("reactS", "Alert to first step", 60, "s", "assumption", "Simulation",
        "Time between the alert and the crew starting to walk; counted against the shelter rule.", "Team assumption"),
