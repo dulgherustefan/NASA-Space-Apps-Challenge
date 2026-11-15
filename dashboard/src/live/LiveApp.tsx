@@ -1,5 +1,5 @@
 // Solway live: the browser runs the planner, the Monte Carlo virtual crews and the trained walking policy.
-import { lazy, Suspense, useEffect, useMemo, useState, type ComponentType, type ReactNode } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from 'react'
 import { AlertTriangle, Box, Compass, Globe2, Map as MapIcon, Mountain, Radiation, RotateCcw, Sparkles, X } from 'lucide-react'
 import { Mark } from '@/components/Header'
 import { KindGlyph } from '@/components/Kind'
@@ -10,11 +10,12 @@ import { bootBundled, clearIncident, reroute, setCrew, setView, trigger, useLive
 import { GRADE_LABEL, type LiveRoute, type LoadedSite, type SiteDescriptor } from './types'
 import { PARAM_DEFS } from './engine/params'
 import { Tour, startTour, useTour } from './Tour'
+import { READY_SITES } from './global/sites'
 
 // Optional modules are picked up when present, so the page always builds and loads.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mods = import.meta.glob<{ default: ComponentType<any> }>(['./scene/Overview3D.tsx', './hud/HelmetView.tsx', './global/GlobePicker.tsx'])
-const anywhere = import.meta.glob<{ loadAnywhere: (lon: number, lat: number, onProgress?: (label: string, frac: number) => void) => Promise<LoadedSite> }>('./global/loadAnywhere.ts')
+const anywhere = import.meta.glob<{ loadAnywhere: (lon: number, lat: number, onProgress?: (label: string, frac: number) => void, signal?: AbortSignal) => Promise<LoadedSite> }>('./global/loadAnywhere.ts')
 const Missing = () => <div className="grid h-full place-items-center text-ink3">Not available in this build</div>
 const lazyMod = (k: string) => lazy(async () => (mods[k] ? await mods[k]() : { default: Missing }))
 const Overview3D = lazyMod('./scene/Overview3D.tsx')
@@ -112,6 +113,9 @@ export default function LiveApp() {
   const s = useLive()
   const [pickerOpen, setPickerOpen] = useState(false)
   const [busySite, setBusySite] = useState<string | null>(null)
+  const [pickErr, setPickErr] = useState<string | null>(null)
+  const [marker, setMarker] = useState<{ lon: number; lat: number } | null>(null)
+  const abortRef = useRef<AbortController | null>(null)
   const tour = useTour()
   const autoTour = useHashFlag('tour')
 
@@ -123,18 +127,24 @@ export default function LiveApp() {
   const ruleS = s.incident?.ruleS ?? 0
 
   async function pickLocation(lon: number, lat: number) {
-    setBusySite(`Searching for terrain at ${lat.toFixed(2)}°, ${lon.toFixed(2)}°E`)
+    abortRef.current?.abort()
+    const ac = new AbortController(); abortRef.current = ac
+    setPickErr(null); setMarker({ lon, lat })
+    setBusySite(`Searching USGS for elevation data at ${lat.toFixed(2)}°, ${(((lon % 360) + 360) % 360).toFixed(2)}°E…`)
     try {
       const { loadAnywhere } = await anywhere['./global/loadAnywhere.ts']()
-      const loaded = await loadAnywhere(lon, lat, (label: string) => setBusySite(label))
+      const loaded = await loadAnywhere(lon, lat, (label: string, frac: number) => setBusySite(`${label} · ${Math.round(frac * 100)}%`), ac.signal)
+      if (ac.signal.aborted) return
+      const known = READY_SITES.find(r => Math.abs(r.lat - lat) < 0.05 && Math.abs((((r.lon - lon) % 360) + 540) % 360 - 180) < 0.05)
+      if (known) loaded.desc.name = `${known.name} (${loaded.desc.name})`
+      setBusySite('Starting the engine on the new terrain…')
       await useSite(loaded)
       setPickerOpen(false)
     } catch (e) {
-      setBusySite(null)
-      alert((e as Error).message)
-      return
+      if (!ac.signal.aborted) setPickErr((e as Error).message)
+    } finally {
+      if (abortRef.current === ac) setBusySite(null)
     }
-    setBusySite(null)
   }
 
   if (!l) {
@@ -183,6 +193,10 @@ export default function LiveApp() {
             {HAS.hud && <button disabled={!chosen} onClick={() => setView('helmet')} data-testid="view-helmet"
               className="flex h-8 items-center gap-1.5 rounded px-2.5 text-[13px] text-ink2 enabled:hover:text-ink disabled:opacity-40"><Compass size={14} />Helmet HUD</button>}
           </div>
+          {l.desc.grade !== 'eva' && <div className={cn('absolute right-2 top-12 z-10 max-w-[min(92%,380px)] rounded border bg-black/80 px-3 py-2 text-[12.5px] leading-snug', l.desc.grade === 'planning' ? 'border-caution/60 text-caution' : 'border-hazard/60 text-hazard')} role="note">
+            <div className="font-semibold">{l.desc.grade === 'planning' ? '◆ Route-planning grade' : '▲ Not suitable for a walk'}</div>
+            <div className="text-ink2">{l.desc.gradeReason}</div>
+          </div>}
           {s.note && <div className="absolute bottom-12 left-1/2 z-10 w-[min(92%,520px)] -translate-x-1/2 rounded bg-black/75 px-3 py-1.5 text-center text-[12.5px] text-caution">{s.note}</div>}
           {!s.crew && <div className="pointer-events-none absolute bottom-12 left-1/2 z-10 -translate-x-1/2 rounded bg-black/70 px-3 py-1.5 text-[13px] text-ink">Click anywhere on the terrain to place the crew</div>}
           {s.phase === 'planning' && <div className="absolute left-1/2 top-3 z-10 -translate-x-1/2 rounded bg-black/70 px-3 py-1.5 text-[13px] text-accent">Planning routes and walking {s.mcN.toLocaleString('en-US')} virtual crews per route…</div>}
@@ -261,10 +275,14 @@ export default function LiveApp() {
             </div>
             <div className="relative min-h-0 flex-1">
               <Suspense fallback={<div className="grid h-full place-items-center text-ink3">Loading Mars map…</div>}>
-                <GlobePicker onPick={pickLocation} busy={!!busySite} marker={null}
+                <GlobePicker onPick={(lon: number, lat: number) => void pickLocation(lon, lat)} busy={!!busySite} marker={marker}
                   bundled={[{ name: 'NE Melas Chasma (bundled HiRISE site)', lon: 290.037, lat: -10.012 }]} />
               </Suspense>
-              {busySite && <div className="absolute inset-x-0 bottom-0 bg-black/80 px-4 py-2 text-[13px] text-accent">{busySite}</div>}
+              {busySite && <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-3 bg-black/85 px-4 py-2 text-[13px] text-accent" role="status">
+                <span>{busySite}</span>
+                <button className="text-ink2 hover:text-ink" onClick={() => { abortRef.current?.abort(); setBusySite(null) }}>Cancel</button>
+              </div>}
+              {pickErr && !busySite && <div className="absolute inset-x-0 bottom-0 bg-black/85 px-4 py-2 text-[13px] text-hazard" role="alert">{pickErr}</div>}
             </div>
             <div className="flex items-center justify-between border-t border-rule px-4 py-2 text-[12px] text-ink3">
               <span>Elevation: USGS Astrogeology STAC (HiRISE, CTX DTMs), MOLA/HRSC blend. Basemap: NASA Mars Trek.</span>

@@ -110,6 +110,8 @@ export async function bootBundled() {
 export async function useSite(loaded: LoadedSite, policy?: unknown | null) {
   set({ progress: { label: 'Starting engine workers', frac: 0.8 } })
   engine?.dispose()
+  const prev = S().loaded?.desc.orthoUrl
+  if (prev?.startsWith('blob:') && prev !== loaded.desc.orthoUrl) URL.revokeObjectURL(prev)
   const pol = policy === undefined ? await fetchPolicy() : policy
   engine = new Engine(loaded.site, pol)
   await engine.ready
