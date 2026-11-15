@@ -18,7 +18,9 @@ REQUIRED = {
                "failures", "heatmap"],
     "decision": ["type", "t", "incident_id", "route_id", "shelter", "auto", "reasons", "avoided", "time_to_shelter_s", "margins"],
     "log": ["type", "t", "level", "text", "source"],
+    "plan": ["type", "t", "id", "ok"],
 }
+PLAN_OK = ["from", "to", "file", "trajectories", "routes", "stress", "recommended", "conditions", "note"]
 NESTED = {
     ("hello", "site"): ["name", "lat", "lon", "core", "z_ref", "ortho"],
     ("hello", "site.core"): ["e0", "s0", "size"],
@@ -109,6 +111,19 @@ def validate(msg):
         for f in msg.get("failures", []):
             if f.get("class") not in FAIL_CLASSES:
                 errs.append("stress: bad failure class %r" % f.get("class"))
+    if typ == "plan":
+        if msg.get("ok") is True:
+            for k in PLAN_OK:
+                if k not in msg:
+                    errs.append("plan: missing %s" % k)
+            for r in msg.get("routes", []):
+                if r.get("status") not in ROUTE_STATUS:
+                    errs.append("plan: bad status %r" % r.get("status"))
+            for st in msg.get("stress", []):
+                if st.get("source") != "local preview" or st.get("method") != "mc":
+                    errs.append("plan: the stress test of a plan is the local Monte Carlo preview only")
+        elif not msg.get("reason"):
+            errs.append("plan: a refused plan needs a reason")
     if typ == "incident" and msg.get("scenario") is not True:
         errs.append("incident: scripted incidents must carry scenario: true")
     return errs

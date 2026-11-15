@@ -10,14 +10,15 @@ from concurrent.futures import Future
 
 import numpy as np
 
-from . import PRODUCT, VERSION
+from . import PRODUCT, VERSION, rel
+from . import freeplan as FP
 from . import maplayers
 from . import routes as R
 from . import stress as S
 from .climate import load_weather
 from .clock import MissionClock, parse_utc
 from .hazards import LABELS, overlay_file, write_png
-from .params import PARAMS, SIM
+from .params import PARAMS, SIM, cite
 from .walk import TR, make_params, sep_rate
 
 log = logging.getLogger("engine.director")
@@ -109,6 +110,8 @@ class Director:
         self.osc_acc = 0.0
         self.clock_acc = 0.0
         self.error = None
+        self.plan_job = None                 # (future, request) of a free plan being computed
+        self.plan_n = 0
         s = self.sc.place("S")
         self._park(s["x"], s["y"], status=C_IDLE)
         self.dose_base = 0.0
@@ -305,6 +308,8 @@ class Director:
                 self.log("Incident %s triggered by the operator" % iid)
             elif name == "choose":
                 self._choose_manual(int(cmd.get("route_id")))
+            elif name == "plan":
+                self._plan_request(cmd)
             elif name == "cue":
                 self.osc.cue(str(cmd.get("name", "overview")), float(cmd.get("duration", 4.0)))
             elif name == "demo":
@@ -338,6 +343,7 @@ class Director:
                 self.phase = "idle"
                 self.log("Engine error: %s" % e, "error")
         self._update_agents()
+        self._poll_plan()
         # OSC streams
         self.osc_acc += wall_dt
         self.clock_acc += wall_dt
@@ -352,6 +358,83 @@ class Director:
             self.clock_acc = 0.0
             cs = self.clock.state()
             self.osc.clock(cs["t"], cs["speed"], cs["sun_az"], cs["sun_el"])
+
+    # ------------------------------------------------------------------------------------ free planning
+    def _plan_request(self, cmd):
+        """Operator asks for a walking route to a point (engine/freeplan.py). Always answers with a `plan` message."""
+        self.plan_n += 1
+        pid = "plan-%d" % self.plan_n
+        try:
+            if self.phase != "idle":
+                raise FP.PlanError("An incident response is in progress. Plan again once its route is chosen")
+            goal = FP.point(self.site, cmd.get("to"), "destination")
+            lead = self.crew_state(self.crew[0])
+            if cmd.get("from") is not None:
+                start = FP.point(self.site, cmd.get("from"), "start point")
+                from_crew, heat0, o2f = False, None, None
+            else:
+                start = (lead["x"], lead["y"])
+                from_crew, heat0, o2f = True, lead["heat"], max(0.0, lead["o2"]) / O2_TANK
+            if math.hypot(goal[0] - start[0], goal[1] - start[1]) < 15.0:
+                raise FP.PlanError("The destination is where the walk starts")
+        except FP.PlanError as e:
+            self._plan_fail(pid, str(e), cmd.get("to"))
+            return
+        inc = self.incident or {}
+        storm = self.sep_t0 is not None and inc.get("sep") in ("onset", "continues")
+        ctx = dict(start_xy=start, band_active=bool(inc.get("band_active")), alpha=PARAMS["alphaDeg"],
+                   pace=self.pace["nominal"], sep_elapsed0=(self.clock.t - self.sep_t0) if storm else -1.0,
+                   deadline_walk=math.inf, deadline_peak=math.inf, t_walk=None, heat0=heat0, o2_frac=o2f, kind="plan")
+        req = dict(id=pid, start=start, goal=goal, from_crew=from_crew, ctx=ctx, storm=storm)
+        n = min(int(self.n_walkers or FP.PLAN_WALKERS), FP.PLAN_WALKERS)
+        self.plan_job = (self.ex.submit(FP.plan, self.site, self.hz, pid, start, goal, ctx, self._comm_seen(), n), req)
+        self._poll_plan()
+
+    def _plan_fail(self, pid, reason, to=None):
+        msg = {"type": "plan", "id": pid, "ok": False, "reason": reason}
+        if isinstance(to, dict):
+            msg["to"] = {k: to.get(k) for k in ("e", "s") if isinstance(to.get(k), (int, float)) and math.isfinite(to.get(k))}
+        self.emit(msg)
+        self.log("No plan: %s" % reason, "warn")
+
+    def _poll_plan(self):
+        """Emit the result of a finished plan job. Called every tick, so the planner never holds the snapshot loop."""
+        if not self.plan_job or not self.plan_job[0].done():
+            return
+        fut, req = self.plan_job
+        self.plan_job = None
+        try:
+            routes, results = fut.result()
+        except FP.PlanError as e:
+            self._plan_fail(req["id"], str(e))
+            return
+        except Exception as e:                      # a planner bug must not stop the engine
+            log.exception("free plan failed")
+            self._plan_fail(req["id"], "The planner failed (%s)" % type(e).__name__)
+            return
+        ctx, start, goal = req["ctx"], req["start"], req["goal"]
+        o2 = PARAMS["o2Start"] if ctx["o2_frac"] is None else ctx["o2_frac"]
+        heat = PARAMS["heat0KJ"] if ctx["heat0"] is None else ctx["heat0"]
+        state_kind = "model" if req["from_crew"] else "assumption"
+        state_src = "Crew state now, from the walk model" if req["from_crew"] else "Start-of-walk value (team assumption)"
+        conditions = [
+            cite("paceNominal", "Walking pace"),
+            dict(label="Usable oxygen at the start", value=round(o2 * 100), unit="%", kind=state_kind, source=state_src),
+            dict(label="Stored heat at the start", value=round(heat), unit="kJ", kind=state_kind, source=state_src),
+            dict(label="Rockfall runout band", value="active" if ctx["band_active"] else "standing", unit="",
+                 kind="scenario", source="State left by the last scripted incident"),
+            dict(label="Solar storm", value="ongoing, in the dose" if req["storm"] else "none", unit="",
+                 kind="scenario", source="State left by the last scripted incident"),
+        ]
+        start_label = "Crew position" if req["from_crew"] else (FP.place_name(self.sc, *start) or "Chosen start")
+        self.emit({"type": "plan", "id": req["id"], "ok": True,
+                   "from": FP.public_point(self.site, start[0], start[1], start_label),
+                   "to": FP.public_point(self.site, goal[0], goal[1], FP.place_name(self.sc, *goal)),
+                   "file": rel(FP.ROUTES_FILE), "trajectories": rel(FP.TRAJ_FILE),
+                   "routes": [R.public_route(r) for r in routes], "stress": [S.public(res) for res in results],
+                   "recommended": FP.recommended(routes), "conditions": conditions,
+                   "note": "A plan only: the crew is not told to walk it. Model-based, not crew-tested."})
+        self.log("Planned walk: %d route%s, %.0f m" % (len(routes), "" if len(routes) == 1 else "s", routes[0]["length_m"]))
 
     # ------------------------------------------------------------------------------------ waits (generator helpers)
     def _hold(self, key):

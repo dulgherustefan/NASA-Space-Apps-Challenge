@@ -189,3 +189,50 @@ Two more files in `runtime/` are for the dashboard map only and are not sent to 
 `overlay_contours.png` (1600 × 1600, elevation contours every 20 m) and `overlay_comm.png` (800 × 800, ground without
 radio line of sight to the habitat or the rover, dimmed).
 The product name is sent in `hello.product`; nothing else hard-codes it.
+
+## 8. Free planning (the `plan` command)
+
+The operator can ask for a walking route to any point of the walk area before a walk, with no incident involved.
+A plan never moves the crew, is not sent to the 3D window, and does not replace the routes of an incident.
+
+Command (dashboard to engine, same socket). `from` is optional; without it the walk starts at the crew's position.
+
+```json
+{"cmd":"plan","to":{"e":3350,"s":9200}}
+{"cmd":"plan","to":{"e":3350,"s":9200},"from":{"e":2350,"s":9900}}
+```
+
+The engine always answers with one `plan` message. It uses the planner and hazard layers of the incident routes, and
+the stress test is the engine's small Monte Carlo run only: `method` is `mc` and `source` is `local preview`, never a
+result from `data/ast`.
+
+```json
+{"type":"plan","t":12.0,"id":"plan-1","ok":true,
+ "from":{"e":4450.0,"s":8100.0,"z":-3301.2,"label":"Crew position"},
+ "to":{"e":3350.0,"s":9200.0,"z":-3305.0,"label":"Rover"},
+ "file":"runtime/plan_routes.json","trajectories":"runtime/plan_trajectories.json",
+ "routes":[{"id":0,"shelter":"P","label":"Direct","length_m":1727,"time_s":2840,"ascent_m":0.5,"max_slope":23.8,
+            "o2_margin":0.71,"heat_margin":0.82,"dose":0.01,"robustness_nats":null,"mc_fail_rate":0.012,
+            "status":"tested","nolos_m":310}],
+ "stress":[{"incident_id":"plan-1","route_id":0,"method":"mc","source":"local preview","robustness_nats":null,
+            "mc_fail_rate":0.012,"mc_ci":[0.007,0.021],"n":1000,"failures":[],"heatmap":"runtime/heatmap_plan-1_0.png"}],
+ "recommended":0,
+ "conditions":[{"label":"Walking pace","value":0.65,"unit":"m/s","kind":"measured","source":"..."}],
+ "note":"A plan only: the crew is not told to walk it. Model-based, not crew-tested."}
+
+{"type":"plan","t":12.0,"id":"plan-2","ok":false,"to":{"e":0,"s":0},
+ "reason":"The destination is outside the 4 x 4 km walk area covered by the 1 m elevation model"}
+```
+
+- `routes[]` and `stress[]` have the fields of the `routes` and `stress` messages. `label` is `Direct`, and
+  `Clear of the rockfall band` for the second planner setting when it gives a different path.
+- `to.label` is the name of a scenario place within 40 m of the point, or null. `from.label` is `Crew position`,
+  a place name, or `Chosen start`.
+- `recommended` is the route id with the lowest failure rate, then the shorter walk.
+- `conditions` lists what the plan assumed (pace, oxygen and stored heat at the start, rockfall band and solar storm
+  state), each with kind and source.
+- `ok: false` carries a `reason` for the operator: a point outside the walk area or on a cell the planner cannot enter,
+  no walkable path, a destination where the walk starts, a missing or non-numeric point, or an incident being handled.
+  A bad request never raises in the engine.
+- `runtime/plan_routes.json` and `runtime/plan_trajectories.json` have the layout of `routes.json` and
+  `trajectories.json`, with the plan id as `incident_id`.

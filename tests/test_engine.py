@@ -343,3 +343,75 @@ def test_routes_report_metres_without_radio_sight(demo_run):
     _, msgs, _ = demo_run
     routes = [m for m in msgs if m["type"] == "routes"][0]["routes"]
     assert all("nolos_m" in r and 0 <= r["nolos_m"] <= r["length_m"] + 5 for r in routes)
+
+
+# ------------------------------------------------------------------------------ free planning
+def _plan(d, cmd):
+    assert d.command(cmd) == "ok"
+    for _ in range(3):
+        d.tick(0.05)
+    return [m for m in d.drain() if m["type"] == "plan"]
+
+
+@pytest.fixture()
+def idle_director(site, scen):
+    return Director(site, Hazards(site), scen, Osc(enabled=False), n_walkers=100)
+
+
+def test_plan_walk_from_the_crew_to_a_point(idle_director, scen):
+    d = idle_director
+    rover, crew0 = scen.place("R"), d.crew_public()
+    msgs = _plan(d, {"cmd": "plan", "to": {"e": rover["e"], "s": rover["s"]}})
+    assert len(msgs) == 1
+    m = msgs[0]
+    assert m["ok"] is True and schema.validate(m) == []
+    assert m["from"]["label"] == "Crew position" and m["to"]["label"] == "Rover"
+    r = [x for x in m["routes"] if x["id"] == m["recommended"]][0]
+    for k in ("length_m", "time_s", "ascent_m", "max_slope", "o2_margin", "heat_margin", "dose", "nolos_m", "mc_fail_rate"):
+        assert isinstance(r[k], (int, float)), k
+    assert r["status"] == "tested" and r["length_m"] > 500
+    # the stress test of a plan is the local Monte Carlo preview and never a trained result
+    assert m["stress"] and all(s["source"] == "local preview" and s["method"] == "mc" and s["robustness_nats"] is None
+                               for s in m["stress"])
+    assert all(c["kind"] in schema.KINDS and c["source"] for c in m["conditions"])
+    # a plan moves nobody and starts no incident
+    assert d.crew_public() == crew0 and d.phase == "idle" and d.incident_id is None and d.walk is None
+    with open(os.path.join(RUNTIME, "plan_routes.json")) as f:
+        doc = json.load(f)
+    assert doc["incident_id"] == m["id"]
+    end = doc["routes"][0]["points"][-1]
+    assert math.hypot(end[0] - rover["e"], end[1] - rover["s"]) < 15
+
+
+def test_plan_walk_from_a_chosen_start(idle_director, scen):
+    hab, sci = scen.place("H"), scen.place("S")
+    m = _plan(idle_director, {"cmd": "plan", "from": {"e": hab["e"], "s": hab["s"]}, "to": {"e": sci["e"], "s": sci["s"]}})[0]
+    assert m["ok"] is True and m["from"]["label"] == "Habitat" and m["to"]["label"] == "Science site"
+    assert schema.validate(m) == []
+
+
+def test_plan_refuses_bad_destinations_with_a_reason(idle_director, site):
+    d = idle_director
+    i, j = divmod(int(np.flatnonzero(site.blocked)[len(np.flatnonzero(site.blocked)) // 2]), site.n)
+    be, bs = site.cell_center_local(i, j)
+    cases = [({"e": be, "s": bs}, "cannot enter"), ({"e": 0.0, "s": 0.0}, "outside"), ({"e": "x"}, "numbers"),
+             (None, "point"), ({"e": float("nan"), "s": 1.0}, "finite")]
+    for to, word in cases:
+        msgs = _plan(d, {"cmd": "plan", "to": to})
+        assert len(msgs) == 1 and msgs[0]["ok"] is False and word in msgs[0]["reason"], (to, msgs)
+        assert schema.validate(msgs[0]) == []
+    crew = d.crew_public()[0]
+    here = _plan(d, {"cmd": "plan", "to": {"e": crew["e"] + 3, "s": crew["s"]}})[0]
+    assert here["ok"] is False and "starts" in here["reason"]
+    assert d.error is None and d.phase == "idle"
+
+
+def test_plan_is_refused_while_an_incident_is_handled(idle_director):
+    d = idle_director
+    d.command({"cmd": "trigger", "id": "sep-1"})
+    for _ in range(4):
+        d.tick(0.05)
+    assert d.phase != "idle"
+    d.drain()
+    m = _plan(d, {"cmd": "plan", "to": {"e": 3350.0, "s": 9200.0}})[0]
+    assert m["ok"] is False and "incident" in m["reason"]
