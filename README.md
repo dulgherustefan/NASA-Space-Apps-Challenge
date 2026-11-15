@@ -13,6 +13,8 @@ identified EVA hazards and risks on the Martian surface"
 It was made for the NASA Space Apps Challenge 2026, challenge "Interplanetary Survival Guide: Martian Map".
 It is not affiliated with or endorsed by NASA, and it is a planning aid only. Nothing here has been tested with a crew.
 
+**Recorded demo in the browser, no install: [solway-demo.vercel.app](https://solway-demo.vercel.app)**
+
 ![The Solway dashboard during the solar particle event scenario](docs/img/dashboard.png)
 
 The dashboard during the scripted solar particle event. Right: where to go, the walking time against the 30-minute
