@@ -23,10 +23,16 @@ function hillshade(site: SiteData): HTMLCanvasElement {
   const ctx = cv.getContext('2d')!
   const img = ctx.createImageData(n, n)
   const lx = -0.6, ly = -0.6, lz = 0.53
+  // auto-contrast: gentle terrain (coarse global data) is shaded with an exaggerated gradient so its relief shows
+  let g95 = 0
+  { const gs: number[] = []
+    for (let i = 1; i < n - 1; i += 7) for (let j = 1; j < n - 1; j += 7) gs.push(Math.hypot(z[i * n + j + 1] - z[i * n + j - 1], z[(i + 1) * n + j] - z[(i - 1) * n + j]) / (2 * cell))
+    gs.sort((a, b) => a - b); g95 = gs[Math.floor(gs.length * 0.95)] || 0 }
+  const ex = g95 > 0 ? Math.min(40, Math.max(1, 0.35 / g95)) : 1
   for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
     const k = i * n + j
-    const gx = (z[i * n + Math.min(n - 1, j + 1)] - z[i * n + Math.max(0, j - 1)]) / (2 * cell)
-    const gy = (z[Math.min(n - 1, i + 1) * n + j] - z[Math.max(0, i - 1) * n + j]) / (2 * cell)
+    const gx = ex * (z[i * n + Math.min(n - 1, j + 1)] - z[i * n + Math.max(0, j - 1)]) / (2 * cell)
+    const gy = ex * (z[Math.min(n - 1, i + 1) * n + j] - z[Math.max(0, i - 1) * n + j]) / (2 * cell)
     const len = Math.hypot(gx, gy, 1)
     const s = Math.max(0, (-gx * lx - gy * ly + lz) / len)
     const v = 40 + 170 * s

@@ -129,7 +129,7 @@ export default function LiveApp() {
   const storm = s.incident?.kind === 'storm'
   const ruleS = s.incident?.ruleS ?? 0
 
-  async function pickLocation(lon: number, lat: number) {
+  async function pickLocation(lon: number, lat: number, note?: string) {
     abortRef.current?.abort()
     const ac = new AbortController(); abortRef.current = ac
     setPickErr(null); setMarker({ lon, lat })
@@ -142,6 +142,7 @@ export default function LiveApp() {
       if (known) loaded.desc.name = `${known.name} (${loaded.desc.name})`
       setBusySite('Starting the engine on the new terrain…')
       await useSite(loaded)
+      if (note) useLive.setState({ note })
       setPickerOpen(false)
     } catch (e) {
       if (!ac.signal.aborted) setPickErr((e as Error).message)
@@ -211,7 +212,7 @@ export default function LiveApp() {
             <div className="font-semibold">{l.desc.grade === 'planning' ? '◆ Route-planning grade' : '▲ Not suitable for a walk'}</div>
             <div className="text-ink2">{l.desc.gradeReason}</div>
           </div>}
-          {s.note && <div className="absolute bottom-12 left-1/2 z-10 w-[min(92%,520px)] -translate-x-1/2 rounded bg-black/75 px-3 py-1.5 text-center text-[12.5px] text-caution">{s.note}</div>}
+          {s.note && <div className="absolute top-[60px] left-1/2 z-10 w-[min(92%,520px)] -translate-x-1/2 rounded bg-black/75 px-3 py-1.5 text-center text-[12.5px] text-caution">{s.note}</div>}
           {!s.crew && <div className="pointer-events-none absolute bottom-12 left-1/2 z-10 -translate-x-1/2 rounded bg-black/70 px-3 py-1.5 text-[13px] text-ink">Click anywhere on the terrain to place the crew</div>}
           {s.phase === 'planning' && <div className="absolute left-1/2 top-3 z-10 -translate-x-1/2 rounded bg-black/70 px-3 py-1.5 text-[13px] text-accent">Planning routes and walking {s.mcN.toLocaleString('en-US')} virtual crews per route…</div>}
           {s.view === '3d'
@@ -290,7 +291,7 @@ export default function LiveApp() {
             </div>
             <div className="relative min-h-0 flex-1">
               <Suspense fallback={<div className="grid h-full place-items-center text-ink3">Loading Mars map…</div>}>
-                <GlobePicker onPick={(lon: number, lat: number) => void pickLocation(lon, lat)} busy={!!busySite} marker={marker}
+                <GlobePicker onPick={(lon: number, lat: number, note?: string) => void pickLocation(lon, lat, note)} busy={!!busySite} marker={marker}
                   bundled={[{ name: 'NE Melas Chasma (bundled HiRISE site)', lon: 290.037, lat: -10.012 }]} />
               </Suspense>
               {busySite && <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-3 bg-black/85 px-4 py-2 text-[13px] text-accent" role="status">

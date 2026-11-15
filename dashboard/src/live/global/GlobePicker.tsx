@@ -22,7 +22,7 @@ function loadFootprints(): Promise<Footprints> {
 interface View { lon: number; lat: number; ppd: number }        // centre (deg, lon -180..180) and pixels per degree
 
 export default function GlobePicker(props: {
-  onPick: (lon: number, lat: number) => void
+  onPick: (lon: number, lat: number, note?: string) => void
   bundled: { name: string; lon: number; lat: number }[]
   busy?: boolean
   marker?: { lon: number; lat: number } | null
@@ -224,19 +224,42 @@ export default function GlobePicker(props: {
     if (gesture.current.moved < 6 && !busy) {
       const [x, y] = local(e)
       let [lon, lat] = toLonLat(x, y)
-      // a click on (or within 7 px of) a HiRISE footprint loads that elevation model: snap to its centre
+      // Detailed terrain only exists where an elevation model was made. A click inside a HiRISE footprint loads
+      // it; elsewhere Solway goes to the nearest HiRISE model (or CTX, or the global model if none is near)
+      // and says how far it moved.
+      let note: string | undefined
       const fp = footRef.current
       if (fp) {
-        let best = -1, bd = 7
-        for (let i = 0; i < fp.hirise.length; i += 4) {
-          let l = fp.hirise[i]; if (l > 180) l -= 360
-          const [sx, sy] = toScreen(l, fp.hirise[i + 1])
-          const d = Math.hypot(sx - x, sy - y)
-          if (d < bd) { bd = d; best = i }
+        const R = 3389.5, rad = Math.PI / 180
+        const lonE = ((lon % 360) + 360) % 360
+        const km = (lo: number, la: number) => {
+          const dLa = (la - lat) * rad, dLo = (lo - lonE) * rad
+          const h = Math.sin(dLa / 2) ** 2 + Math.cos(lat * rad) * Math.cos(la * rad) * Math.sin(dLo / 2) ** 2
+          return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)))
         }
-        if (best >= 0 && !(Math.abs(lat - fp.hirise[best + 1]) < fp.hirise[best + 3] / 2)) { lon = fp.hirise[best]; lat = fp.hirise[best + 1] }
+        const inside = (a: Float32Array) => {
+          for (let i = 0; i < a.length; i += 4) {
+            let dl = Math.abs(a[i] - lonE); if (dl > 180) dl = 360 - dl
+            if (dl < a[i + 2] / 2 && Math.abs(a[i + 1] - lat) < a[i + 3] / 2) return true
+          }
+          return false
+        }
+        const nearest = (a: Float32Array) => {
+          let best = -1, bd = Infinity
+          for (let i = 0; i < a.length; i += 4) { const d = km(a[i], a[i + 1]); if (d < bd) { bd = d; best = i } }
+          return { i: best, d: bd }
+        }
+        if (!inside(fp.hirise)) {
+          const h = nearest(fp.hirise)
+          if (h.i >= 0 && h.d < 2000) { lon = fp.hirise[h.i]; lat = fp.hirise[h.i + 1]; note = `No HiRISE model at the clicked point: loaded the nearest one, ${Math.round(h.d)} km away.` }
+          else if (!inside(fp.ctx)) {
+            const c = nearest(fp.ctx)
+            if (c.i >= 0 && c.d < 2000) { lon = fp.ctx[c.i]; lat = fp.ctx[c.i + 1]; note = `No detailed model at the clicked point: loaded the nearest CTX model, ${Math.round(c.d)} km away.` }
+          }
+        }
       }
-      onPick(lon, lat)
+      onPick(lon, lat, note)
+
     }
   }
   const toLonLatObj = (x: number, y: number) => { const [lon, lat] = toLonLat(x, y); return { lon, lat } }
