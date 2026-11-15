@@ -13,6 +13,7 @@ Environment (set before running, optional):
   SOLWAY_EDITOR_WORLD=1  also drive the editor world when Play is not running (for look checks; do not save the level after)
   SOLWAY_OSC_PORT        UDP port, default 9000
   SOLWAY_SCREEN_PERCENT  render resolution of the Play window in percent of its size, default 100 (lower it on a 4K screen)
+  SOLWAY_WINDOW          size of the window that Play > New Editor Window (PIE) opens, default 1920x1080
 
 What it does, per docs/CONTRACT.md section 3:
   /crew      moves the crew (actors tagged crew:<id>); heights come from the 2.5 m render grid so feet stay on the mesh
@@ -26,7 +27,8 @@ What it does, per docs/CONTRACT.md section 3:
 
 On its own it keeps the scene moving: every camera swings slowly around its subject, dust rises from the crew's steps
 and from falling rocks, wind-blown dust and a dust devil drift across the view, and the scout helicopter circles the
-crew. The dust and the helicopter are set dressing, not simulation output.
+crew, and loose stones lie on the ground around what the camera looks at. The dust, the helicopter and the stones are set
+dressing, not simulation output.
 
 State for debugging is written once a second to <project>/Saved/director_state.json.
 """
@@ -53,6 +55,7 @@ STATE_FILE = os.path.join(unreal.Paths.project_saved_dir(), "director_state.json
 PORT = int(os.environ.get("SOLWAY_OSC_PORT", "9000"))
 EDITOR_WORLD = os.environ.get("SOLWAY_EDITOR_WORLD") == "1"
 SCREEN_PERCENT = float(os.environ.get("SOLWAY_SCREEN_PERCENT", "100"))
+WINDOW = os.environ.get("SOLWAY_WINDOW", "1920x1080")
 
 GS = unreal.GameplayStatics
 ML = unreal.MathLibrary
@@ -81,6 +84,12 @@ FOLLOW_FAST = (3.0, 28.0)      # crew speed in the scene, m/s: from walking pace
 SHELTER_SHOT = {"prop": (-1900.0, 2600.0, 800.0), "ground": (-3600.0, 5000.0, 1200.0)}   # camera offset from the subject, cm
 CRUMB_STEP = 3.5               # metres between the ground markers of the chosen route
 CRUMB_SIZE = 0.42              # metres across
+# loose stones (set dressing): one grid cell in PEBBLE_SHARE holds a stone, always the same stone, within PEBBLE_REACH of the focus
+PEBBLE_CELL = 2.6              # metres
+PEBBLE_REACH = 34.0            # metres
+PEBBLE_SHARE = 0.27
+PEBBLE_SIZE = (0.07, 0.42)     # metres across, small ones far more common
+PEBBLE_CLEAR = 1.1             # metres kept free on both sides of the chosen route
 
 # dust sprites (set dressing): a tan veil, DUST_LIGHT times as bright as the ground behind it
 DUST_RGB = (1.38, 0.89, 0.58)
@@ -272,12 +281,14 @@ class Director:
         self.wisp_cue = None
         self.heli = None
         self.crumbs = []
+        self.pebbles = []
         keep = getattr(builtins, "solway_keep", None)             # what the engine last said, when this script is run again
         if isinstance(keep, dict):
             for k, v in keep.items():
                 setattr(self, k, v)
             self.cue_t0 = time.time()
         self._unthrottle()
+        self._window_size()
         self.handle = unreal.register_slate_post_tick_callback(self._tick)
         unreal.log(f"director: listening on udp 127.0.0.1:{PORT}")
 
@@ -306,6 +317,17 @@ class Director:
                 cdo.set_editor_property("bThrottleCPUWhenNotForeground", False)
         except Exception as e:
             self._err("unthrottle", e)
+
+    def _window_size(self):
+        """Play > New Editor Window (PIE) opens at SOLWAY_WINDOW (an editor preference of this user)."""
+        try:
+            w, h = (int(v) for v in WINDOW.lower().split("x"))
+            cdo = unreal.find_object(None, "/Script/UnrealEd.Default__LevelEditorPlaySettings")
+            if cdo is not None:
+                cdo.set_editor_property("NewWindowWidth", w)
+                cdo.set_editor_property("NewWindowHeight", h)
+        except Exception as e:
+            self._err("window size", e)
 
     def _err(self, where, e):
         self.err_total += 1
@@ -353,6 +375,8 @@ class Director:
                     actor.set_actor_location_and_rotation(loc, rot, False, True)
             for c in self.crumbs:
                 c["actor"].set_actor_transform(self.park, False, True)
+            for b in self.pebbles:
+                b["actor"].set_actor_transform(self.park, False, True)
         home = getattr(self, "vp_fov_home", None)
         if home is not None and home[1] is not None:      # give the editor viewport its own field of view back
             try:
@@ -364,6 +388,7 @@ class Director:
         self.bound = False
         self.dust = []
         self.crumbs = []
+        self.pebbles = []
         self.devil = None
         self.heli = None
         self.world = None
@@ -490,6 +515,15 @@ class Director:
         self.crumb_key = None
         self.crumb_pts = []
         self.crumb_i0 = 0
+        # loose stones
+        self.pebbles = []
+        for a in tagged("pebble"):
+            tg = tags_of(a)
+            self.pebbles.append(dict(actor=a, mesh=int(tag_value(tg, "mesh:", "0")), width=float(tag_value(tg, "width:", "100")),
+                                     cell=None, parked=False))
+        self.pebble_cells = {}
+        self.pebble_at = None
+        self.pebble_next = 0.0
         # scout helicopter and its rotor disc
         self.heli = None
         body = tagged("helicopter")
@@ -603,6 +637,7 @@ class Director:
         self._move_heli(now, dt)
         self._update_dust(now, dt)
         self._update_crumbs(now)
+        self._update_pebbles(now)
         w = self._route_width_m()
         if self.routes_dirty or (self.route_w and abs(w / self.route_w - 1.0) > 0.12 and now - self.route_drawn_at > 0.2):
             self.routes_dirty = False
@@ -1164,6 +1199,80 @@ class Director:
                 c["k"] = size
                 c["actor"].set_actor_scale3d(unreal.Vector(size, size, 0.02))
 
+    # ------------------------------------------------------------------------------------ stones
+    def _update_pebbles(self, now):
+        """Loose stones around the point the camera looks at. A cell of the ground always holds the same stone (or none),
+        so stones stay put while the pool follows the shot. Set dressing: seeded positions, not mapped rocks."""
+        pool = self.pebbles
+        if not pool or now < self.pebble_next or self.cam_now is None:
+            return
+        self.pebble_next = now + 0.25
+        hit = self._focus()
+        if hit is None or hit[1] > 160.0:                         # a wide shot: stones this small do not show
+            return
+        cx, cy = hit[0][0] / 100.0 / PEBBLE_CELL, hit[0][1] / 100.0 / PEBBLE_CELL
+        at = (int(cx), int(cy))
+        if at == self.pebble_at:
+            return
+        self.pebble_at = at
+        reach = int(PEBBLE_REACH / PEBBLE_CELL)
+        chosen = next((r for r in self.routes if self.route_state.get(r["id"]) == "chosen" and len(r.get("points", ())) > 1), None)
+        line = [(p[0], p[1]) for p in chosen["points"]] if chosen is not None else []
+        want = {}
+        for j in range(at[1] - reach, at[1] + reach + 1):
+            for i in range(at[0] - reach, at[0] + reach + 1):
+                if (i - cx) ** 2 + (j - cy) ** 2 > reach * reach:
+                    continue
+                h = ((i * 73856093) ^ (j * 19349663) ^ 0x5bd1e995) & 0xffffffff
+                h = (h * 2654435761) & 0xffffffff
+                if (h & 0xffff) / 65535.0 < PEBBLE_SHARE:
+                    want[(i, j)] = h
+        cells = self.pebble_cells
+        for cell in [c for c in cells if c not in want]:
+            pool[cells.pop(cell)]["cell"] = None
+        free = {}
+        for k, b in enumerate(pool):
+            if b["cell"] is None:
+                free.setdefault(b["mesh"], []).append(k)
+        for cell, h in want.items():
+            if cell in cells:
+                continue
+            h = ((h ^ (h >> 15)) * 2246822519) & 0xffffffff          # a second mix: the bits used above decided that the cell has a stone
+            h ^= h >> 13
+            u1, u2, u3, u4 = ((h >> 16) & 0xff) / 255.0, ((h >> 24) & 0xff) / 255.0, ((h >> 8) & 0xff) / 255.0, (h & 0xff) / 255.0
+            e, s = (cell[0] + 0.15 + 0.7 * u1) * PEBBLE_CELL, (cell[1] + 0.15 + 0.7 * u2) * PEBBLE_CELL
+            z = self.h.z(e, s)
+            if z is None:
+                continue
+            if any(abs(q[0] - e) < 6.0 and abs(q[1] - s) < 6.0 for q in line):      # near the route: keep the path itself clear
+                if min(self._seg_dist(e, s, a, b) for a, b in zip(line, line[1:])) < PEBBLE_CLEAR:
+                    continue
+            ks = free.get(int(u3 * 2.999), [])
+            if not ks:
+                continue
+            k = ks.pop()
+            b = pool[k]
+            b["cell"] = cell
+            b["parked"] = False
+            cells[cell] = k
+            size = PEBBLE_SIZE[0] + (PEBBLE_SIZE[1] - PEBBLE_SIZE[0]) * u4 ** 2.2
+            sc = size * 100.0 / b["width"]
+            rot = unreal.Rotator(roll=(u1 - 0.5) * 30.0, pitch=(u2 - 0.5) * 24.0, yaw=u3 * 360.0)
+            b["actor"].set_actor_transform(unreal.Transform(unreal.Vector(e * 100.0, s * 100.0, (z - 0.2 * size - self.z_ref) * 100.0),
+                                                            rot, unreal.Vector(sc, sc, sc)), False, True)
+        for ks in free.values():                                  # stones no cell wants any more go back under the ground
+            for k in ks:
+                if not pool[k]["parked"]:
+                    pool[k]["parked"] = True
+                    pool[k]["actor"].set_actor_transform(self.park, False, True)
+
+    @staticmethod
+    def _seg_dist(x, y, a, b):
+        dx, dy = b[0] - a[0], b[1] - a[1]
+        d2 = dx * dx + dy * dy
+        t = 0.0 if d2 <= 0.0 else max(0.0, min(1.0, ((x - a[0]) * dx + (y - a[1]) * dy) / d2))
+        return math.hypot(x - a[0] - t * dx, y - a[1] - t * dy)
+
     # -------------------------------------------------------------------------------------- dust
     def _puff(self, now, pos, vel, size0, size1, life, alpha, kind, jitter=0.0, wide=1.0, fade_in=0.12, gain=1.0):
         """Start one dust sprite (cm, cm/s, cm across, seconds); the oldest one is reused when the pool is full."""
@@ -1391,6 +1500,7 @@ class Director:
                          routes={str(r["id"]): self.route_state.get(r["id"]) for r in self.routes},
                          view_set=getattr(self, "view_set", None), route_w=getattr(self, "route_w", None),
                          dust={k: sum(1 for d in self.dust if d["alive"] and d["kind"] == k) for k in ("step", "rock", "wisp", "devil")},
+                         stones=len(getattr(self, "pebble_cells", {})),
                          heli=None if not self.heli else [round(v) for v in self.heli["c"]] + [round(self.heli["z"])],
                          devil=None if not self.devil else [round(v) for v in self.devil["c"]],
                          last=self.last_msg, errors_total=self.err_total, errors=self.errors)

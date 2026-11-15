@@ -375,6 +375,7 @@ def build_marker_materials():
 FX = "/Game/FX"
 N_DUST = 160
 N_CRUMBS = 72
+N_PEBBLES = 150                              # loose stones the director lays around what the camera looks at (a third per mesh of STONES)
 
 
 def build_fx(markers):
@@ -611,6 +612,12 @@ def place_props(mats, fx):
         for k in range(N_DUST):
             mesh_actor(PLANE, f"Dust_{k:03d}", "FX", (start[0], start[1], start[2] - 6000.0), scale=(0.01, 0.01, 0.01), tags=("dust",),
                        mobility=MOVABLE, material=fx["dust"], shadows=False)
+
+    # ---- pool of loose stones (set dressing): the director lays them on the ground around the crew, the same ones in the same places
+    for k in range(N_PEBBLES):
+        asset, width = STONES[k % len(STONES)]
+        mesh_actor(asset, f"Pebble_{k:03d}", "FX", (start[0], start[1], start[2] - 7000.0), scale=(0.01, 0.01, 0.01),
+                   tags=("pebble", f"mesh:{k % len(STONES)}", f"width:{width:g}"), mobility=MOVABLE)
 
     # ---- pool of ground markers the director lays along the chosen route ahead of the crew
     for k in range(N_CRUMBS):

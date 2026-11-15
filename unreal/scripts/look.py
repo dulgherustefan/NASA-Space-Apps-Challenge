@@ -105,7 +105,7 @@ POST = {
     "scene_fringe_intensity": 0.0,
     "film_grain_intensity": 0.12,
     "motion_blur_amount": 0.0,
-    "white_temp": 5900.0,                    # slightly cool: the suits read as white against the warm ground
+    "white_temp": 5700.0,                    # slightly cool: the suits read as white against the warm ground
     "sharpen": 0.55,
     # filmic curve: a little more contrast than the default, soft shoulder for the bright sky
     "film_slope": 0.92,
