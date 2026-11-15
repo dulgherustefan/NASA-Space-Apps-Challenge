@@ -107,15 +107,15 @@ function Link() {
 function Nav() {
   const page = usePage()
   const items = [
-    { label: 'Mission', href: hrefFor('console'), on: page === 'console' },
-    { label: 'Reference', href: hrefFor('method'), on: page !== 'console' },
+    { label: 'Mission', href: hrefFor('console'), on: page === 'console', cls: '' },
+    { label: 'Reference', href: hrefFor('method'), on: page !== 'console', cls: '' },
     // the free-standing live tool (any location on Mars) ships only with the web build
-    ...(import.meta.env.MODE === 'live' ? [{ label: 'Anywhere on Mars', href: './live.html', on: false }] : []),
+    ...(import.meta.env.MODE === 'live' ? [{ label: 'Anywhere on Mars', href: './live.html', on: false, cls: 'max-md:hidden' }] : []),
   ]
   return (
     <ul className="flex h-full items-stretch gap-4 sm:gap-5">
       {items.map((it) => (
-        <li key={it.label} className="flex">
+        <li key={it.label} className={cn('flex', it.cls)}>
           <a href={it.href} aria-current={it.on ? 'page' : undefined}
             className={cn('relative flex items-center whitespace-nowrap text-[13.5px] transition-colors duration-150', it.on ? 'font-semibold text-ink' : 'text-ink3 hover:text-ink')}>
             {it.label}
