@@ -80,10 +80,11 @@ function allowEngineCors() {
 
 function createWindow() {
   win = new BrowserWindow({
-    width: 1680,
-    height: 1000,
-    minWidth: 1440,
-    minHeight: 900,
+    width: 1600,
+    height: 960,
+    // the console has three layouts by width; a narrow window gives the single-column field layout
+    minWidth: 400,
+    minHeight: 620,
     show: false,
     backgroundColor: '#0a0c0f',
     autoHideMenuBar: true,

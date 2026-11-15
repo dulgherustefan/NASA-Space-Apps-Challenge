@@ -39,11 +39,14 @@ export function Conditions() {
       {w && (
         <div className="mt-3 border-t border-rule pt-3">
           <div className="cap mb-2">Same season at Gale crater, measured by Curiosity. An analogue, not this site.</div>
-          <div className="grid grid-cols-3 gap-x-3">
-            <Tile label="Ground, night to day" value={range(w.ground_min_c, w.ground_max_c)} unit="°C" kind="measured" source={wSrc} />
-            <Tile label="Air, night to day" value={range(w.air_min_c, w.air_max_c)} unit="°C" kind="measured" source={wSrc} />
-            <Tile label="UV index" value={w.uv_index_usual} kind="measured" source={wSrc} />
-          </div>
+          <dl>
+            {([['Ground, night to day', range(w.ground_min_c, w.ground_max_c), '°C'], ['Air, night to day', range(w.air_min_c, w.air_max_c), '°C'], ['UV index', w.uv_index_usual, undefined]] as const).map(([label, value, unit]) => (
+              <div key={label} className="flex items-baseline justify-between gap-3 py-[5px] text-[13px]">
+                <dt className="text-ink2">{label}</dt>
+                <dd className="shrink-0">{value ? <Fig value={value} unit={unit} kind="measured" source={wSrc} label={label} /> : <span className="num text-ink3">-</span>}</dd>
+              </div>
+            ))}
+          </dl>
         </div>
       )}
       <div className="mt-3 border-t border-rule pt-1">
