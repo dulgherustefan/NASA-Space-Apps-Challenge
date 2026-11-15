@@ -78,7 +78,7 @@ MAX_CADENCE = 1.7              # walk cycles per second at most: at high mission
 ROUTE_OPACITY = {"follow": 0.0, "shelter": 0.3}      # next to the crew the ground markers carry the route, the line steps back
 FOLLOW_GROUP_CM = 1500.0       # the follow shot holds every crew member this close to the lead
 FOLLOW_FAST = (3.0, 28.0)      # crew speed in the scene, m/s: from walking pace to time-lapse the follow shot pulls back and up
-SHELTER_SHOT = {"prop": (-2300.0, 3100.0, 1150.0), "ground": (-5200.0, 7200.0, 2700.0)}   # camera offset from the end of the route, cm
+SHELTER_SHOT = {"prop": (-1900.0, 2600.0, 800.0), "ground": (-3600.0, 5000.0, 1200.0)}   # camera offset from the subject, cm
 CRUMB_STEP = 3.5               # metres between the ground markers of the chosen route
 CRUMB_SIZE = 0.42              # metres across
 
@@ -261,6 +261,7 @@ class Director:
         self.follow = None
         self.follow_heading = None
         self.follow_t = None
+        self.shelter_view = None
         self.round_joints = True
         self.bound = False
         self.rng = random.Random(20261115)
@@ -943,6 +944,21 @@ class Director:
         ca, sa = math.cos(a), math.sin(a)
         return self._look((target[0] + (dx * ca - dy * sa) * k, target[1] + (dx * sa + dy * ca) * k, target[2] + dz * k), target, fov)
 
+    def _clear_view(self, loc, target, margin_cm=160.0):
+        """Raise a camera position until the ground between it and its target no longer hides the target."""
+        lift = 0.0
+        g = self.ground_cm(loc[0], loc[1])
+        if g is not None:
+            lift = max(0.0, g + 400.0 - loc[2])
+        for i in range(1, 24):
+            t = i / 24.0
+            g = self.ground_cm(lerp(loc[0], target[0], t), lerp(loc[1], target[1], t))
+            if g is not None:
+                need = g + margin_cm - lerp(loc[2], target[2], t)
+                if need > 0.0:
+                    lift = max(lift, need / (1.0 - t))
+        return [loc[0], loc[1], loc[2] + lift]
+
     def _lead(self):
         lead = self.crew.get(0) or next(iter(self.crew.values()), None)
         return lead if lead is not None and lead["pos"] is not None else None
@@ -978,15 +994,27 @@ class Director:
         if name == "shelter":
             end = self.chosen_end()
             if end is not None:
-                # a route that ends at the rover or the habitat gets a close shot of it; a terrain shelter is shown from further back
+                # a route that ends at the rover or the habitat gets a close shot of it; a terrain shelter is seen from
+                # further back and low, with the slope behind it
                 props = [v["ue"] for k, v in self.layout.get("props", {}).items() if k in ("rover", "habitat")]
-                at_prop = any(math.hypot(end[0] - q[0], end[1] - q[1]) < 4000.0 for q in props)
-                off = SHELTER_SHOT["prop" if at_prop else "ground"]
-                loc = [end[0] + off[0], end[1] + off[1], end[2] + off[2]]
-                g = self.ground_cm(loc[0], loc[1])
-                if g is not None:
-                    loc[2] = max(loc[2], g + (500.0 if at_prop else 1200.0))
-                return self._orbit(loc, (end[0], end[1], end[2] + 250.0), 45.0, tau, *ORBIT["shelter"])
+                prop = next((q for q in props if math.hypot(end[0] - q[0], end[1] - q[1]) < 4000.0), None)
+                off = SHELTER_SHOT["prop" if prop else "ground"]
+                target = (prop[0], prop[1], prop[2] + 220.0) if prop else (end[0], end[1], end[2] + 250.0)
+                key = (round(target[0]), round(target[1]))
+                if self.shelter_view is None or self.shelter_view[0] != key:
+                    # of twelve directions around the subject, the one where the ground hides it least (the layout's first)
+                    best = None
+                    for i in range(12):
+                        ang = math.radians(30.0 * i)
+                        ox = off[0] * math.cos(ang) - off[1] * math.sin(ang)
+                        oy = off[0] * math.sin(ang) + off[1] * math.cos(ang)
+                        base = [target[0] + ox, target[1] + oy, target[2] + off[2]]
+                        loc = self._clear_view(base, target)
+                        cost = loc[2] - base[2] + (0.0 if i == 0 else 40.0)
+                        if best is None or cost < best[0]:
+                            best = (cost, loc)
+                    self.shelter_view = (key, best[1])
+                return self._orbit(self.shelter_view[1], target, 45.0, tau, *ORBIT["shelter"])
         if name not in self.cams:
             name = "overview"
         pose = self.cams.get(name)
