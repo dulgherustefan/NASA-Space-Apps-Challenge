@@ -1,0 +1,15 @@
+# Used by BuildKit for `docker build -f server/Dockerfile .` (the repository root is the context).
+# Allow-list: send only what the image copies, not node_modules, Unreal content or raw data.
+*
+!engine/
+!rl/planner.py
+!rl/terrain.py
+!data/site/meta.json
+!data/site/core_h.bin.gz
+!data/site/core_layers.bin.gz
+!data/site/reg_h.bin.gz
+!data/scenario/
+!unreal_import/import_values.json
+!server/
+**/__pycache__
+**/*.pyc

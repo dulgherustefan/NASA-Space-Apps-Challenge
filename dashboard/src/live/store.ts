@@ -199,8 +199,18 @@ export function setCrew(x: number, y: number) {
 export function setView(view: View) { set({ view }) }
 export function clearIncident() { set({ incident: null, routes: [], chosen: null, phase: S().loaded ? 'ready' : S().phase }) }
 
+/** Plays a recorded voice line (public/audio/voice); silent if audio is blocked or missing. */
+export function playVoice(key: string) {
+  try {
+    const a = new Audio(BASE + 'audio/voice/' + key + '.mp3')
+    a.volume = 0.9
+    void a.play().catch(() => undefined)
+  } catch { /* no audio */ }
+}
+
 export function trigger(kind: IncidentKind) {
   const p = S().params
+  playVoice(kind === 'storm' ? 'storm_alert' : 'quake_alert')
   const incident: Incident = { kind, startedAt: Date.now(), ruleS: kind === 'storm' ? p.shelterRuleMin * 60 : 0 }
   set({ incident })
   if (!S().crew) {

@@ -1,0 +1,97 @@
+{
+ "voice": "ElevenLabs premade voice \"Sarah\", model eleven_multilingual_v2, generated 15 Nov 2026 (AI-generated speech, declared in ASSETS.md)",
+ "clips": {
+  "bear_left_50": {
+   "file": "bear_left_50.mp3",
+   "text": "In fifty metres, bear left."
+  },
+  "bear_left_now": {
+   "file": "bear_left_now.mp3",
+   "text": "Bear left now."
+  },
+  "bear_right_50": {
+   "file": "bear_right_50.mp3",
+   "text": "In fifty metres, bear right."
+  },
+  "bear_right_now": {
+   "file": "bear_right_now.mp3",
+   "text": "Bear right now."
+  },
+  "turn_left_50": {
+   "file": "turn_left_50.mp3",
+   "text": "In fifty metres, turn left."
+  },
+  "turn_left_now": {
+   "file": "turn_left_now.mp3",
+   "text": "Turn left now."
+  },
+  "turn_right_50": {
+   "file": "turn_right_50.mp3",
+   "text": "In fifty metres, turn right."
+  },
+  "turn_right_now": {
+   "file": "turn_right_now.mp3",
+   "text": "Turn right now."
+  },
+  "sharp_left_50": {
+   "file": "sharp_left_50.mp3",
+   "text": "In fifty metres, sharp left."
+  },
+  "sharp_left_now": {
+   "file": "sharp_left_now.mp3",
+   "text": "Sharp left now."
+  },
+  "sharp_right_50": {
+   "file": "sharp_right_50.mp3",
+   "text": "In fifty metres, sharp right."
+  },
+  "sharp_right_now": {
+   "file": "sharp_right_now.mp3",
+   "text": "Sharp right now."
+  },
+  "continue": {
+   "file": "continue.mp3",
+   "text": "Continue on the marked route."
+  },
+  "rerouting": {
+   "file": "rerouting.mp3",
+   "text": "Off route. Rerouting."
+  },
+  "arrived": {
+   "file": "arrived.mp3",
+   "text": "You have reached the shelter. Get inside."
+  },
+  "storm_alert": {
+   "file": "storm_alert.mp3",
+   "text": "Solar storm alert. Walk to the shelter now. Follow the marked route."
+  },
+  "quake_alert": {
+   "file": "quake_alert.mp3",
+   "text": "Marsquake. Rockfall risk. Leave the runout zone on the marked route."
+  },
+  "hazard_rockfall": {
+   "file": "hazard_rockfall.mp3",
+   "text": "Caution. Rockfall zone ahead. Keep moving."
+  },
+  "hazard_steep": {
+   "file": "hazard_steep.mp3",
+   "text": "Caution. Steep slope ahead. Shorten your steps."
+  },
+  "hazard_comms": {
+   "file": "hazard_comms.mp3",
+   "text": "Radio contact may drop ahead."
+  },
+  "rule_10min": {
+   "file": "rule_10min.mp3",
+   "text": "Ten minutes left on the shelter rule."
+  },
+  "rule_5min": {
+   "file": "rule_5min.mp3",
+   "text": "Five minutes left on the shelter rule."
+  },
+  "rule_over": {
+   "file": "rule_over.mp3",
+   "text": "The shelter time limit has passed. Keep walking to the shelter."
+  }
+ }
+}
