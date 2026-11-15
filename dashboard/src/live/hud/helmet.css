@@ -161,3 +161,75 @@
 .hv-root.narrow .hv-bar-n { display: none; }
 .hv-root.narrow .hv-alerts { bottom: 340px; }
 .hv-root.narrow .hv-caption { bottom: 292px; }
+
+/* ===================================================================================================
+   Helmet display look: thin-line glass panels with corner brackets, phosphor-white symbology, technical
+   labels, tabular figures. Alert colours follow NASA-STD-3001 Vol 2 Rev C: red = highest alert [V2 10118],
+   yellow = second level [V2 10119]; always with a word or a shape beside the colour [V2 10045].
+   =================================================================================================== */
+.hv-root {
+  --hv-line: rgb(226 248 255 / .9);
+  --hv-glass: rgb(6 12 15 / .52);
+  --hv-edge: rgb(226 248 255 / .16);
+  --hv-ink: #eefbff; --hv-ink2: rgb(222 240 246 / .78); --hv-ink3: rgb(200 222 230 / .55);
+  --hv-caut: #ffd23f;              /* NASA-STD yellow: caution */
+  --hv-warn: #ff4b3e;              /* NASA-STD red: warning */
+  --hv-r: 2px;
+  letter-spacing: .01em;
+}
+.hv-root .num, .hv-root .hv-big, .hv-root .hv-huge, .hv-root .hv-bar-v, .hv-root .hv-hdg { font-variant-numeric: tabular-nums; }
+.hv-ins, .hv-dest, .hv-suit, .hv-alert, .hv-banner, .hv-caption, .hv-ar, .hv-btn, .hv-seg button, .hv-exit, .hv-hdg {
+  border-radius: 2px !important;
+  border: 1px solid var(--hv-edge) !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: blur(4px) saturate(1.1); backdrop-filter: blur(4px) saturate(1.1);
+  text-shadow: 0 0 6px rgb(150 230 255 / .28), 0 1px 1px rgb(0 0 0 / .6);
+}
+/* corner brackets */
+.hv-ins, .hv-dest, .hv-suit {
+  background:
+    linear-gradient(var(--hv-line), var(--hv-line)) left top / 12px 1.5px no-repeat,
+    linear-gradient(var(--hv-line), var(--hv-line)) left top / 1.5px 12px no-repeat,
+    linear-gradient(var(--hv-line), var(--hv-line)) right top / 12px 1.5px no-repeat,
+    linear-gradient(var(--hv-line), var(--hv-line)) right top / 1.5px 12px no-repeat,
+    linear-gradient(var(--hv-line), var(--hv-line)) left bottom / 12px 1.5px no-repeat,
+    linear-gradient(var(--hv-line), var(--hv-line)) left bottom / 1.5px 12px no-repeat,
+    linear-gradient(var(--hv-line), var(--hv-line)) right bottom / 12px 1.5px no-repeat,
+    linear-gradient(var(--hv-line), var(--hv-line)) right bottom / 1.5px 12px no-repeat,
+    var(--hv-glass) !important;
+}
+.hv-ins { border-left: 3px solid var(--hv-ok) !important; }
+.hv-alert, .hv-banner, .hv-caption, .hv-ar, .hv-hdg { background: var(--hv-glass) !important; }
+.hv-alert.warning, .hv-banner.warning, .hv-ar.hz.warning { border-color: var(--hv-warn) !important; }
+.hv-alert.caution, .hv-banner.caution, .hv-ar.hz.caution { border-color: var(--hv-caut) !important; }
+.hv-banner.caution { color: var(--hv-caut); }
+.hv-banner.warning { color: var(--hv-warn); }
+.hv-alert { border-left-width: 3px !important; }
+.hv-k, .hv-bar-l, .hv-pip-l, .hv-sun, .hv-clock {
+  text-transform: uppercase; letter-spacing: .12em; font-size: 10.5px !important; font-weight: 600;
+}
+.hv-ins-main { letter-spacing: .01em; }
+.hv-huge { font-weight: 650; letter-spacing: .02em; text-shadow: 0 0 10px rgb(150 230 255 / .35); }
+.hv-bar-track, .hv-prog-bar { background: rgb(226 248 255 / .12) !important; border-radius: 0 !important; height: 3px; }
+.hv-bar-track > div, .hv-prog-bar > div { border-radius: 0 !important; box-shadow: 0 0 6px currentColor; }
+.hv-tape { background: linear-gradient(90deg, transparent, rgb(6 12 15 / .45) 15%, rgb(6 12 15 / .45) 85%, transparent) !important; }
+.hv-mini { border: 1px solid var(--hv-line) !important; box-shadow: 0 0 0 3px rgb(6 12 15 / .5), 0 0 12px rgb(150 230 255 / .15) !important; }
+.hv-pip { border: 1px solid var(--hv-line) !important; border-radius: 2px !important; }
+.hv-btn, .hv-seg button, .hv-exit { background: rgb(6 12 15 / .66) !important; text-transform: uppercase; letter-spacing: .08em; font-size: 11.5px !important; }
+.hv-seg button.on { background: rgb(226 248 255 / .9) !important; color: #061014 !important; text-shadow: none; }
+/* boresight: a small marker at the centre of view, nothing else there */
+.hv-anchors::before {
+  content: ""; position: absolute; left: 50%; top: 50%; width: 22px; height: 22px; transform: translate(-50%, -50%); opacity: .55; pointer-events: none;
+  background:
+    linear-gradient(var(--hv-line), var(--hv-line)) center top / 1px 7px no-repeat,
+    linear-gradient(var(--hv-line), var(--hv-line)) center bottom / 1px 7px no-repeat,
+    linear-gradient(var(--hv-line), var(--hv-line)) left center / 7px 1px no-repeat,
+    linear-gradient(var(--hv-line), var(--hv-line)) right center / 7px 1px no-repeat;
+}
+/* faint display scan lines over the visor */
+.hv-root::after {
+  background:
+    repeating-linear-gradient(to bottom, rgb(255 255 255 / .018) 0 1px, transparent 1px 3px),
+    radial-gradient(120% 95% at 50% 45%, transparent 62%, rgb(0 0 0 / .38) 88%, rgb(0 0 0 / .7) 100%),
+    linear-gradient(to bottom, rgb(255 196 120 / .06), transparent 22%, transparent 85%, rgb(0 0 0 / .12)) !important;
+}

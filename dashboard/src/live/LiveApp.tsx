@@ -114,7 +114,8 @@ function useHashFlag(name: string) {
 
 export default function LiveApp() {
   const s = useLive()
-  const [pickerOpen, setPickerOpen] = useState(false)
+  // the "Anywhere on Mars" page opens on the global map
+  const [pickerOpen, setPickerOpen] = useState(true)
   const [busySite, setBusySite] = useState<string | null>(null)
   const [pickErr, setPickErr] = useState<string | null>(null)
   const [marker, setMarker] = useState<{ lon: number; lat: number } | null>(null)

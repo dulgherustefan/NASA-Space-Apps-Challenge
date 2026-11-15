@@ -63,7 +63,7 @@ browser, so it works with no server and keeps working after the event. On top of
 - **Plan a walk, live.** Turn on *Plan a walk* and click any point: the browser plans the route on the 5 m HiRISE grid
   and walks 1,000 virtual crews along it, then answers in the usual panel (walk time, what is left on arrival, failure
   rate with its 95 % interval, metres without radio line of sight). Shift-click sets another start. About 1–3 s on a laptop.
-- **3D map.** The walk area, the route, the shelters and the crew on the HiRISE elevation model (`3D` button on the map).
+- **3D map.** Post-processing on capable GPUs (bloom, filmic tone mapping, vignette; switched off by a performance monitor), shaded relief around fetched sites. The walk area, the route, the shelters and the crew on the HiRISE elevation model (`3D` button on the map).
 - **Helmet HUD and rover camera (simulated).** A first-person walk of the route the dashboard shows (incident, drill or plan), with the Sun placed by the Mars24 algorithm for the site and time (shadows and a low-sun caution, JETT3):
   the route on the ground ahead, one turn instruction at a time ("Bear left in 70 m"), distance and bearing to the
   shelter, the countdown against the 30-minute rule, O₂, heat and dose, a compass tape, a mini-map and hazard callouts
@@ -72,7 +72,7 @@ browser, so it works with no server and keeps working after the event. On top of
   on the same terrain. Colours follow NASA-STD-3001 Vol. 2 (red, yellow) and always come with a word or a shape.
 - **Anywhere on Mars** (`live.html`). The global map shows every HiRISE elevation model (1,216, EVA-grade) and every
   CTX elevation model (44,612, route-planning grade) listed in the USGS Astrogeology STAC catalogue (index files in
-  `dashboard/public/stac/`). Click any point: the browser searches the USGS Astrogeology STAC
+  `dashboard/public/stac/`). Click any point (a click where no detailed model exists goes to the nearest HiRISE model, or CTX, within 2,000 km, and says how far it moved): the browser searches the USGS Astrogeology STAC
   catalogue for a HiRISE or CTX elevation model covering a 4 km box there, reads only that window of the cloud-optimised
   GeoTIFF (HTTP range requests), resamples it to the 5 m planner grid, derives slope, rockfall reach and blocked sky,
   and runs the same planner, virtual crews, 3D map and HUD on it. Each place is graded by its data:

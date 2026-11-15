@@ -2,8 +2,8 @@
 // NASA-STD-3001 Vol 2 Rev C defines red = highest alert [V2 10118] and yellow/amber = second level [V2 10119];
 // green = nominal route and cyan/white = information are Solway conventions. Colour is never the only cue.
 export const COL = {
-  warning: '#ff5f57',   // --color-hazard
-  caution: '#ff9a2e',   // --color-caution
+  warning: '#ff4b3e',   // NASA-STD red
+  caution: '#ffc53d',   // NASA-STD yellow
   info: '#7cc4ff',      // --color-advisory
   route: '#4fd1b0',     // --color-safe: nominal / chosen route
   routeAlt: '#9db4c4',  // --color-data

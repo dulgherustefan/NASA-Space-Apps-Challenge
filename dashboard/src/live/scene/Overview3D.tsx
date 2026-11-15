@@ -1,9 +1,11 @@
 // 3D overview of the EVA box: real terrain draped with the orbital image, candidate routes, shelters, crew,
 // failed virtual-crew end points and the rockfall band. Renders on demand (only when something changes).
-import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { AdaptiveDpr, Line, OrbitControls } from '@react-three/drei'
+import { AdaptiveDpr, Line, OrbitControls, PerformanceMonitor } from '@react-three/drei'
+import { Bloom, EffectComposer, ToneMapping, Vignette } from '@react-three/postprocessing'
+import { ToneMappingMode } from 'postprocessing'
 import type { SiteData } from '../engine/site'
 import type { LiveRoute, Shelter, SiteDescriptor } from '../types'
 import type { TerrainKit } from './geometry'
@@ -190,6 +192,7 @@ export default function Overview3D(props: Overview3DProps) {
   const bind = (key: string, pos: THREE.Vector3) => (el: HTMLElement | null) => {
     if (el) labels.current.set(key, { pos, el }); else labels.current.delete(key)
   }
+  const [fx, setFx] = useState(() => typeof navigator === 'undefined' || (navigator.hardwareConcurrency ?? 4) >= 4)
   return (
     <div className="sw3-root">
       <Canvas
@@ -200,7 +203,7 @@ export default function Overview3D(props: Overview3DProps) {
         camera={{ position: [600 * scale, 2300 * scale, 2900 * scale], fov: 42, near: 3, far: 250000 }}
       >
         <AdaptiveDpr pixelated />
-        <OrbitControls makeDefault regress target={[0, 0, 0]} maxPolarAngle={1.42} minDistance={20} maxDistance={9000 * scale}
+        <OrbitControls makeDefault regress target={[0, 0, 0]} maxPolarAngle={1.42} minDistance={20} maxDistance={60000 * scale}
           enableDamping={false} screenSpacePanning={false} />
         <SunLights u={u} />
         <Sky u={u} />
@@ -215,6 +218,15 @@ export default function Overview3D(props: Overview3DProps) {
         {shelters.filter(s => s.kind === 'rover').map(s => <ModelAt key={s.id} url={ROVER_URL} size={5.4} byHeight={false} pos={kit.toWorld(s.x, s.y, 0)} yaw={0.6} />)}
         {failXY && failXY.length >= 2 && <FailDots kit={kit} failXY={failXY} />}
         <LabelProjector labels={labels} />
+        {/* post-processing on capable GPUs only: soft bloom on bright highlights, filmic tone mapping, lens vignette */}
+        <PerformanceMonitor onDecline={() => setFx(false)} />
+        {fx && (
+          <EffectComposer multisampling={4} enableNormalPass={false}>
+            <Bloom intensity={0.28} luminanceThreshold={0.82} luminanceSmoothing={0.2} mipmapBlur />
+            <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
+            <Vignette offset={0.32} darkness={0.42} />
+          </EffectComposer>
+        )}
       </Canvas>
       <div className="sw3-labels" aria-hidden="true">
         {labelDefs.map(l => <div key={l.key} ref={bind(l.key, l.pos)} className="sw3-anchor"><div className={`sw3-tag ${l.cls}`}>{l.text}</div></div>)}
