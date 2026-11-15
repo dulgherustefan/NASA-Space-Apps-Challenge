@@ -114,9 +114,8 @@ for a in actors:
             log("sun kept, pitch", r.pitch, "yaw", r.yaw)
         if isinstance(a, unreal.ExponentialHeightFog):
             fc = a.get_component_by_class(unreal.ExponentialHeightFogComponent)
-            dens = fc.get_editor_property("fog_density")
-            fc.set_editor_property("fog_density", dens * 1.7)
-            log("fog", dens, "->", dens * 1.7)
+            fc.set_editor_property("fog_density", 0.0037)
+            log("fog set 0.0037")
     except Exception as e:  # noqa: BLE001
         log("light/fog", e)
 
@@ -255,7 +254,7 @@ PLANE = unreal.load_asset("/Engine/BasicShapes/Plane")
 AR_MAT = unreal.load_asset("/Game/Markers/MI_Beacon_shelter") or unreal.load_asset("/Game/Markers/MI_Marker_shelter")
 
 
-def ar_path(p_from, p_to, step=1.6, start_m=1.5):
+def ar_path(p_from, p_to, step=2.0, start_m=1.5):
     dx, dy = p_to[0] - p_from[0], p_to[1] - p_from[1]
     L = math.hypot(dx, dy)
     ux, uy = dx / L, dy / L
@@ -265,17 +264,27 @@ def ar_path(p_from, p_to, step=1.6, start_m=1.5):
         for side_sign in (-1.0, 1.0):
             # one arm of a ">" chevron: 0.55 m long, 6 cm wide, swept back 38 degrees
             ang = math.radians(yaw + side_sign * 142.0)
-            ce = p_from[0] + ux * m + math.cos(ang) * 0.24
-            cs = p_from[1] + uy * m + math.sin(ang) * 0.24
-            loc = ue(ce, cs, 0.06)
+            ce = p_from[0] + ux * m + math.cos(ang) * 0.42
+            cs = p_from[1] + uy * m + math.sin(ang) * 0.42
+            loc = ue(ce, cs, 0.08)
             a = unreal.get_editor_subsystem(unreal.EditorActorSubsystem).spawn_actor_from_class(unreal.StaticMeshActor, loc, unreal.Rotator(roll=0.0, pitch=0.0, yaw=yaw + side_sign * 142.0))
             a.static_mesh_component.set_static_mesh(PLANE)
             if AR_MAT:
                 a.static_mesh_component.set_material(0, AR_MAT)
             a.static_mesh_component.set_cast_shadow(False)
-            a.set_actor_scale3d(unreal.Vector(0.55, 0.06, 1.0))
+            a.set_actor_scale3d(unreal.Vector(0.95, 0.16, 1.0))
             a.set_actor_label("AR_%03d" % k)
             k += 1
+        # centre line between chevrons
+        cl = ue(p_from[0] + ux * (m + step / 2), p_from[1] + uy * (m + step / 2), 0.07)
+        a = unreal.get_editor_subsystem(unreal.EditorActorSubsystem).spawn_actor_from_class(unreal.StaticMeshActor, cl, unreal.Rotator(roll=0.0, pitch=0.0, yaw=yaw))
+        a.static_mesh_component.set_static_mesh(PLANE)
+        if AR_MAT:
+            a.static_mesh_component.set_material(0, AR_MAT)
+        a.static_mesh_component.set_cast_shadow(False)
+        a.set_actor_scale3d(unreal.Vector(step * 0.8, 0.07, 1.0))
+        a.set_actor_label("AR_c%03d" % k)
+        k += 1
         m += step
     return k
 
@@ -310,8 +319,8 @@ def camera(label, keys, focal, aperture, focus_m, start, end, aspect=2.39):
     fs.set_editor_property("manual_focus_distance", focus_m * 100.0)
     cc.set_editor_property("focus_settings", fs)
     pp = cc.get_editor_property("post_process_settings")
-    for name, val in (("bloom_intensity", 0.5), ("film_grain_intensity", 0.2), ("scene_fringe_intensity", 0.3),
-                      ("vignette_intensity", 0.45), ("lens_flare_intensity", 0.3), ("color_saturation", unreal.Vector4(1.04, 0.98, 0.92, 1.0)),
+    for name, val in (("bloom_intensity", 0.5), ("film_grain_intensity", 0.2), ("scene_fringe_intensity", 0.1),
+                      ("vignette_intensity", 0.0), ("lens_flare_intensity", 0.3), ("color_saturation", unreal.Vector4(1.04, 0.98, 0.92, 1.0)),
                       ("color_contrast", unreal.Vector4(1.08, 1.08, 1.08, 1.0)), ("motion_blur_amount", 0.35),
                       ("color_gain_highlights", unreal.Vector4(0.88, 0.88, 0.88, 1.0))):
         try:
@@ -336,11 +345,11 @@ camera("CAM_establish", [(0, c1a, look_rot(c1a, tgt1)), (90, c1b, look_rot(c1b, 
 
 # shot 2: low tracking shot beside the walking crew
 m0 = ue(S[0], S[1], 1.1)
-c2a = ue(S[0] + side[0] * 8.5 - d[0] * 3.0, S[1] + side[1] * 8.5 - d[1] * 3.0, 0.6)
+c2a = ue(S[0] + d[0] * 10.0 + side[0] * 2.2, S[1] + d[1] * 10.0 + side[1] * 2.2, 0.85)
 lead2 = (S[0] + d[0] * 3.5, S[1] + d[1] * 3.5)
-c2b = ue(lead2[0] + side[0] * 7.5, lead2[1] + side[1] * 7.5, 0.7)
+c2b = ue(S[0] + d[0] * 11.5 + side[0] * 1.8, S[1] + d[1] * 11.5 + side[1] * 1.8, 0.9)
 t2a, t2b = ue(S[0] + d[0] * 0.5, S[1] + d[1] * 0.5, 1.2), ue(S[0] + d[0] * 3.7, S[1] + d[1] * 3.7, 1.2)
-camera("CAM_walk", [(90, c2a, look_rot(c2a, t2a)), (195, c2b, look_rot(c2b, t2b))], 30.0, 2.8, 7.5, 90, 195)
+camera("CAM_walk", [(90, c2a, look_rot(c2a, t2a)), (195, c2b, look_rot(c2b, t2b))], 40.0, 2.8, 8.5, 90, 195)
 
 # rim light: a warm, soft light behind the crew on the side away from the camera (shots 2 and 3)
 try:
