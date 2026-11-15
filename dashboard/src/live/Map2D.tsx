@@ -226,6 +226,15 @@ export default function Map2D({ site, desc, routes, crew, shelters, bandOn, alph
       <div className="pointer-events-none absolute right-2 top-2 flex flex-col gap-1">
         <span className="rounded bg-black/60 px-2 py-0.5 text-[11px] text-ink2">N ↑ · {(L / 1000).toFixed(0)} km box</span>
       </div>
+      {routes.length > 0 && (
+        <div className="pointer-events-none absolute bottom-10 left-2 flex max-w-[calc(100%-1rem)] flex-wrap gap-x-3 gap-y-0.5 rounded bg-black/65 px-2 py-1 text-[11px] text-ink2">
+          <span className="flex items-center gap-1"><i className="inline-block h-[3px] w-4 bg-safe" />Chosen route</span>
+          <span className="flex items-center gap-1"><i className="inline-block h-[2px] w-4 bg-data" />Other routes</span>
+          <span className="flex items-center gap-1"><i className="inline-block h-0 w-4 border-t-2 border-dashed border-hazard" />Closed</span>
+          <span className="flex items-center gap-1"><i className="inline-block h-2 w-2 bg-hazard" />Where virtual crews failed</span>
+          {bandOn && <span className="flex items-center gap-1"><i className="inline-block h-2.5 w-3 bg-hazard/30" />Rockfall runout band</span>}
+        </div>
+      )}
       <div className="absolute bottom-2 right-2 flex gap-1">
         <button className="h-8 w-8 rounded bg-black/60 text-ink" aria-label="Zoom in" onClick={() => zoomAt(size.w / 2, size.h / 2, 1.5)}>+</button>
         <button className="h-8 w-8 rounded bg-black/60 text-ink" aria-label="Zoom out" onClick={() => zoomAt(size.w / 2, size.h / 2, 1 / 1.5)}>−</button>
