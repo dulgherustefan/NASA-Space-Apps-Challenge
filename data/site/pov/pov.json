@@ -1,0 +1,84 @@
+{
+ "note": "Views on arrival, rendered in the 3D scene (unreal/scripts/capture_pov.py). Positions are local metres, heading is degrees clockwise from north.",
+ "size": [
+  1280,
+  720
+ ],
+ "sun": {
+  "azimuth_deg": 297.68,
+  "elevation_deg": 50.05,
+  "when": "2026-11-15 07:00 UT"
+ },
+ "views": {
+  "A": {
+   "name": "Terrain shelter A",
+   "file": "A.jpg",
+   "camera": {
+    "e": 4272.6,
+    "s": 8414.5,
+    "z": -3240.1
+   },
+   "heading": 209.4,
+   "fov_deg": 65.0,
+   "distance_m": 50.0,
+   "turned_deg": 0.0,
+   "caption": "Rendered from the HiRISE elevation model. Colour is approximate; ground detail and rocks are set dressing."
+  },
+  "C": {
+   "name": "Terrain shelter C",
+   "file": "C.jpg",
+   "camera": {
+    "e": 4023.8,
+    "s": 8643.6,
+    "z": -3265.8
+   },
+   "heading": 218.1,
+   "fov_deg": 65.0,
+   "distance_m": 50.0,
+   "turned_deg": 0.0,
+   "caption": "Rendered from the HiRISE elevation model. Colour is approximate; ground detail and rocks are set dressing."
+  },
+  "B": {
+   "name": "Fresh boulder",
+   "file": "B.jpg",
+   "camera": {
+    "e": 2767.8,
+    "s": 8437.3,
+    "z": -3390.1
+   },
+   "heading": 322.7,
+   "fov_deg": 65.0,
+   "distance_m": 50.0,
+   "turned_deg": 0.0,
+   "caption": "Rendered from the HiRISE elevation model. Colour is approximate; ground detail and rocks are set dressing."
+  },
+  "R": {
+   "name": "Rover",
+   "file": "R.jpg",
+   "camera": {
+    "e": 3370.8,
+    "s": 9164.2,
+    "z": -3405.2
+   },
+   "heading": 225.0,
+   "fov_deg": 65.0,
+   "distance_m": 40.0,
+   "turned_deg": 0.0,
+   "caption": "Rendered from the HiRISE elevation model. Colour is approximate; ground detail and rocks are set dressing."
+  },
+  "H": {
+   "name": "Habitat",
+   "file": "H.jpg",
+   "camera": {
+    "e": 2390.8,
+    "s": 9854.2,
+    "z": -3523.4
+   },
+   "heading": 225.0,
+   "fov_deg": 65.0,
+   "distance_m": 40.0,
+   "turned_deg": 0.0,
+   "caption": "Rendered from the HiRISE elevation model. Colour is approximate; ground detail and rocks are set dressing."
+  }
+ }
+}
