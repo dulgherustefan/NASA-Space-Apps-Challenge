@@ -35,7 +35,7 @@ export function startDashTour() {
         say(3, 'The crew walks it in a helmet display (simulated): the route on the ground ahead, one instruction at a time, the rule countdown, O₂, heat and dose, and the rover camera.')
         openView('hud')
       }, 10000))
-      timers.push(window.setTimeout(() => say(4, 'Your turn: Plan a walk from any point to any point (computed in your browser), open the 3D map, or pick any place on Mars.'), 34000))
+      timers.push(window.setTimeout(() => say(4, 'Your turn: run a Storm drill or Quake drill from any point you click, plan a walk, open the 3D map, or pick any place on Mars. All computed in your browser.'), 34000))
       timers.push(window.setTimeout(() => { openView(null); stopDashTour() }, 44000))
     }
   }, 250)

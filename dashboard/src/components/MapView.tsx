@@ -1,5 +1,5 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
-import { Box, Compass, Minus, Plus, Route, Scan, X as Close } from 'lucide-react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { Activity, Box, Compass, Minus, Plus, Radiation, Route, Scan, X as Close } from 'lucide-react'
 import { CORE_DEFAULT, LAYER_LABEL, ORTHO_PATH, fileUrl, type Layer } from '@/lib/config'
 import { focusBundle, focusIncidentId, store, useStore } from '@/lib/store'
 import { requestPlan } from '@/lib/engine'
@@ -10,6 +10,7 @@ import type { RouteStatus } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { LayerLegend, LayerMenu } from './console/Layers'
 import { KIND_NAME } from './console/Situation'
+import { getDrillPick, runDrill, setDrillPick, subscribeDrill } from '@/live/bridge'
 
 // 3D map and helmet HUD over the dashboard, loaded on first use (src/live)
 const Views3D = lazy(() => import('@/live/Views3D'))
@@ -83,6 +84,7 @@ export function MapView() {
   // a recorded-run web build plans in the browser (src/live/bridge.ts)
   const canPlan = useStore((s) => s.mode === 'live' || s.mode === 'replay')
   const [view3d, setView3d] = useState<null | '3d' | 'hud'>(null)
+  const drill = useSyncExternalStore(subscribeDrill, getDrillPick)
   useEffect(() => {
     const on = (e: Event) => setView3d((e as CustomEvent<null | '3d' | 'hud'>).detail)
     window.addEventListener('solway:view', on)
@@ -188,6 +190,11 @@ export function MapView() {
       if (!still || e.button !== 0) return
       const r = c.getBoundingClientRect(), v = view.current
       const px = e.clientX - r.left, py = e.clientY - r.top
+      const drill = getDrillPick()
+      if (drill) {
+        void runDrill(drill, { e: e0 + (px - v.ox) / v.k, s: s0 + (py - v.oy) / v.k })
+        return
+      }
       if (planRef.current) {
         const pt = { e: e0 + (px - v.ox) / v.k, s: s0 + (py - v.oy) / v.k }
         if (e.shiftKey) store.set({ planFrom: { e: Math.round(pt.e * 10) / 10, s: Math.round(pt.s * 10) / 10 } })
@@ -534,6 +541,27 @@ export function MapView() {
             <TooltipContent side="bottom">Walk the route in a simulated helmet display, with turn-by-turn guidance and the rover camera</TooltipContent>
           </Tooltip>
         </div>
+        <div className="absolute left-3 top-[60px] flex items-start gap-2">
+          {([['storm', 'Storm drill', Radiation, 'A solar storm starts now: click where the crew is, and the browser plans and stress-tests a route to every open shelter'], ['quake', 'Quake drill', Activity, 'A marsquake now: click where the crew is; shelters in the rockfall band close and the browser finds a way out']] as const).map(([k, label, Icon, tip]) => (
+            <Tooltip key={k}>
+              <TooltipTrigger asChild>
+                <button type="button" aria-pressed={drill === k} data-testid={`drill-${k}`} onClick={() => { store.set({ planMode: false }); setDrillPick(drill === k ? null : k) }}
+                  className={cn('flex h-10 items-center gap-2 rounded-[8px] px-3 text-[13.5px] shadow-float transition-colors duration-150', drill === k ? 'bg-solid font-semibold text-on-solid' : 'bg-panel text-ink hover:bg-panel2')}>
+                  <Icon size={15} /><span className="hidden sm:inline">{label}</span>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">{tip}</TooltipContent>
+            </Tooltip>
+          ))}
+        </div>
+        {drill && (
+          <div role="status" className="anim-rise pointer-events-none absolute inset-x-3 bottom-3 flex justify-center">
+            <div className="float pointer-events-auto flex max-w-full flex-wrap items-center gap-x-3 gap-y-1 rounded-[8px] px-3.5 py-2 text-[13px] text-ink">
+              <span><span className="font-semibold">{drill === 'storm' ? 'Solar storm drill.' : 'Marsquake drill.'}</span> Click where the crew is. The plan is computed in your browser.</span>
+              <button type="button" className="text-ink2 underline decoration-dotted underline-offset-2 hover:text-ink" onClick={() => setDrillPick(null)}>Cancel</button>
+            </div>
+          </div>
+        )}
         {view3d && <Suspense fallback={null}><Views3D mode={view3d} onClose={() => setView3d(null)} /></Suspense>}
         <PlaceCard />
         <div className="float absolute right-3 top-3 flex flex-col overflow-hidden rounded-[8px]">

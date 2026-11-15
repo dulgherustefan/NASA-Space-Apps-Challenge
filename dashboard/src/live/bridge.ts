@@ -102,3 +102,124 @@ export function currentRoute(): { route: LiveRoute; incident: Incident | null } 
     : null
   return { route, incident }
 }
+
+// ------------------------------------------------------------------------------------------------ incident drill
+// "Storm drill" / "Quake drill" on the main dashboard: the next click on the map places the crew there, the browser
+// engine plans and stress-tests a route to every open shelter, and the dashboard shows it as an incident with the
+// existing panel (incident, assessment, routes, stress, decision messages: docs/CONTRACT.md shapes).
+
+type DrillKind = 'storm' | 'quake'
+let drillPick: DrillKind | null = null
+let drillSeq = 0
+const drillSubs = new Set<() => void>()
+export function getDrillPick() { return drillPick }
+export function setDrillPick(k: DrillKind | null) { drillPick = k; drillSubs.forEach(f => f()) }
+export function subscribeDrill(f: () => void) { drillSubs.add(f); return () => { drillSubs.delete(f) } }
+
+export async function runDrill(kind: DrillKind, at: { e: number; s: number }) {
+  setDrillPick(null)
+  const live = await import('./store')
+  const { applyMessage } = await import('@/lib/store')
+  const { sendCmd } = await import('@/lib/engine')
+  const st = store.get()
+  if (st.replay?.playing) sendCmd({ cmd: 'pause' })
+  const core = coreBox()
+  const t = store.get().snapshot?.t ?? 0
+  const id = `drill-${kind}-${++drillSeq}`
+  const storm = kind === 'storm'
+  store.set({ planMode: false, selectedPlace: null })
+  applyMessage({
+    type: 'incident', t, id, kind: storm ? 'sep' : 'quake', scenario: true, source: 'browser engine (drill)',
+    title: storm ? 'Solar storm drill' : 'Marsquake drill',
+    summary: storm
+      ? 'Drill: a solar particle event starts now with the crew at the point you clicked. The browser plans a route to every open shelter and stress-tests each one.'
+      : 'Drill: a marsquake now; the rockfall runout band is active and shelters inside it are closed. The browser plans and stress-tests a way out.',
+    e: at.e, s: at.s,
+  })
+  // the crew stands where you clicked for this drill
+  const moveCrew = () => {
+    const snap = store.get().snapshot
+    if (snap) applyMessage({ ...snap, incident_id: id, phase: 'respond', crew: snap.crew.map((c, k) => ({ ...c, e: at.e + k * 3, s: at.s + k * 2, status: 0 })) })
+  }
+  moveCrew()
+  store.set({ focusId: id })
+  try {
+    await live.ensureBundled()
+    live.clearIncident()
+    live.setCrew(at.e - core.e0, at.s - core.s0)
+    await live.trigger(kind)
+    // wait for the full stress test (pass 2)
+    await new Promise<void>(res => {
+      const chk = () => { const s = live.useLive.getState(); if (s.phase === 'planned' && !s.refining) { un(); res() } }
+      const un = live.useLive.subscribe(chk); chk()
+    })
+  } catch (e) {
+    applyMessage({ type: 'log', t, level: 'error', text: `Drill failed: ${(e as Error).message}` })
+    return
+  }
+  const L = live.useLive.getState()
+  const p = L.params
+  const ruleS = storm ? p.shelterRuleMin * 60 : null
+  const crew = L.crew!
+  // reuse the dashboard's own place names; other terrain cover is named by where it is from the crew
+  const places = store.get().hello?.places ?? []
+  const routes = L.routes.map(r => {
+    if (r.destKind !== 'terrain') return r
+    const px = places.find(q => Math.hypot(q.e - core.e0 - r.destX, q.s - core.s0 - r.destY) < 80)
+    if (px) return { ...r, destName: px.name }
+    const dx = r.destX - crew.x, dy = r.destY - crew.y
+    const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']
+    const b = (Math.atan2(dx, -dy) * 180 / Math.PI + 360) % 360
+    return { ...r, destName: `Terrain cover ${Math.round(Math.hypot(dx, dy) / 10) * 10} m ${dirs[Math.round(b / 45) % 8]}` }
+  })
+  const shelters = routes.map(r => ({ id: r.destId, name: r.destName, e: r.destX + core.e0, s: r.destY + core.s0, open: r.admissible, reason: r.admissible ? undefined : 'inside the active rockfall band', shield: r.shield }))
+  applyMessage({
+    type: 'assessment', t, incident_id: id, shelters, limits: { shelter_s: ruleS, peak_s: null },
+    changes: storm
+      ? [{ label: 'Shelter rule', value: p.shelterRuleMin, unit: 'min', kind: 'requirement', source: 'arXiv 2502.02469' }]
+      : [{ label: 'Rockfall reach angle', value: p.alphaDeg, unit: '°', kind: 'measured', source: 'site rockfall analysis (pipeline/)' }],
+  })
+  const summaries: RouteSummary[] = routes.map((r, i) => {
+    const last = r.samples[r.samples.length - 1]
+    let heatPeak = 0, nolos = 0
+    r.samples.forEach((s, k) => { heatPeak = Math.max(heatPeak, s.heatKJ); if (k && s.flags & FLAG.NO_COMMS) nolos += s.d - r.samples[k - 1].d })
+    const gcr = last ? p.gcrRate * last.t / 3600 : 0
+    const late = storm && ruleS !== null && r.timeS > ruleS
+    return {
+      id: i, shelter: r.destName, label: r.destName, length_m: Math.round(r.lengthM || 0), time_s: isFinite(r.timeS) ? Math.round(r.timeS) : 0,
+      ascent_m: Math.round(r.climbM), max_slope: Math.round(r.maxSlopeDeg * 10) / 10,
+      o2_margin: last ? Math.round(Math.max(0, last.o2Min / O2_FULL_MIN) * 1000) / 1000 : 0,
+      heat_margin: Math.round(Math.max(0, 1 - heatPeak / p.heatMaxKJ) * 1000) / 1000,
+      dose: last ? Math.round((gcr * 3.05 + Math.max(0, last.doseUGy - gcr)) / 1000 * 10000) / 10000 : 0,
+      robustness_nats: null, mc_fail_rate: r.mc ? Math.round(r.mc.failRate * 10000) / 10000 : null,
+      status: !r.samples.length ? 'infeasible' : r.chosen ? 'chosen' : !r.admissible || late ? 'rejected' : 'tested',
+      band_m: Math.round(r.bandLengthM), rule_ok: r.admissible && !late, rule_reasons: !r.admissible ? ['ends inside the active rockfall band'] : late ? [`takes ${Math.round(r.timeS / 60)} min, past the ${p.shelterRuleMin}-min rule`] : [],
+      nolos_m: Math.round(nolos),
+    }
+  })
+  applyMessage({ type: 'routes', t, incident_id: id, routes: summaries })
+  setRoutesFile({
+    incident_id: id,
+    routes: routes.map((r, i) => ({ id: i, shelter: r.destName, points: r.samples.map(s => [s.x + core.e0, s.y + core.s0, s.z] as [number, number, number]), time_s: summaries[i].time_s, length_m: summaries[i].length_m })).filter(r => r.points.length > 1),
+  })
+  routes.forEach((r, i) => {
+    if (!r.mc) return
+    applyMessage({
+      type: 'stress', t, incident_id: id, route_id: i, method: 'mc', source: `browser Monte Carlo, ${r.mc.n} virtual crews, ${r.mc.policy === 'rl' ? 'trained PPO walking policy' : 'scripted walker'}`,
+      robustness_nats: null, mc_fail_rate: summaries[i].mc_fail_rate, mc_ci: [r.mc.ciLo, r.mc.ciHi], n: r.mc.n,
+      failures: [],
+    })
+  })
+  const ci = routes.findIndex(r => r.chosen)
+  if (ci >= 0) {
+    const c = routes[ci], s = summaries[ci]
+    applyMessage({
+      type: 'decision', t, incident_id: id, route_id: ci, shelter: c.destName, auto: true,
+      reasons: [c.reason, `Computed in your browser from the clicked point (e ${Math.round(crew.x + core.e0)}, s ${Math.round(crew.y + core.s0)}).`],
+      avoided: routes.filter(r => !r.chosen).map(r => ({ label: r.destName, detail: r.reason })),
+      time_to_shelter_s: s.time_s, margins: { o2: s.o2_margin, heat: s.heat_margin, dose: s.dose }, dose_msv: s.dose,
+    })
+  }
+  moveCrew()
+  store.set({ focusId: id, selectedRoute: ci >= 0 ? ci : null })
+}
