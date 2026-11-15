@@ -1,6 +1,8 @@
-import { ENGINE_URL, fileUrl } from './config'
+import { ENGINE_URL, REPLAY, fileUrl } from './config'
+import { replayCmd, startReplay } from './replay'
 import { applyMessage, setConn, setRoutesFile, setTrajFile, store } from './store'
 import type { EngineMsg, ParamDef, RoutesFile, TrajFile } from './types'
+import { chime } from './alert'
 
 let ws: WebSocket | null = null
 let retry: ReturnType<typeof setTimeout> | null = null
@@ -9,7 +11,7 @@ let started = false
 
 async function getJson<T>(path: string): Promise<T | null> {
   try {
-    const r = await fetch(fileUrl(path, Date.now()), { cache: 'no-store' })
+    const r = await fetch(fileUrl(path, Date.now()), { cache: REPLAY ? 'default' : 'no-store' })
     if (!r.ok) return null
     return (await r.json()) as T
   } catch {
@@ -55,6 +57,9 @@ function handle(msg: EngineMsg) {
       // Joined mid-incident: pick up files already on disk. Before that they may not exist yet.
       if (!midLoaded && msg.phase && (msg.phase === 'simulate' || msg.phase === 'respond')) { midLoaded = true; void loadRoutes(); void loadTrajectories() }
       break
+    case 'incident':
+      if (store.get().alertAt > Date.now() - 500) chime(msg.kind !== 'science')
+      break
     case 'routes':
       void loadRoutes()
       break
@@ -89,15 +94,18 @@ function schedule() {
 export function startEngine() {
   if (started) return
   started = true
-  open()
+  if (REPLAY) void startReplay(handle)
+  else open()
 }
 
 export function sendCmd(cmd: Record<string, unknown>): boolean {
+  if (REPLAY) return replayCmd(cmd)
   if (ws && ws.readyState === WebSocket.OPEN) { ws.send(JSON.stringify(cmd)); return true }
   return false
 }
 
 export function retryNow() {
+  if (REPLAY) { void startReplay(handle); return }
   if (retry) { clearTimeout(retry); retry = null }
   if (!ws) open()
 }

@@ -5,9 +5,11 @@
 // ENGINE defaults to the mock (ws://127.0.0.1:8766/ws). It is passed to the page as ?engine=.
 // The script sends reset, start, trigger and choose to that engine, so never point it at an engine
 // that drives a live 3D window.
+// W and H set the viewport (default 1680 x 1000). Widths under 1320 give the two-column layout,
+// under 900 the single-column field layout.
 import { chromium } from 'playwright'
+import WebSocket from 'ws'
 import fs from 'node:fs'
-import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -20,40 +22,42 @@ const TAG = process.env.TAG || ''
 const ONLY = process.env.ONLY ? new Set(process.env.ONLY.split(',')) : null
 fs.mkdirSync(OUT, { recursive: true })
 
-function chromiumPath() {
-  const base = path.join(os.homedir(), 'Library/Caches/ms-playwright')
-  if (!fs.existsSync(base)) return undefined
-  const dirs = fs.readdirSync(base).filter((d) => d.startsWith('chromium_headless_shell-')).sort().reverse()
-  for (const d of dirs) {
-    const p = path.join(base, d, 'chrome-headless-shell-mac-arm64', 'chrome-headless-shell')
-    if (fs.existsSync(p)) return p
+// Playwright's own Chromium if it is installed, otherwise a browser already on the machine.
+async function launch() {
+  for (const opt of [{}, { channel: 'chrome' }, { channel: 'msedge' }]) {
+    try { return await chromium.launch(opt) } catch { /* try the next one */ }
   }
+  throw new Error('no browser found: run "npx playwright install chromium"')
 }
 
-let browser
-try { browser = await chromium.launch() } catch { browser = await chromium.launch({ executablePath: chromiumPath() }) }
+const browser = await launch()
 const page = await browser.newPage({ viewport: { width: W, height: H }, deviceScaleFactor: 1 })
 const errors = []
 page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') errors.push(`${m.type()}: ${m.text()}`) })
 page.on('response', (r) => { if (r.status() >= 400) errors.push('HTTP ' + r.status() + ' ' + r.url()) })
 page.on('pageerror', (e) => errors.push(String(e)))
 
+/** Commands go straight to the engine, as the dashboard would send them. */
+const send = (cmd) => new Promise((resolve) => {
+  const ws = new WebSocket(ENGINE)
+  ws.on('open', () => { ws.send(JSON.stringify(cmd)); setTimeout(() => { ws.close(); resolve() }, 250) })
+  ws.on('error', () => resolve())
+})
 const shot = async (name) => {
   if (ONLY && !ONLY.has(name)) return
   await page.screenshot({ path: path.join(OUT, `${name}${TAG}.png`) })
   console.log('shot', name)
 }
-const phase = (p, timeout = 60000) => page.waitForSelector(`section[data-phase=${p}][data-state=active]`, { timeout })
-const click = (name) => page.getByRole('button', { name, exact: true }).first().click()
+const phase = (p, state = 'active', timeout = 60000) => page.waitForSelector(`[data-phase=${p}][data-state=${state}]`, { timeout })
 const wait = (ms) => page.waitForTimeout(ms)
 
 const nn = (n) => String(n).padStart(2, '0')
-async function incident(title, id, n0) {
-  await page.getByRole('button', { name: title }).first().click()
+async function incident(id, n0) {
+  await send({ cmd: 'trigger', id })
   await phase('detect'); await wait(500); await shot(`${nn(n0)}-${id}-detect`)
   await phase('assess'); await wait(1400); await shot(`${nn(n0 + 1)}-${id}-assess`)
   await phase('simulate'); await wait(500); await shot(`${nn(n0 + 2)}-${id}-simulate`)
-  await phase('respond', 90000); await wait(1200); await shot(`${nn(n0 + 3)}-${id}-respond`)
+  await phase('respond', 'done', 90000); await wait(1200); await shot(`${nn(n0 + 3)}-${id}-respond`)
 }
 
 // 1. engine not reachable (nothing listens on 8799)
@@ -62,46 +66,43 @@ await wait(2500)
 await shot('00-offline')
 
 // 2. connected, before the mission clock starts
+await send({ cmd: 'reset' })
 await page.goto(`${BASE}?engine=${encodeURIComponent(ENGINE)}`)
-await page.waitForSelector('text=Engine online', { timeout: 15000 })
-await click('Reset')
+await page.waitForSelector('[data-layout]', { timeout: 15000 })
 await wait(1500)
 await shot('01-idle')
 
 // 3. mission running, no incident
-// The real engine starts paused at t=0 (Start); the mock may already run (Pause) or sit paused (Resume).
-const startBtn = page.getByRole('button', { name: /^(Start|Resume)$/ })
-if (await startBtn.count()) await startBtn.first().click()
+await send({ cmd: 'start' })
 await wait(3500)
 await shot('02-running')
 
-// 4. solar particle event, all four phases
-await incident('Solar particle event', 'sep', 3)
+// 4. solar particle event, all four steps
+await incident('sep-1', 3)
 await wait(2500)
 
-// 5. operator picks another route
-const alt = page.locator('li[data-route][data-status=tested], li[data-route][data-status=rejected]').first()
+// 5. the operator opens another route and takes it
+const alt = page.locator('li[data-route][data-status=rejected]').first()
 if (await alt.count()) {
   await alt.locator('button').first().click()
-  await wait(300)
+  await wait(400)
+  await shot('07-sep-route-open')
   await page.getByRole('button', { name: /^Choose route/ }).first().click()
   await wait(1800)
-  await shot('07-sep-route-choice')
+  await shot('08-sep-route-choice')
 } else console.log('no alternative route to choose')
 
-// 6. marsquake, all four phases
-await incident('Marsquake', 'quake', 8)
+// 6. marsquake, all four steps
+await incident('quake-1', 9)
 
-// 7. end state: last incident done, crew walking
-await page.getByRole('button', { name: 'Fresh boulder' }).first().click()
-await phase('detect')
-await phase('respond', 90000)
-await page.waitForSelector('section[data-phase=respond][data-state=done]', { timeout: 90000 })
+// 7. end state: last incident done, crew back
+await send({ cmd: 'trigger', id: 'sci-1' })
+await phase('respond', 'done', 120000)
 await wait(4000)
-await shot('12-end')
+await shot('13-end')
 
 // 8. other pages
-for (const [hash, name] of [['/method', '13-method'], ['/parameters', '14-parameters'], ['/log', '15-log'], ['/sources', '16-sources']]) {
+for (const [hash, name] of [['/method', '14-method'], ['/parameters', '15-parameters'], ['/log', '16-log'], ['/sources', '17-sources']]) {
   await page.evaluate((h) => { window.location.hash = h }, hash)
   await wait(600)
   await shot(name)

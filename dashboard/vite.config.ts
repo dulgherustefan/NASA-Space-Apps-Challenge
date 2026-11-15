@@ -31,6 +31,8 @@ export default defineConfig(({ mode }) => {
   const engineUrl = env.VITE_ENGINE_URL || 'ws://127.0.0.1:8765/ws'
   return {
     base: './',
+    // "vite build --mode replay" makes the static build that plays public/replay with no engine
+    define: mode === 'replay' ? { 'import.meta.env.VITE_REPLAY': JSON.stringify('1') } : {},
     plugins: [react(), tailwindcss(), csp(engineUrl)],
     resolve: { alias: { '@': path.resolve(import.meta.dirname, 'src') } },
     server: { port: 5173, strictPort: true, host: '127.0.0.1' },

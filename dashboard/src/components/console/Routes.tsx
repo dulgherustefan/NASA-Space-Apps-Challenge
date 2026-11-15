@@ -109,6 +109,7 @@ function RouteRow({ r, bundle, open }: { r: RouteSummary; bundle: IncidentBundle
   const reveal = () => requestAnimationFrame(() => li.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }))
   const fail = st?.mc_fail_rate ?? r.mc_fail_rate
   const { name, variant } = splitLabel(r.label ?? r.shelter)
+  const replay = useStore((s) => s.mode === 'replay')
   return (
     <li ref={li} className={cn('border-b border-rule last:border-b-0', r.status === 'infeasible' && 'opacity-60')} data-route={r.id} data-status={r.status}>
       <button type="button" onClick={() => { store.set({ selectedRoute: open ? null : r.id }); if (!open) reveal() }} aria-expanded={open}
@@ -148,7 +149,7 @@ function RouteRow({ r, bundle, open }: { r: RouteSummary; bundle: IncidentBundle
           <div className="mt-3 border-t border-rule pt-3"><StressDetail r={r} st={st} /></div>
           {st && <Failures list={st.failures} />}
           <div className="mt-3 flex items-center justify-between gap-3">
-            {r.status !== 'chosen' && r.status !== 'infeasible'
+            {r.status !== 'chosen' && r.status !== 'infeasible' && !replay
               ? <Button variant="outline" size="md" className="tap" onClick={() => { sendCmd({ cmd: 'choose', route_id: r.id }); reveal() }}>Choose route {r.id} instead</Button>
               : <span className="text-[12.5px] text-ink3">{r.status === 'chosen' ? 'The crew is told to take this route.' : ''}</span>}
             <GroupKind kind="model" source={PLANNER_SRC} label={`Route ${r.id} planner figures`} />

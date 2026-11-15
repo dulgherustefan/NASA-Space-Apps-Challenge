@@ -11,6 +11,8 @@ __pycache__/
 # node / electron
 node_modules/
 dashboard/dist/
+dashboard/dist-web/
+dashboard/screenshots/
 dashboard/release/
 
 # raw downloads and source assets (re-fetchable, listed in ASSETS.md)

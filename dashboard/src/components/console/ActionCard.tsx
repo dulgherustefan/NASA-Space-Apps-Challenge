@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { ArrowUp, Check, CircleCheck, ShieldAlert, TriangleAlert } from 'lucide-react'
 import { focusBundle, useStore, type IncidentBundle } from '@/lib/store'
 import { compass, deadlineOf, walkView, type Deadline, type WalkView } from '@/lib/derive'
@@ -206,15 +207,36 @@ function Idle() {
   )
 }
 
+/** A strip that stays for a few seconds after a new incident. Colour is never the only cue: it carries the word and an icon. */
+function AlertStrip({ b }: { b: IncidentBundle }) {
+  const alertAt = useStore((s) => s.alertAt)
+  const [on, setOn] = useState(false)
+  useEffect(() => {
+    const left = alertAt + 9000 - Date.now()
+    if (left <= 0) { setOn(false); return }
+    setOn(true)
+    const t = setTimeout(() => setOn(false), left)
+    return () => clearTimeout(t)
+  }, [alertAt])
+  if (!on) return null
+  const urgent = b.incident.kind !== 'science'
+  return (
+    <div role="alert" className={cn('anim-slide -mx-4 -mt-4 mb-3 flex items-center gap-2 px-4 py-2 text-[13px] font-medium', urgent ? 'bg-hazard text-[#1a0807]' : 'bg-accent text-[#16110a]')}>
+      <TriangleAlert size={15} strokeWidth={2.2} />{urgent ? 'Alert' : 'New task'}: {b.incident.title}
+    </div>
+  )
+}
+
 /** The one thing the crew needs from an incident: where to go, how long it takes, and what is left on arrival. */
 export function ActionCard({ compact }: { compact?: boolean }) {
   const b = useStore(focusBundle)
   const d = b?.decision
   const route = b?.routes?.find((r) => r.id === d?.route_id)
   return (
-    <div className={cn('px-4', compact ? 'py-3.5' : 'py-4')} aria-live="polite">
+    <div className="overflow-hidden p-4" aria-live="polite">
       {b ? (
         <>
+          <AlertStrip b={b} />
           <IncidentLine b={b} />
           <div className="mt-3"><PhaseSteps /></div>
           {d ? <Decided b={b} d={d} route={route} compact={compact} /> : <Planning b={b} />}

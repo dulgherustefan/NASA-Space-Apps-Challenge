@@ -34,9 +34,26 @@ function httpBase(ws: string): string {
 }
 export const HTTP_BASE = httpBase(ENGINE_URL)
 
+/**
+ * Recorded run instead of a live engine: built with VITE_REPLAY=1, or opened with ?replay.
+ * The page then needs no engine and can be served as static files.
+ */
+export const REPLAY: boolean = (() => {
+  try { if (new URLSearchParams(window.location.search).has('replay')) return true } catch { /* no window during tests */ }
+  return import.meta.env.VITE_REPLAY === '1'
+})()
+export const REPLAY_BASE = `${import.meta.env.BASE_URL}replay/`
+const replayFiles = new Map<string, string>()
+/** Which stored file stands for which engine path from now on; null clears the map. */
+export function setReplayFiles(map: Record<string, string> | null) {
+  if (map === null) replayFiles.clear()
+  else for (const [k, v] of Object.entries(map)) replayFiles.set(k, v)
+}
+
 /** URL of a repo file served by the engine, e.g. fileUrl('runtime/routes.json'). */
 export function fileUrl(repoPath: string, version?: number | string): string {
   const p = repoPath.replace(/^\/+/, '').replace(/^files\//, '')
+  if (REPLAY) return `${REPLAY_BASE}${replayFiles.get(p) ?? `not-recorded/${p}`}`
   return `${HTTP_BASE}/files/${p}${version !== undefined ? `?v=${version}` : ''}`
 }
 

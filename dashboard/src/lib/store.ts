@@ -34,6 +34,8 @@ export interface SensorPoint { t: number; dose_rate: number; seismic: number; ta
 export interface TrainingState { status: 'idle' | 'loading' | 'missing' | 'ready' | 'error'; data?: unknown }
 
 export interface State {
+  /** live: a running engine. replay: a recorded run played from static files. */
+  mode: 'live' | 'replay'
   conn: Conn
   attempts: number
   lastMsgAt: number
@@ -56,15 +58,17 @@ export interface State {
   showReplays: boolean
   routeChangedAt: Record<string, number>
   trails: Record<number, [number, number][]>
+  /** wall time of the newest incident, for the alert cue */
+  alertAt: number
 }
 
 const initial = (): State => ({
-  conn: 'connecting', attempts: 0, lastMsgAt: 0, hello: null, snapshot: null,
+  mode: 'live', conn: 'connecting', attempts: 0, lastMsgAt: 0, hello: null, snapshot: null,
   incidents: {}, order: [], focusId: null, sensors: [], log: [],
   routesFile: null, routesV: 0, trajFile: null, trajV: 0, overlayV: 0,
   params: { status: 'idle', items: [] }, training: { status: 'idle' },
   overlay: { layer: 'hazard', opacity: 0.5, userSet: false }, selectedRoute: null, showReplays: true,
-  routeChangedAt: {}, trails: {},
+  routeChangedAt: {}, trails: {}, alertAt: 0,
 })
 
 let state: State = initial()
@@ -115,7 +119,7 @@ export function applyMessage(msg: EngineMsg) {
       logN = 0
       lastSensorWall = 0
       const keepConn = state.conn
-      state = { ...initial(), conn: keepConn, hello: msg, lastMsgAt: now, params: state.params, training: state.training, overlay: { ...state.overlay, userSet: false } }
+      state = { ...initial(), mode: state.mode, conn: keepConn, hello: msg, lastMsgAt: now, params: state.params, training: state.training, overlay: { ...state.overlay, userSet: false } }
       state.log = pushLog({ t: msg.t, type: 'hello', title: `Connected to ${msg.product} ${msg.version}`, detail: msg.site.name, source: 'engine', raw: msg })
       listeners.forEach((l) => l())
       return
@@ -158,6 +162,8 @@ export function applyMessage(msg: EngineMsg) {
       store.set({
         incidents: { ...state.incidents, [msg.id]: b }, order, focusId: null, selectedRoute: null,
         overlay: { ...state.overlay, userSet: false },
+        // a late client receives old incidents again: only an incident that is live now raises the alert
+        alertAt: Math.abs((state.snapshot?.t ?? msg.t) - msg.t) < 30 ? now : state.alertAt,
         log: pushLog({ t: msg.t, type: 'incident', title: msg.title, detail: msg.summary, source: msg.source, incident_id: msg.id, raw: msg }),
       })
       return

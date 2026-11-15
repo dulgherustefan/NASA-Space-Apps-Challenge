@@ -1,9 +1,11 @@
-import { Menu as MenuIcon, Pause, Play, RotateCcw, SlidersHorizontal } from 'lucide-react'
+import { useState } from 'react'
+import { Menu as MenuIcon, Pause, Play, RotateCcw, SlidersHorizontal, Volume2, VolumeX } from 'lucide-react'
 import { useStore } from '@/lib/store'
 import { FALLBACK_PRODUCT } from '@/lib/config'
 import { sendCmd } from '@/lib/engine'
 import { hm, lightTime } from '@/lib/format'
 import { PAGES, hrefFor, usePage } from '@/lib/route'
+import { isMuted, setMuted } from '@/lib/alert'
 import { cn } from '@/lib/utils'
 import { Button } from './ui/button'
 import { Menu } from './ui/menu'
@@ -59,6 +61,15 @@ function ConnDot() {
   const conn = useStore((s) => s.conn)
   const attempts = useStore((s) => s.attempts)
   const hadData = useStore((s) => !!s.hello)
+  const replay = useStore((s) => s.mode === 'replay')
+  if (replay && conn === 'online') {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild><span tabIndex={0} className="hidden cursor-help whitespace-nowrap rounded-[4px] border border-rule2 px-2 py-1 text-[12px] text-ink2 sm:inline">Recorded run</span></TooltipTrigger>
+        <TooltipContent>A recorded run of the scripted demo, played from saved engine messages. No engine is connected, so routes cannot be re-planned here.</TooltipContent>
+      </Tooltip>
+    )
+  }
   const label = conn === 'online' ? 'Engine online' : attempts === 0 ? 'Connecting' : hadData ? 'Reconnecting' : 'Engine offline'
   const color = conn === 'online' ? 'var(--color-safe)' : conn === 'connecting' ? 'var(--color-accent)' : 'var(--color-hazard)'
   return (
@@ -93,6 +104,8 @@ function Controls({ close }: { close: () => void }) {
   const paused = useStore((s) => s.snapshot?.clock.paused ?? false)
   const off = useStore((s) => s.conn !== 'online')
   const notStarted = useStore((s) => !!s.snapshot && s.snapshot.clock.paused && s.snapshot.t < 0.5 && s.order.length === 0)
+  const [muted, setM] = useState(isMuted)
+  const replay = useStore((s) => s.mode === 'replay')
   return (
     <div className="space-y-3">
       <div>
@@ -106,12 +119,12 @@ function Controls({ close }: { close: () => void }) {
             </Button>
           )}
           <Button size="md" disabled={off} onClick={() => { sendCmd({ cmd: 'reset' }); close() }}><RotateCcw size={14} />Reset</Button>
-          <ToggleGroup type="single" value={speed ? String(speed) : ''} onValueChange={(v) => v && sendCmd({ cmd: 'speed', value: Number(v) })} aria-label="Clock speed" disabled={off} className="ml-auto">
+          {!replay && <ToggleGroup type="single" value={speed ? String(speed) : ''} onValueChange={(v) => v && sendCmd({ cmd: 'speed', value: Number(v) })} aria-label="Clock speed" disabled={off} className="ml-auto">
             {[1, 8, 60].map((v) => <ToggleGroupItem key={v} value={String(v)} className="h-8 px-2.5 text-[12px]">{v}x</ToggleGroupItem>)}
-          </ToggleGroup>
+          </ToggleGroup>}
         </div>
       </div>
-      <div className="border-t border-rule2 pt-3">
+      {!replay && <div className="border-t border-rule2 pt-3">
         <div className="cap mb-1.5">Fire a scripted incident now</div>
         <div className="grid gap-1.5">
           {(scenario ?? []).map((s) => (
@@ -119,8 +132,13 @@ function Controls({ close }: { close: () => void }) {
           ))}
           {!scenario?.length && <span className="text-[12.5px] text-ink3">Waiting for the scenario list from the engine.</span>}
         </div>
+      </div>}
+      <div className="border-t border-rule2 pt-3">
+        <Button size="md" variant="quiet" className="w-full justify-start" aria-pressed={!muted} onClick={() => { setMuted(!muted); setM(!muted) }}>
+          {muted ? <VolumeX size={14} /> : <Volume2 size={14} />}Alert sound {muted ? 'off' : 'on'}
+        </Button>
       </div>
-      <p className="border-t border-rule2 pt-2.5 text-[12px] leading-snug text-ink3">Exercise controls. Incidents are scripted and marked as scenario wherever they appear.</p>
+      <p className="border-t border-rule2 pt-2.5 text-[12px] leading-snug text-ink3">{replay ? 'Recorded run of the scripted demo. With a live engine you can also fire single incidents and pick another route.' : 'Exercise controls. Incidents are scripted and marked as scenario wherever they appear.'}</p>
     </div>
   )
 }
