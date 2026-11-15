@@ -8,6 +8,17 @@ const TILE = 'https://trek.nasa.gov/tiles/Mars/EQ/Mars_Viking_MDIM21_ClrMosaic_g
 const MAX_Z = 7
 const TS = 256
 
+// Every HiRISE and CTX elevation model in the USGS Astrogeology STAC catalogue (public/stac, built from the
+// collections mro_hirise_socet_dtms and mro_ctx_controlled_usgs_dtms): [lon E 0..360, lat, width deg, height deg] x n
+interface Footprints { hirise: Float32Array; ctx: Float32Array }
+let footP: Promise<Footprints> | null = null
+function loadFootprints(): Promise<Footprints> {
+  const get = (f: string) => fetch(import.meta.env.BASE_URL + 'stac/' + f).then(r => (r.ok ? r.json() : { items: [] })).catch(() => ({ items: [] }))
+    .then((j: { items: [string, number, number, number, number][] }) => { const a = new Float32Array(j.items.length * 4); j.items.forEach((it, i) => a.set([it[1], it[2], it[3], it[4]], i * 4)); return a })
+  footP ??= Promise.all([get('hirise_dtms.json'), get('ctx_dtms.json')]).then(([hirise, ctx]) => ({ hirise, ctx }))
+  return footP
+}
+
 interface View { lon: number; lat: number; ppd: number }        // centre (deg, lon -180..180) and pixels per degree
 
 export default function GlobePicker(props: {
@@ -25,6 +36,8 @@ export default function GlobePicker(props: {
   const raf = useRef(0)
   const [hover, setHover] = useState<{ lon: number; lat: number } | null>(null)
   const [, force] = useState(0)
+  const footRef = useRef<Footprints | null>(null)
+  const [counts, setCounts] = useState<{ h: number; c: number } | null>(null)
   const overlay = useRef({ bundled, marker })
   overlay.current = { bundled, marker }
 
@@ -93,6 +106,23 @@ export default function GlobePicker(props: {
     for (let lon = -180; lon < 180; lon += 30) { const [x] = toScreen(lon, 0); ctx.moveTo(Math.round(x) + 0.5, 0); ctx.lineTo(Math.round(x) + 0.5, h) }
     for (let lat = -60; lat <= 60; lat += 30) { const [, y] = toScreen(0, lat); ctx.moveTo(0, Math.round(y) + 0.5); ctx.lineTo(w, Math.round(y) + 0.5) }
     ctx.stroke()
+    // DTM coverage from the STAC catalogue: CTX (route-planning grade) and HiRISE (EVA-grade)
+    const fp = footRef.current
+    if (fp) {
+      const layer = (a: Float32Array, fill: string, stroke: string, minPx: number) => {
+        ctx.fillStyle = fill; ctx.strokeStyle = stroke; ctx.lineWidth = 1
+        for (let i = 0; i < a.length; i += 4) {
+          let lon = a[i]; if (lon > 180) lon -= 360
+          const [x, y] = toScreen(lon, a[i + 1])
+          if (x < -20 || y < -20 || x > w + 20 || y > h + 20) continue
+          const pw = Math.max(minPx, a[i + 2] * v.ppd), ph = Math.max(minPx, a[i + 3] * v.ppd)
+          ctx.fillRect(x - pw / 2, y - ph / 2, pw, ph)
+          if (pw > 6) ctx.strokeRect(x - pw / 2, y - ph / 2, pw, ph)
+        }
+      }
+      layer(fp.ctx, 'rgba(255,154,46,0.22)', 'rgba(255,154,46,0.6)', 1.5)
+      layer(fp.hirise, 'rgba(79,209,176,0.85)', 'rgba(79,209,176,1)', 3)
+    }
     // suggested sites (small rings) and bundled sites (filled)
     const { bundled, marker } = overlay.current
     ctx.font = '600 11px "Instrument Sans Variable", system-ui, sans-serif'
@@ -140,6 +170,7 @@ export default function GlobePicker(props: {
     return () => ro.disconnect()
   }, [draw])
   useEffect(() => { redraw() }, [redraw, bundled, marker])
+  useEffect(() => { void loadFootprints().then(f => { footRef.current = f; setCounts({ h: f.hirise.length / 4, c: f.ctx.length / 4 }); redraw() }) }, [redraw])
   useEffect(() => () => cancelAnimationFrame(raf.current), [])
 
   const zoomAt = (x: number, y: number, k: number) => {
@@ -192,7 +223,19 @@ export default function GlobePicker(props: {
     if (!had || ptrs.current.size > 0) return
     if (gesture.current.moved < 6 && !busy) {
       const [x, y] = local(e)
-      const [lon, lat] = toLonLat(x, y)
+      let [lon, lat] = toLonLat(x, y)
+      // a click on (or within 7 px of) a HiRISE footprint loads that elevation model: snap to its centre
+      const fp = footRef.current
+      if (fp) {
+        let best = -1, bd = 7
+        for (let i = 0; i < fp.hirise.length; i += 4) {
+          let l = fp.hirise[i]; if (l > 180) l -= 360
+          const [sx, sy] = toScreen(l, fp.hirise[i + 1])
+          const d = Math.hypot(sx - x, sy - y)
+          if (d < bd) { bd = d; best = i }
+        }
+        if (best >= 0 && !(Math.abs(lat - fp.hirise[best + 1]) < fp.hirise[best + 3] / 2)) { lon = fp.hirise[best]; lat = fp.hirise[best + 1] }
+      }
       onPick(lon, lat)
     }
   }
@@ -221,8 +264,8 @@ export default function GlobePicker(props: {
   const fmt = (p: { lon: number; lat: number }) => `${p.lon.toFixed(2)}°E  ${Math.abs(p.lat).toFixed(2)}°${p.lat >= 0 ? 'N' : 'S'}`
 
   return (
-    <div className="flex flex-col gap-2 text-ink">
-      <div ref={wrapRef} className="relative w-full overflow-hidden rounded-[4px] border border-rule bg-bg" style={{ aspectRatio: '2 / 1', minHeight: 180 }}>
+    <div className="flex h-full flex-col gap-2 p-2 text-ink">
+      <div ref={wrapRef} className="relative min-h-[220px] w-full flex-1 overflow-hidden rounded-[4px] border border-rule bg-bg">
         <canvas
           ref={canvasRef}
           className="absolute inset-0 h-full w-full touch-none select-none"
@@ -244,6 +287,14 @@ export default function GlobePicker(props: {
         <div className="pointer-events-none absolute bottom-1 right-2 text-[10px] text-ink3" style={{ textShadow: '0 1px 2px #000' }}>
           Viking MDIM 2.1 · NASA/JPL/USGS · Mars Trek
         </div>
+        {counts && (
+          <div className="pointer-events-none absolute left-2 top-2 flex flex-col gap-1 rounded-[4px] bg-black/70 px-2.5 py-1.5 text-[11.5px] text-ink2">
+            <span className="flex items-center gap-1.5"><i className="inline-block h-2.5 w-2.5 bg-safe" /><span className="num text-ink">{counts.h.toLocaleString('en-US')}</span> HiRISE elevation models · EVA-grade</span>
+            <span className="flex items-center gap-1.5"><i className="inline-block h-2.5 w-2.5 border border-caution/70 bg-caution/25" /><span className="num text-ink">{counts.c.toLocaleString('en-US')}</span> CTX elevation models · route-planning grade</span>
+            <span className="text-ink3">Elsewhere: global 200 m model · not suitable for a walk</span>
+            <span className="text-ink3">Source: USGS Astrogeology STAC (NASA data)</span>
+          </div>
+        )}
         {busy && (
           <div className="absolute inset-0 flex items-center justify-center bg-bg/40">
             <span className="rounded-[3px] bg-panel px-3 py-1 text-[12px] text-ink2">Loading terrain…</span>

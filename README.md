@@ -64,13 +64,15 @@ browser, so it works with no server and keeps working after the event. On top of
   and walks 1,000 virtual crews along it, then answers in the usual panel (walk time, what is left on arrival, failure
   rate with its 95 % interval, metres without radio line of sight). Shift-click sets another start. About 1–3 s on a laptop.
 - **3D map.** The walk area, the route, the shelters and the crew on the HiRISE elevation model (`3D` button on the map).
-- **Helmet HUD and rover camera (simulated).** A first-person walk of the route the dashboard shows (incident or plan):
+- **Helmet HUD and rover camera (simulated).** A first-person walk of the route the dashboard shows (incident, drill or plan), with the Sun placed by the Mars24 algorithm for the site and time (shadows and a low-sun caution, JETT3):
   the route on the ground ahead, one turn instruction at a time ("Bear left in 70 m"), distance and bearing to the
   shelter, the countdown against the 30-minute rule, O₂, heat and dose, a compass tape, a mini-map and hazard callouts
-  (rockfall band, steep slope, no radio). Voice prompts are recorded lines (ElevenLabs) with the browser's speech as a
-  fallback. If the walker leaves the corridor the browser plans a new route. A camera on the rover's mast shows the crew
+  (rockfall band, steep slope, no radio). Voice prompts are 23 recorded lines (ElevenLabs) on one audio channel, so two prompts never overlap;
+  anything without a recorded line shows as a caption only. If the walker leaves the corridor the browser plans a new route. A camera on the rover's mast shows the crew
   on the same terrain. Colours follow NASA-STD-3001 Vol. 2 (red, yellow) and always come with a word or a shape.
-- **Anywhere on Mars** (`live.html`). Click any point on a global map: the browser searches the USGS Astrogeology STAC
+- **Anywhere on Mars** (`live.html`). The global map shows every HiRISE elevation model (1,262, EVA-grade) and every
+  CTX elevation model (route-planning grade) listed in the USGS Astrogeology STAC catalogue (index files in
+  `dashboard/public/stac/`). Click any point: the browser searches the USGS Astrogeology STAC
   catalogue for a HiRISE or CTX elevation model covering a 4 km box there, reads only that window of the cloud-optimised
   GeoTIFF (HTTP range requests), resamples it to the 5 m planner grid, derives slope, rockfall reach and blocked sky,
   and runs the same planner, virtual crews, 3D map and HUD on it. Each place is graded by its data:

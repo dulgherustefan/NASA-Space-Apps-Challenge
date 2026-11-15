@@ -174,7 +174,7 @@ export default function Overview3D(props: Overview3DProps) {
   const kit = useKit(site, desc)
   const u = useSceneUniforms(kit)
   // the Sun at the scenario time over this site (kept above the horizon so the overview stays readable)
-  useMemo(() => { const s = sunAt(desc, scenarioStartMs()); applySun(u, { ...s, elev: Math.max(s.elev, 12) }) }, [u, desc])
+  useMemo(() => { const s = sunAt(desc, scenarioStartMs(desc.bundled ? undefined : desc)); applySun(u, { ...s, elev: Math.max(s.elev, 12) }) }, [u, desc])
   const stride = useMemo(() => lowEnd() ? 4 : 2, [])
   const horizonY = (site.meta.core.zMin - site.Z0) - 400
   const scale = kit.size / 4000

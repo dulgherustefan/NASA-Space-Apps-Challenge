@@ -4,10 +4,19 @@ import { mars24, sunVector } from '../engine/mars24'
 import type { SiteDescriptor } from '../types'
 import type { SceneUniforms } from './material'
 
-/** Scenario clock: the recorded scenario starts at 2026-11-15 07:00 UTC; the live page uses the real time. */
+/**
+ * Scenario clock: the recorded scenario starts at 2026-11-15 07:00 UTC (about 14:20 local solar time at Melas).
+ * Any other site is shifted to the same Mars date at about 14:30 local true solar time, so every walk is in daylight.
+ */
 export const SCENARIO_T0 = Date.parse('2026-11-15T07:00:00Z')
-export function scenarioStartMs(): number {
-  try { return /live/i.test(window.location.pathname) ? Date.now() : SCENARIO_T0 } catch { return SCENARIO_T0 }
+export function scenarioStartMs(desc?: Pick<SiteDescriptor, 'lon' | 'lat'>): number {
+  if (!desc) return SCENARIO_T0
+  const lonE = ((desc.lon % 360) + 360) % 360
+  const ltst = mars24(new Date(SCENARIO_T0), lonE, desc.lat).LTST
+  let dh = 14.5 - ltst
+  if (dh > 12) dh -= 24
+  if (dh < -12) dh += 24
+  return SCENARIO_T0 + dh * 1.0275 * 3600 * 1000     // one Mars hour = 1.0275 Earth hours
 }
 
 export interface Sun { elev: number; az: number; ltst: number }

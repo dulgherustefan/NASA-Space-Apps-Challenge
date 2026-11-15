@@ -64,7 +64,7 @@ export default function HelmetView(props: HelmetViewProps) {
   const [hud, setHud] = useState<Hud>(() => snapshot(st.current))
   const [banner, setBanner] = useState<{ text: string; level: Level } | null>(null)
   const [declutter, setDeclutter] = useState(false)
-  const t0ms = useRef(scenarioStartMs())
+  const t0ms = useRef(scenarioStartMs(desc.bundled ? undefined : desc))
   const [sun, setSun] = useState<Sun>(() => sunAt(desc, t0ms.current))
   const etaBefore = useRef<number | null>(null)
   const [dpr, setDpr] = useState(() => Math.min(1.5, window.devicePixelRatio || 1))

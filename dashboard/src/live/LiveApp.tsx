@@ -282,8 +282,8 @@ export default function LiveApp() {
       )}
 
       {pickerOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-2 sm:p-6" role="dialog" aria-label="Pick a location on Mars">
-          <div className="flex h-full max-h-[760px] w-full max-w-5xl flex-col overflow-hidden rounded-lg border border-rule2 bg-panel">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-2 sm:p-4" role="dialog" aria-label="Pick a location on Mars">
+          <div className="flex h-full max-h-[94vh] w-full max-w-[1500px] flex-col overflow-hidden rounded-lg border border-rule2 bg-panel">
             <div className="flex items-center justify-between border-b border-rule px-4 py-2">
               <div><div className="text-[15px] font-semibold">Anywhere on Mars</div><div className="cap">Click a point. Solway finds the best elevation data there and grades it: HiRISE = EVA-grade, CTX = route-planning grade, global 200 m = not suitable for a walk.</div></div>
               <button className="tap px-2 text-ink2 hover:text-ink" aria-label="Close" onClick={() => setPickerOpen(false)}><X size={18} /></button>
