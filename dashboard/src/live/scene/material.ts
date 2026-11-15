@@ -88,7 +88,7 @@ void main() {
     aL = dot(albedo, vec3(0.3, 0.5, 0.2));
     // Mars palette by brightness (approximate colour): dark basaltic sand -> brown-grey, bright dust -> butterscotch
     vec3 pal = mix(vec3(0.22, 0.155, 0.12), vec3(0.80, 0.53, 0.33), smoothstep(0.10, 0.65, aL));
-    albedo = mix(albedo, pal * (0.75 + 0.5 * aL), 0.4);
+    albedo = mix(albedo, pal * (0.75 + 0.5 * aL), 0.58);
     aL = dot(albedo, vec3(0.3, 0.5, 0.2));
   }
   albedo *= 1.0 / (1.0 + max(aL - 0.42, 0.0) * 1.8);

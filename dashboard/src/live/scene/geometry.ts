@@ -202,19 +202,45 @@ export function getKit(site: SiteData, desc: SiteDescriptor): TerrainKit {
     t.colorSpace = THREE.SRGBColorSpace; t.needsUpdate = true
     return t
   }
-  const ctxTex = (name: string) => desc.bundled && name ? loadTex(BASE + 'data/site/' + name, true, false, fire) : plain()
+  void plain
+  // shaded relief + elevation tint from the context heights themselves (fetched sites have no context images)
+  const reliefTex = (h: Float32Array, nx: number, ny: number, cell: number) => {
+    const cv = document.createElement('canvas'); cv.width = nx; cv.height = ny
+    const g = cv.getContext('2d')!, img = g.createImageData(nx, ny)
+    let lo = Infinity, hi = -Infinity
+    for (let i = 0; i < h.length; i++) { const v = h[i]; if (Number.isFinite(v)) { if (v < lo) lo = v; if (v > hi) hi = v } }
+    const span = Math.max(1, hi - lo)
+    for (let i = 0; i < ny; i++) for (let j = 0; j < nx; j++) {
+      const k = i * nx + j
+      const gx = (h[i * nx + Math.min(nx - 1, j + 1)] - h[i * nx + Math.max(0, j - 1)]) / (2 * cell)
+      const gy = (h[Math.min(ny - 1, i + 1) * nx + j] - h[Math.max(0, i - 1) * nx + j]) / (2 * cell)
+      const shade = Math.max(0, Math.min(1, 0.62 - gx * 1.6 - gy * 1.1))
+      const e = (h[k] - lo) / span
+      // low ground dark basaltic sand, high ground dusty butterscotch (approximate colour)
+      const r = 70 + 120 * e, gg = 48 + 80 * e, b = 36 + 50 * e
+      const m = 0.55 + 0.9 * shade
+      img.data[k * 4] = Math.min(255, r * m); img.data[k * 4 + 1] = Math.min(255, gg * m); img.data[k * 4 + 2] = Math.min(255, b * m); img.data[k * 4 + 3] = 255
+    }
+    g.putImageData(img, 0, 0)
+    const t = new THREE.CanvasTexture(cv)
+    t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; t.needsUpdate = true
+    return t
+  }
+  const ctxTex = (name: string, h?: Float32Array, nx = 0, ny = 0, cell = 1) => desc.bundled && name
+    ? loadTex(BASE + 'data/site/' + name, true, false, fire)
+    : h ? reliefTex(h, nx, ny, cell) : plain()
   if (validGrid(site.regH, reg.nx, reg.ny)) {
     const rx0 = reg.e0 - core.e0 - half, rz0 = reg.s0 - core.s0 - half
     regL = {
       geo: buildTerrainGeometry(site.regH, reg.nx, reg.ny, rx0 + reg.cell / 2, rz0 + reg.cell / 2, reg.cell, Z0, 2, 120),
-      tex: ctxTex(reg.ortho),
+      tex: ctxTex(reg.ortho, site.regH, reg.nx, reg.ny, reg.cell),
       rect: new THREE.Vector4(rx0, rz0, 1 / reg.w, 1 / reg.h),
     }
     if (validGrid(site.farH, far.nx, far.ny)) {
       const fx0 = far.e0 - core.e0 - half, fz0 = far.s0 - core.s0 - half
       farL = {
         geo: buildTerrainGeometry(site.farH, far.nx, far.ny, fx0 + far.cell / 2, fz0 + far.cell / 2, far.cell, Z0, 2, 0),
-        tex: ctxTex(far.ortho),
+        tex: ctxTex(far.ortho, site.farH, far.nx, far.ny, far.cell),
         rect: new THREE.Vector4(fx0, fz0, 1 / far.w, 1 / far.h),
       }
     }
