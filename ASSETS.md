@@ -159,3 +159,18 @@ They are listed so the credit record matches the folder. If one is ever used, th
 | Rigged astronaut | J-Toastie | [poly.pizza/m/0oBRDJ9Zl9](https://poly.pizza/m/0oBRDJ9Zl9) | CC-BY 3.0 |
 | Astronaut | Poly by Google | [poly.pizza/m/dLHpzNdygsg](https://poly.pizza/m/dLHpzNdygsg) | CC-BY 3.0 |
 | Astronaut | PW Wu | [poly.pizza/m/erlAEWfFKH3](https://poly.pizza/m/erlAEWfFKH3) | CC-BY 3.0 |
+
+## Live mode (web, added 15 Nov 2026)
+
+| What | Product | Credit | Source | Licence |
+|---|---|---|---|---|
+| Elevation anywhere a HiRISE DTM exists (read live) | HiRISE DTMs, collection `mro_hirise_socet_dtms` | NASA/JPL/University of Arizona/USGS | [USGS Astrogeology STAC](https://stac.astrogeology.usgs.gov/api/collections/mro_hirise_socet_dtms), COGs on `astrogeo-ard` S3 | CC0 |
+| Elevation anywhere a CTX DTM exists (read live) | CTX DTMs, collection `mro_ctx_controlled_usgs_dtms` | NASA/JPL/MSSS/USGS | [USGS Astrogeology STAC](https://stac.astrogeology.usgs.gov/api/collections/mro_ctx_controlled_usgs_dtms) | CC0 |
+| Global fallback elevation, 200 m | Mars MOLA/HRSC blended DEM v2 | NASA/MOLA, ESA/DLR/FU Berlin HRSC, USGS | NASA Mars Trek ImageServer (`trek.nasa.gov`) | Public domain |
+| Global map for picking a place | Viking MDIM 2.1 mosaic | NASA/JPL/USGS | NASA Mars Trek WMTS tiles | Public domain |
+| Astronaut model (helmet and rover views) | `public/models/astronaut.glb` | "Astronaut" by Javi_DaviYT (Sketchfab); same model also published by LasquetiSpice; original creator not established | [sketchfab.com/3d-models/astronaut-287589e324b942b8be57dbd6c539b2ab](https://sketchfab.com/3d-models/astronaut-287589e324b942b8be57dbd6c539b2ab) | CC-BY 4.0, modified (compressed, textures resized) |
+| Pressurized rover model | `public/models/rover_sev.glb`, Space Exploration Vehicle (MMSEV) | NASA | [NASA-3D-Resources](https://github.com/nasa/NASA-3D-Resources/tree/master/3D%20Models/Space%20Exploration%20Vehicle) | NASA media guidelines (free, no copyright; no endorsement implied) |
+| Ground detail texture | `public/models/tex/sandy_gravel_02_diff.webp` | Dario Barresi / Poly Haven | [polyhaven.com/a/sandy_gravel_02](https://polyhaven.com/a/sandy_gravel_02) | CC0 1.0 |
+| Radio beep | `public/audio/radio_beep.mp3` | Solway team (synthesised by script, 2525 Hz) | own work | Apache 2.0 |
+| Voice prompts in the helmet display | 23 lines in `public/audio/voice/` (text in `manifest.json`) | Generated with ElevenLabs text-to-speech, premade voice "Sarah", 15 Nov 2026 | AI-generated speech | Used under the ElevenLabs terms of the team's subscription |
+| Walking policy | `public/policy/policy.json` | Solway team (PPO, `rl/train_ppo.py`) | this repository | Apache 2.0 |

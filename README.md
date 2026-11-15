@@ -15,7 +15,7 @@ identified EVA hazards and risks on the Martian surface"
 It was made for the NASA Space Apps Challenge 2026, challenge "Interplanetary Survival Guide: Martian Map".
 It is not affiliated with or endorsed by NASA, and it is a planning aid only. Nothing here has been tested with a crew.
 
-**Recorded demo in the browser, no install: [solway-demo.vercel.app](https://solway-demo.vercel.app)**
+**Live in the browser, no install: [solway-live.vercel.app](https://solway-live.vercel.app)** · recorded pitch demo: [solway-demo.vercel.app](https://solway-demo.vercel.app) · details in [Live mode](#live-mode-web)
 
 ![The Solway dashboard during the solar particle event scenario](docs/img/dashboard.png)
 
@@ -50,6 +50,53 @@ the detail groups (above). A recorded run of the demo plays in a browser with no
 
 The 3D view: the crew walks the chosen route on the HiRISE terrain, with the rover and the habitat marked ahead.
 The terrain colour is approximate, and the dust is set dressing.
+
+## Live mode (web)
+
+[solway-live.vercel.app](https://solway-live.vercel.app) is the same dashboard with a planning engine that runs in the
+browser, so it works with no server and keeps working after the event. On top of the recorded run it adds:
+
+- **Plan a walk, live.** Turn on *Plan a walk* and click any point: the browser plans the route on the 5 m HiRISE grid
+  and walks 1,000 virtual crews along it, then answers in the usual panel (walk time, what is left on arrival, failure
+  rate with its 95 % interval, metres without radio line of sight). Shift-click sets another start. About 1–3 s on a laptop.
+- **3D map.** The walk area, the route, the shelters and the crew on the HiRISE elevation model (`3D` button on the map).
+- **Helmet HUD and rover camera (simulated).** A first-person walk of the route the dashboard shows (incident or plan):
+  the route on the ground ahead, one turn instruction at a time ("Bear left in 70 m"), distance and bearing to the
+  shelter, the countdown against the 30-minute rule, O₂, heat and dose, a compass tape, a mini-map and hazard callouts
+  (rockfall band, steep slope, no radio). Voice prompts are recorded lines (ElevenLabs) with the browser's speech as a
+  fallback. If the walker leaves the corridor the browser plans a new route. A camera on the rover's mast shows the crew
+  on the same terrain. Colours follow NASA-STD-3001 Vol. 2 (red, yellow) and always come with a word or a shape.
+- **Anywhere on Mars** (`live.html`). Click any point on a global map: the browser searches the USGS Astrogeology STAC
+  catalogue for a HiRISE or CTX elevation model covering a 4 km box there, reads only that window of the cloud-optimised
+  GeoTIFF (HTTP range requests), resamples it to the 5 m planner grid, derives slope, rockfall reach and blocked sky,
+  and runs the same planner, virtual crews, 3D map and HUD on it. Each place is graded by its data:
+
+  | Terrain found | Grade | Why |
+  |---|---|---|
+  | HiRISE DTM (1–2 m posts) | EVA-grade | resolves slopes, steps and scarps at walking scale |
+  | CTX DTM (about 20 m) | route-planning grade | good for the line of a route, not for footing |
+  | MOLA/HRSC blend (about 200 m) | not suitable for a walk | posts cannot resolve boulders, steps or walking-scale slopes |
+
+  Jezero, Gale and Melas load as EVA-grade in about 9–12 s (13–15 MB); a CTX site in about 5 s; a place with no DTM in about 2 s.
+- **Start tour.** A guided minute: the storm alert, the routes and the stress test, then the walk in the helmet display.
+
+How it is built: `dashboard/src/live/`. The engine is a TypeScript port of the planner and the walker model
+(`engine/`, `rl/SPEC.md`), running in a pool of Web Workers. Routes come from a goal-rooted Dijkstra cost-to-go field
+(slope, sand, rockfall band, keep-out zones), not from a neural network. The virtual crews pace and steer with the PPO
+walking policy trained in `rl/` (a 44-64-64-10 MLP loaded from `public/policy/policy.json`). The recorded incidents still
+come from the Python engine (`public/replay`); the dashboard's `plan` command is answered in the browser
+(`src/live/bridge.ts`) with the same message shapes as the engine (`docs/CONTRACT.md`). Build it with
+`npm run build:live` in `dashboard/` (output `dist-live/`: `index.html` dashboard, `live.html` anywhere-on-Mars page).
+
+What is measured and what is modelled in live mode: the terrain shape is measured (HiRISE/CTX/MOLA data). Walking
+time, O₂, heat, dose and failure rates are model outputs from the parameter registry; every figure carries its kind.
+The incidents are scenarios. Limits: the PPO policy was trained on the Melas site only, so on other places its pacing is
+used outside the terrain it was trained on; on fetched sites rockfall reach and blocked sky are approximate, loose sand
+is unknown (0) and roughness is real only on HiRISE; the rover is assumed parked at the box centre on fetched sites; the
+helmet view is a simulation on a screen, not AR hardware; nothing has been tested with a crew.
+
+An optional server (`server/`, FastAPI + Dockerfile) runs the authoritative Python stress test for large runs
+(`POST /stress`, up to 20,000 walkers). The web app never depends on it.
 
 ## How it works
 
