@@ -50,7 +50,7 @@ def mars24(dt_utc, east_lon, lat):
     elev = math.asin(math.sin(phi) * math.sin(de) + math.cos(phi) * math.cos(de) * math.cos(h)) / D2R
     az = _mod(math.atan2(-math.sin(h) * math.cos(de), math.cos(phi) * math.sin(de) - math.sin(phi) * math.cos(de) * math.cos(h)) / D2R, 360)
     return dict(MSD=msd, MTC=mtc, Ls=ls, LMST=lmst, LTST=ltst, sun_el=elev, sun_az=az,
-                mars_year=math.floor((msd - 26395.9) / 668.5921) + 1)
+                mars_year=math.floor((msd - 28892.2) / 668.5921) + 1)
 
 
 def fmt_hms(hours):
@@ -97,13 +97,48 @@ def sun_az_el(dt_utc, east_lon, lat):
     return m["sun_az"], m["sun_el"], SUN_SOURCE_MODEL
 
 
+def sunset_after(dt_utc, east_lon, lat):
+    """UTC time of the next sunset (Sun elevation crossing zero downwards), or None if the Sun is down.
+
+    Same Sun position as the rest of the engine: the Horizons table when inside it, Mars24 otherwise.
+    Geometric elevation of the Sun's centre over a flat horizon; terrain and refraction are not included.
+    """
+    def el(t):
+        return sun_az_el(t, east_lon, lat)[1]
+    if el(dt_utc) <= 0:
+        return None
+    step = timedelta(minutes=5)
+    a = dt_utc
+    for _ in range(int(SOL_S / 300) + 2):
+        b = a + step
+        if el(b) <= 0:
+            for _ in range(12):                      # bisect to about a tenth of a second
+                mid = a + (b - a) / 2
+                if el(mid) > 0:
+                    a = mid
+                else:
+                    b = mid
+            return b
+        a = b
+    return None
+
+
 class MissionClock:
     def __init__(self, start_utc, east_lon, lat, speed=1.0):
         self.start_utc = start_utc
         self.east_lon = east_lon
         self.lat = lat
         self.default_speed = speed
+        self._sunset = None
         self.reset()
+
+    def daylight_s(self, dt=None):
+        """Seconds until sunset; 0 when the Sun is down. The sunset time is kept until it has passed."""
+        dt = dt or self.utc()
+        ss = self._sunset
+        if ss is None or dt >= ss or (ss - dt).total_seconds() > SOL_S:
+            ss = self._sunset = sunset_after(dt, self.east_lon, self.lat)
+        return 0.0 if ss is None else max(0.0, (ss - dt).total_seconds())
 
     def reset(self):
         self.t = 0.0
@@ -135,7 +170,8 @@ class MissionClock:
         return dict(t=round(self.t, 2), sol=self.sol(), lmst=fmt_hms(m["LMST"]), ltst=fmt_hms(m["LTST"]),
                     utc=dt.strftime("%Y-%m-%dT%H:%M:%SZ"), speed=self.speed, paused=self.paused,
                     sun_az=round(az, 2), sun_el=round(el, 2), sun_source=src, ls=round(m["Ls"], 2),
-                    mars_year=m["mars_year"], light_time_s=round(light_time_s(dt), 1))
+                    mars_year=m["mars_year"], light_time_s=round(light_time_s(dt), 1),
+                    ltst_h=m["LTST"], daylight_s=round(self.daylight_s(dt), 0))
 
 
 def parse_utc(s):

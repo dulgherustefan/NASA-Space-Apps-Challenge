@@ -292,3 +292,34 @@ def test_unusable_ast_file_falls_back_to_local(tmp_path, site, scen):
     r = plan_candidates(site, ctx, scen.shelters(scen.incidents["sep-1"], False))[0]
     local, ast_res = d._stress("sep-1", r, ast)
     assert ast_res is None and local["source"] == "local preview"
+
+
+# ------------------------------------------------------------------------------ light and weather reference
+def test_sunset_matches_the_horizons_table():
+    from engine.clock import parse_utc, sunset_after
+    # Horizons: Sun elevation +9.07 deg at 10:00 UTC and -5.10 deg at 11:00 UTC on 15 Nov 2026
+    ss = sunset_after(parse_utc("2026-11-15T07:00:00Z"), 290.0373, -10.0116)
+    assert parse_utc("2026-11-15T10:30:00Z") < ss < parse_utc("2026-11-15T10:45:00Z")
+    assert sunset_after(parse_utc("2026-11-15T11:30:00Z"), 290.0373, -10.0116) is None
+
+
+def test_snapshot_carries_daylight_and_season(demo_run):
+    _, _, snaps = demo_run
+    env = snaps[0]["env"]
+    assert 3 * 3600 < env["daylight_s"] < 4 * 3600 and env["sun_el"] > 0
+    assert env["mars_year"] == 39 and 20 < env["ls"] < 24
+    assert all(s["env"]["daylight_s"] >= 0 for s in snaps)
+
+
+def test_assessment_limits_follow_the_shelter_rule(demo_run):
+    _, msgs, _ = demo_run
+    by_id = {m["incident_id"]: m for m in msgs if m["type"] == "assessment"}
+    assert by_id["sep-1"]["limits"]["shelter_s"] == pytest.approx(29 * 60, abs=1)
+    assert by_id["sci-1"]["limits"] == {"shelter_s": None, "peak_s": None}
+
+
+def test_weather_reference_is_labelled_as_an_analogue(demo_run):
+    d, _, _ = demo_run
+    w = d.hello()["weather"]
+    assert w["kind"] == "measured" and w["analogue"] is True and "Gale" in w["note"]
+    assert w["ground_min_c"]["median"] < w["ground_max_c"]["median"]

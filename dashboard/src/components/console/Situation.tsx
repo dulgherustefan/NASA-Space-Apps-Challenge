@@ -3,7 +3,7 @@ import type { Quantity } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { missionT } from '@/lib/format'
 import { Fig } from '../Kind'
-import { Sensors } from '../Sensors'
+import { Conditions } from './Conditions'
 import { Empty, INCIDENT_ICON, More, Section } from './parts'
 
 function Figures({ items, first = 3 }: { items: Quantity[]; first?: number }) {
@@ -108,9 +108,7 @@ export function Situation() {
       <Section title="Shelters" aside={a?.shelters?.length ? `${a.shelters.filter((s) => s.open).length} of ${a.shelters.length} open` : undefined}>
         <Shelters />
       </Section>
-      <Section title="Conditions at the crew" aside="scenario feed">
-        <Sensors kind="scenario" kindSource="Sensor reading produced by the engine for this scenario. Not an instrument observation." />
-      </Section>
+      <Conditions />
     </div>
   )
 }

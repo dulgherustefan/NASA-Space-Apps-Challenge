@@ -63,7 +63,7 @@ const initial = (): State => ({
   incidents: {}, order: [], focusId: null, sensors: [], log: [],
   routesFile: null, routesV: 0, trajFile: null, trajV: 0, overlayV: 0,
   params: { status: 'idle', items: [] }, training: { status: 'idle' },
-  overlay: { layer: 'hazard', opacity: 0.55, userSet: false }, selectedRoute: null, showReplays: true,
+  overlay: { layer: 'hazard', opacity: 0.5, userSet: false }, selectedRoute: null, showReplays: true,
   routeChangedAt: {}, trails: {},
 })
 

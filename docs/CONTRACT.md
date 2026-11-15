@@ -170,4 +170,18 @@ Commands (dashboard to engine, same socket):
 ```
 
 `demo` plays the three incidents back to back with fixed pacing (about 90 s of wall time).
+
+## 7. Optional fields
+
+The engine also sends the fields below. They add to the messages above and change none of them; a client that
+ignores them keeps working, and the dashboard works without them.
+
+| Message | Field | Meaning |
+|---|---|---|
+| `hello` | `weather` | Summary of `data/site/weather_analogue.json` (Curiosity REMS at Gale for the same season, an analogue), or null |
+| `snapshot` | `env` {daylight_s, sun_el, sun_source, ls, mars_year} | Seconds to sunset (0 when the Sun is down), Sun elevation in degrees and its source, solar longitude, Mars year |
+| `snapshot` | `walk` {route_id, incident_id, elapsed_s, time_s} | Present while the crew walks a chosen route |
+| `assessment` | `limits` {shelter_s, peak_s} | Seconds allowed from the first step under the shelter rule and before the expected dose-rate peak; null when the incident sets no deadline |
+| `routes[]` | `rule_ok`, `rule_reasons`, `band_m` | Whether the route meets the incident's rules, why not, and metres inside the rockfall runout band |
+| `decision` | `dose_msv`, `label` | Dose on the chosen walk and the route label |
 The product name is sent in `hello.product`; nothing else hard-codes it.

@@ -13,6 +13,7 @@ import numpy as np
 from . import PRODUCT, VERSION
 from . import routes as R
 from . import stress as S
+from .climate import load_weather
 from .clock import MissionClock, parse_utc
 from .hazards import LABELS, overlay_file, write_png
 from .params import PARAMS, SIM
@@ -58,6 +59,7 @@ class Director:
         m = scenario.mission
         self.clock = MissionClock(parse_utc(m["start_utc"]), m["site_east_lon"], m["site_lat"], speed=1.0)
         self.crew = [CrewMember(c) for c in m["crew"]]
+        self.weather = load_weather()
         self.pace = dict(nominal=PARAMS["paceNominal"], storm=PARAMS["paceStorm"])
         self.outbox = []
         self.reset(emit=False)
@@ -121,7 +123,8 @@ class Director:
         return dict(type="hello", t=round(self.clock.t, 1), product=PRODUCT, version=VERSION, site=self.site.hello_site(),
                     places=self.sc.hello_places(), scenario=self.sc.hello_scenario(),
                     crew=[dict(id=c.id, name=c.name) for c in self.crew],
-                    params_file="runtime/params.json", ast=S.ast_present())
+                    params_file="runtime/params.json", ast=S.ast_present(),
+                    weather=self.weather)
 
     # ------------------------------------------------------------------------------------ crew
     def walk_elapsed(self):
@@ -204,11 +207,16 @@ class Director:
         return dict(dose_rate=round(dr * (1 - shield), 2), seismic=round(seis, 4), tau=PARAMS["tau"],
                     dose_rate_open=round(dr, 2))
 
+    def env(self, cs):
+        """Light at the site now, computed from the Sun position: daylight left, Sun height, season."""
+        return dict(daylight_s=cs["daylight_s"], sun_el=cs["sun_el"], sun_source=cs["sun_source"], ls=cs["ls"],
+                    mars_year=cs["mars_year"])
+
     def snapshot(self):
         cs = self.clock.state()
         clock = {k: cs[k] for k in ("t", "sol", "lmst", "ltst", "utc", "speed", "paused", "sun_az", "sun_el")}
         msg = dict(type="snapshot", t=cs["t"], clock=clock, phase=self.phase, incident_id=self.incident_id,
-                   crew=self.crew_public(), sensors=self.sensors(), light_time_s=cs["light_time_s"])
+                   crew=self.crew_public(), sensors=self.sensors(), light_time_s=cs["light_time_s"], env=self.env(cs))
         if self.agents:
             msg["agents"] = self.agents
         if self.walk:
@@ -478,8 +486,10 @@ class Director:
                            reason="Science target (inside the rockfall runout band)"),
                       dict(id=home["id"], name=home["name"], e=round(home["e"], 1), s=round(home["s"], 1), open=True,
                            reason="Start and end of the sortie")]
+        limits = dict(shelter_s=round(ctx["deadline_walk"], 1) if math.isfinite(ctx["deadline_walk"]) else None,
+                      peak_s=round(ctx["deadline_peak"], 1) if math.isfinite(ctx["deadline_peak"]) else None)
         self.emit(dict(type="assessment", incident_id=iid, changes=self.sc.assessment_changes(inc, ctx), overlays=overlays,
-                       shelters=sh_pub))
+                       shelters=sh_pub, limits=limits))
         closed = [s_ for s_ in shelters if not s_["open"]]
         for s_ in closed:
             self.log("%s closed: %s" % (s_["name"], s_["reason"]), "warn")

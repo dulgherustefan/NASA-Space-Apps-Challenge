@@ -30,6 +30,19 @@ dust and sand pattern comes from the HiRISE colour strip, a broad hue variation 
 colours themselves are set to soil colours measured on the rover photographs below. This is an approximate colour, not a
 measurement of the site.
 
+## Weather reference and Sun position
+
+| What | Product | Credit | Source | Licence |
+|---|---|---|---|---|
+| Ground and air temperature range, pressure and UV index for the season, shown as an analogue from Gale crater | Curiosity REMS daily weather reports, the 71 sols at Ls 20 to 24 (sols 391 to 4412) | NASA/JPL-Caltech/CAB (CSIC-INTA) | [mars.nasa.gov weather feed](https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json), fetched 15 Nov 2026 | NASA mission data, public |
+| Sun azimuth and elevation at the site, Earth to Mars distance | JPL Horizons, 15 and 16 Nov 2026 | NASA/JPL Solar System Dynamics | [ssd.jpl.nasa.gov/horizons](https://ssd.jpl.nasa.gov/horizons/) | Public |
+| Local time, season and Sun position outside the Horizons table; daylight left | Mars24 algorithm (Allison and McEwen 2000) | NASA Goddard Institute for Space Studies | [giss.nasa.gov/tools/mars24](https://www.giss.nasa.gov/tools/mars24/help/algorithm.html) | Published algorithm |
+
+`tools/make_weather_analogue.py` turns the saved feed into `data/site/weather_analogue.json` (medians and 10th to 90th
+percentiles). The feed itself is not in git. The dust optical depth in `engine/params.py` (0.39) is a single value read
+from the Mars Climate Database v6.2 (LMD/OU/IAA/ESA/CNES) for the site and season and is cited there; no MCD file is
+stored in this repository.
+
 Rover photographs used only as colour reference (not shown in the app, not in git):
 
 | Image | Rover and camera | Credit | Source |

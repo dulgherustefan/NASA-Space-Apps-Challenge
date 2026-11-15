@@ -200,12 +200,6 @@ export function MapView() {
       for (let s = s0; s <= s0 + size + 0.1; s += 500) { const y = Math.round(Y(s)) + 0.5; ctx.moveTo(x0, y); ctx.lineTo(x0 + sz, y) }
       ctx.stroke()
       ctx.strokeStyle = 'rgba(231,234,238,.28)'; ctx.strokeRect(Math.round(x0) + 0.5, Math.round(y0) + 0.5, sz, sz)
-      ctx.font = '10px "JetBrains Mono Variable", monospace'; ctx.fillStyle = 'rgba(231,234,238,.5)'
-      ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'
-      for (let e = e0; e <= e0 + size + 0.1; e += 1000) { const x = X(e); if (x > 8 && x < v.w - 8 && y0 > 12) { const tw = 17; ctx.textAlign = x - tw < 2 ? 'left' : x + tw > v.w - 2 ? 'right' : 'center'; ctx.fillText(String(e), x < tw + 2 ? 4 : x > v.w - tw - 2 ? v.w - 4 : x, y0 - 3) } }
-      ctx.textAlign = 'right'; ctx.textBaseline = 'middle'
-      for (let s = s0; s <= s0 + size + 0.1; s += 1000) { const y = Y(s); if (y > 8 && y < v.h - 8 && x0 > 30) ctx.fillText(String(s), x0 - 4, y) }
-
       const bundle = focusBundle(st)
       const incId = focusIncidentId(st)
       const live = st.snapshot

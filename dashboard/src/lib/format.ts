@@ -12,6 +12,12 @@ export function dur(s: number): string {
   const h = Math.floor(v / 3600), m = Math.floor((v % 3600) / 60), r = v % 60
   return h ? `${h}:${pad(m)}:${pad(r)}` : `${m}:${pad(r)}`
 }
+/** Seconds as "3 h 38 min" or "42 min"; compact gives "3h 38m". */
+export function hm(s: number, compact = false): string {
+  const m = Math.max(0, Math.round(s / 60))
+  if (compact) return m >= 60 ? `${Math.floor(m / 60)}h ${pad(m % 60)}m` : `${m}m`
+  return m >= 60 ? `${Math.floor(m / 60)} h ${pad(m % 60)} min` : `${m} min`
+}
 export function lightTime(s?: number): string {
   if (s === undefined || !Number.isFinite(s)) return '-'
   return s >= 120 ? `${(s / 60).toFixed(1)} min` : `${s.toFixed(0)} s`

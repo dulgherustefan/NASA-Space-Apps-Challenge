@@ -2,7 +2,7 @@ import { Menu as MenuIcon, Pause, Play, RotateCcw, SlidersHorizontal } from 'luc
 import { useStore } from '@/lib/store'
 import { FALLBACK_PRODUCT } from '@/lib/config'
 import { sendCmd } from '@/lib/engine'
-import { lightTime } from '@/lib/format'
+import { hm, lightTime } from '@/lib/format'
 import { PAGES, hrefFor, usePage } from '@/lib/route'
 import { cn } from '@/lib/utils'
 import { Button } from './ui/button'
@@ -23,12 +23,25 @@ function Mark() {
 function Clock() {
   const clock = useStore((s) => s.snapshot?.clock)
   const light = useStore((s) => s.snapshot?.light_time_s)
+  const daylight = useStore((s) => s.snapshot?.env?.daylight_s)
+  const sunSrc = useStore((s) => s.snapshot?.env?.sun_source)
   return (
     <div className="flex items-center gap-5">
       <div>
         <div className="cap whitespace-nowrap">Sol {clock?.sol ?? '-'} · local time</div>
         <div className="num text-[17px] leading-tight text-ink">{clock?.lmst ?? '--:--:--'}</div>
       </div>
+      {daylight !== undefined && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="hidden cursor-help md:block" tabIndex={0}>
+              <div className="cap whitespace-nowrap">Daylight left</div>
+              <div className={cn('num text-[17px] leading-tight', daylight > 0 && daylight < 3600 ? 'text-caution' : 'text-ink2')}>{daylight > 0 ? hm(daylight) : 'Sun down'}</div>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>Time to sunset at the site, computed from the Sun position ({sunSrc ?? 'ephemeris'}). Flat horizon; the canyon wall can shade the ground earlier.</TooltipContent>
+        </Tooltip>
+      )}
       <Tooltip>
         <TooltipTrigger asChild>
           <div className="hidden cursor-help sm:block" tabIndex={0}>

@@ -14,16 +14,26 @@ export interface Hello {
   site: { name: string; lat?: number; lon?: number; core: { e0: number; s0: number; size: number }; z_ref?: number; ortho?: string }
   places?: Place[]
   scenario: ScenarioItem[]
+  weather?: Weather | null
 }
 export interface CrewState { id: number; name?: string; e: number; s: number; z: number; heading: number; pace: number; o2: number; heat: number; dose: number; status: number }
 export interface Sensors { dose_rate: number; seismic: number; tau: number; dose_rate_open?: number }
+/** Light at the site now, computed from the Sun position. */
+export interface Env { daylight_s?: number; sun_el?: number; sun_source?: string; ls?: number; mars_year?: number }
+export interface Spread { median: number; p10: number; p90: number; n: number }
+/** Measured weather for the same season at another site (Curiosity REMS at Gale): an analogue. */
+export interface Weather {
+  kind: string; analogue: boolean; note: string; source: string; credit: string; url?: string; sols: number
+  ground_min_c: Spread | null; ground_max_c: Spread | null; air_min_c: Spread | null; air_max_c: Spread | null
+  pressure_pa: Spread | null; uv_index_usual: string | null
+}
 /** Sent while the crew walks a chosen route. */
 export interface WalkState { route_id: number; incident_id: string; elapsed_s: number; time_s: number }
 export interface Snapshot {
   type: 'snapshot'; t: number
   clock: { t: number; sol: number; lmst: string; ltst?: string; utc?: string; speed: number; paused: boolean; sun_az?: number; sun_el?: number }
   phase: Phase; incident_id?: string | null
-  crew: CrewState[]; sensors: Sensors; light_time_s?: number; walk?: WalkState
+  crew: CrewState[]; sensors: Sensors; light_time_s?: number; walk?: WalkState; env?: Env
 }
 export interface Quantity { label: string; value: number | string; unit?: string; source?: string; kind: Kind }
 export interface Incident {

@@ -5,9 +5,8 @@ import { missionT, num } from '@/lib/format'
 import type { Kind } from '@/lib/types'
 
 const SERIES = [
-  { key: 'dose_rate' as const, label: 'Dose rate', unit: 'uGy/h', digits: 1 },
-  { key: 'seismic' as const, label: 'Seismic', unit: 'm/s2', digits: 3 },
-  { key: 'tau' as const, label: 'Dust tau', unit: '', digits: 2 },
+  { key: 'dose_rate' as const, label: 'Dose rate at the crew', unit: 'µGy/h', digits: 1 },
+  { key: 'seismic' as const, label: 'Ground motion', unit: 'm/s²', digits: 3 },
 ]
 
 function ChartTip({ active, payload, unit, digits }: { active?: boolean; payload?: { payload: { t: number; v: number } }[]; unit: string; digits: number }) {
@@ -34,8 +33,8 @@ export function Sensors({ kind, kindSource }: { kind: Kind; kindSource: string }
         return (
           <div key={s.key} className="rule-b pb-1.5 last:border-b-0">
             <div className="flex items-baseline justify-between pt-1.5">
-              <span className="text-[11.5px] text-ink2">{s.label}</span>
-              {last ? <Fig value={last.v} unit={s.unit} kind={kind} source={kindSource} label={s.label} digits={s.digits} valueClassName="text-[13px]" /> : <span className="num text-ink3">-</span>}
+              <span className="text-[12.5px] text-ink2">{s.label}</span>
+              {last ? <Fig value={last.v} unit={s.unit} kind={kind} source={kindSource} label={s.label} digits={s.digits} valueClassName="text-[14px]" /> : <span className="num text-ink3">-</span>}
             </div>
             <div className="h-[46px]">
               {data.length > 1 ? (
@@ -49,7 +48,7 @@ export function Sensors({ kind, kindSource }: { kind: Kind; kindSource: string }
                     <ReferenceDot x={last.t} y={last.v} r={4} fill="var(--color-data)" stroke="var(--color-panel)" strokeWidth={2} ifOverflow="extendDomain" />
                   </AreaChart>
                 </ResponsiveContainer>
-              ) : <div className="flex h-full items-center text-[11px] text-ink3">Trace starts when the mission clock runs</div>}
+              ) : <div className="flex h-full items-center text-[12px] text-ink3">Trace starts when the mission clock runs</div>}
             </div>
           </div>
         )

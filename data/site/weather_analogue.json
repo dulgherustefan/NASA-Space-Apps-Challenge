@@ -1,0 +1,50 @@
+{
+ "kind": "measured",
+ "analogue": true,
+ "note": "Measured by Curiosity at Gale crater (4.6 S, 137.4 E) on sols with the same season as the scenario. Another site at a similar latitude: an analogue, not a measurement at Melas Chasma.",
+ "source": "Curiosity REMS daily weather reports, Ls 20 to 24, Earth years 2013 to 2025",
+ "credit": "NASA/JPL-Caltech/CAB (CSIC-INTA)",
+ "url": "https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json",
+ "ls_range": [
+  20,
+  24
+ ],
+ "sols": 71,
+ "first_sol": 391,
+ "last_sol": 4412,
+ "ground_min_c": {
+  "median": -82.0,
+  "p10": -93.0,
+  "p90": -78.0,
+  "n": 71
+ },
+ "ground_max_c": {
+  "median": -1.0,
+  "p10": -5.0,
+  "p90": 6.0,
+  "n": 71
+ },
+ "air_min_c": {
+  "median": -76.0,
+  "p10": -78.0,
+  "p90": -74.0,
+  "n": 71
+ },
+ "air_max_c": {
+  "median": -20.0,
+  "p10": -24.0,
+  "p90": -14.2,
+  "n": 71
+ },
+ "pressure_pa": {
+  "median": 846.0,
+  "p10": 823.0,
+  "p90": 877.8,
+  "n": 71
+ },
+ "uv_index": {
+  "Moderate": 41,
+  "High": 30
+ },
+ "uv_index_usual": "Moderate"
+}

@@ -15,7 +15,10 @@ const INCIDENT_DATA: Row[] = [
   { name: 'Marsquake rockfall at Cerberus Fossae (Vijayan et al. 2026)', credit: 'Authors as cited', terms: 'Published results', use: 'Boulder count and rockfall rate after a marsquake. Observed at Cerberus Fossae, not at Melas Chasma.' },
   { name: 'InSight Mars Seismic Catalogue, MQS v14', credit: 'InSight Marsquake Service, ETH Zurich', terms: 'doi 10.12686/a21', use: 'Context for scenario marsquakes.' },
   { name: 'Mars Dust Activity Database (Battalio and Wang 2021, Icarus 354, 114059)', credit: 'Battalio and Wang', terms: 'CC BY 4.0, Zenodo record 7480334', use: 'Context for dust scenarios.' },
-  { name: 'JPL Horizons system', credit: 'NASA/JPL Solar System Dynamics', terms: 'Public API', use: 'Sun position at the site and Earth to Mars light time.' },
+  { name: 'JPL Horizons system', credit: 'NASA/JPL Solar System Dynamics', terms: 'Public API', use: 'Sun position at the site, daylight left and Earth to Mars light time.' },
+  { name: 'Mars24 sunclock algorithm (Allison and McEwen 2000)', credit: 'NASA Goddard Institute for Space Studies', terms: 'Published algorithm', use: 'Local time, season and Sun position outside the Horizons table.' },
+  { name: 'Curiosity REMS daily weather reports, sols at Ls 20 to 24', credit: 'NASA/JPL-Caltech/CAB (CSIC-INTA)', terms: 'Public feed', use: 'Ground and air temperature range and UV index for the season. Measured at Gale crater: an analogue, not the demo site.' },
+  { name: 'Mars Climate Database v6.2, point query for the site at Ls 22', credit: 'LMD/OU/IAA/ESA/CNES', terms: 'Cited value', use: 'One number: the dust optical depth for the site and season (model).' },
 ]
 const METHOD: Row[] = [
   { name: 'Adaptive Stress Testing: Finding Likely Failure Events with Reinforcement Learning (Lee et al. 2020, Journal of Artificial Intelligence Research 69)', credit: 'Lee, Mengshoel, Saksena, Gardner, Genin, Silbermann, Owen, Kochenderfer', terms: 'Published method', use: 'The search for the most likely failure of a route.' },
