@@ -114,7 +114,9 @@ for a in actors:
             log("sun kept, pitch", r.pitch, "yaw", r.yaw)
         if isinstance(a, unreal.ExponentialHeightFog):
             fc = a.get_component_by_class(unreal.ExponentialHeightFogComponent)
-            log("fog kept", fc.get_editor_property("fog_density"))
+            dens = fc.get_editor_property("fog_density")
+            fc.set_editor_property("fog_density", dens * 1.7)
+            log("fog", dens, "->", dens * 1.7)
     except Exception as e:  # noqa: BLE001
         log("light/fog", e)
 
@@ -253,24 +255,27 @@ PLANE = unreal.load_asset("/Engine/BasicShapes/Plane")
 AR_MAT = unreal.load_asset("/Game/Markers/MI_Beacon_shelter") or unreal.load_asset("/Game/Markers/MI_Marker_shelter")
 
 
-def ar_path(p_from, p_to, step=2.2, start_m=1.5):
+def ar_path(p_from, p_to, step=1.6, start_m=1.5):
     dx, dy = p_to[0] - p_from[0], p_to[1] - p_from[1]
     L = math.hypot(dx, dy)
     ux, uy = dx / L, dy / L
     yaw = math.degrees(math.atan2(uy, ux))
-    m = start_m
-    k = 0
+    m, k = start_m, 0
     while m < L:
-        e, s_ = p_from[0] + ux * m, p_from[1] + uy * m
-        loc = ue(e, s_, 0.09)
-        a = unreal.get_editor_subsystem(unreal.EditorActorSubsystem).spawn_actor_from_class(unreal.StaticMeshActor, loc, unreal.Rotator(roll=0.0, pitch=0.0, yaw=yaw))
-        a.static_mesh_component.set_static_mesh(PLANE)
-        if AR_MAT:
-            a.static_mesh_component.set_material(0, AR_MAT)
-        a.static_mesh_component.set_cast_shadow(False)
-        a.set_actor_scale3d(unreal.Vector(1.1, 0.42, 1.0))        # the engine plane is 1 m square: dashes 1.1 m x 0.42 m
-        a.set_actor_label("AR_%02d" % k)
-        k += 1
+        for side_sign in (-1.0, 1.0):
+            # one arm of a ">" chevron: 0.55 m long, 6 cm wide, swept back 38 degrees
+            ang = math.radians(yaw + side_sign * 142.0)
+            ce = p_from[0] + ux * m + math.cos(ang) * 0.24
+            cs = p_from[1] + uy * m + math.sin(ang) * 0.24
+            loc = ue(ce, cs, 0.06)
+            a = unreal.get_editor_subsystem(unreal.EditorActorSubsystem).spawn_actor_from_class(unreal.StaticMeshActor, loc, unreal.Rotator(roll=0.0, pitch=0.0, yaw=yaw + side_sign * 142.0))
+            a.static_mesh_component.set_static_mesh(PLANE)
+            if AR_MAT:
+                a.static_mesh_component.set_material(0, AR_MAT)
+            a.static_mesh_component.set_cast_shadow(False)
+            a.set_actor_scale3d(unreal.Vector(0.55, 0.06, 1.0))
+            a.set_actor_label("AR_%03d" % k)
+            k += 1
         m += step
     return k
 
@@ -405,6 +410,22 @@ try:
     log("rocks", scatter(S, d, 170, 45.0, 22.0), scatter(r_from, ux, 70, 16.0, 14.0, 1.4), "meshes", len(ROCKS))
 except Exception as e:  # noqa: BLE001
     log("rocks failed", e)
+
+# distant mesas: scanned boulders scaled up far behind the rover and along the canyon floor, softened by the haze
+try:
+    bould = [r_ for r_ in ROCKS[3:]] or ROCKS
+    for i in range(16):
+        ang = math.radians(heading_deg(r_from, RV) - 90.0 + random.uniform(-55, 55))
+        dist = random.uniform(650.0, 1500.0)
+        e = RV[0] + math.cos(ang) * dist; s_ = RV[1] + math.sin(ang) * dist
+        sz = random.uniform(70.0, 160.0)
+        a_ = unreal.get_editor_subsystem(unreal.EditorActorSubsystem).spawn_actor_from_class(unreal.StaticMeshActor, ue(e, s_, -sz * 0.25), unreal.Rotator(roll=0.0, pitch=0.0, yaw=random.uniform(0, 360)))
+        a_.static_mesh_component.set_static_mesh(random.choice(bould))
+        a_.set_actor_scale3d(unreal.Vector(sz * random.uniform(1.0, 2.2), sz, sz * random.uniform(0.35, 0.6)))
+        a_.set_actor_label("RK_mesa_%02d" % i)
+    log("mesas placed")
+except Exception as e:  # noqa: BLE001
+    log("mesas failed", e)
 
 # shot 5: first person at 1.7 m, walking the AR route (the helmet display is composited on top in the edit)
 pv0 = (S[0] + d[0] * 7.0, S[1] + d[1] * 7.0)
