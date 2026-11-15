@@ -65,6 +65,9 @@ function Answer({ r, storm, ruleS }: { r: LiveRoute; storm: boolean; ruleS: numb
   const late = storm && r.timeS > ruleS
   const routes = useLive(s => s.routes)
   const avoided = routes.filter(x => !x.chosen)
+  // the shelter a crew would pick by eye: the closest in a straight line
+  const crew = useLive(s => s.crew)
+  const nearestId = crew && routes.length ? [...routes].sort((a, b) => Math.hypot(a.destX - crew.x, a.destY - crew.y) - Math.hypot(b.destX - crew.x, b.destY - crew.y))[0].destId : null
   const hazards = new Set<string>()
   if (r.bandLengthM > 0) hazards.add(`${Math.round(r.bandLengthM)} m in rockfall runout`)
   return (
@@ -97,7 +100,7 @@ function Answer({ r, storm, ruleS }: { r: LiveRoute; storm: boolean; ruleS: numb
         <div className="text-[12.5px] text-ink2">
           <div className="text-ink">Avoided</div>
           <ul className="mt-0.5 space-y-0.5">
-            {avoided.map(a => <li key={a.destId} className="flex gap-1.5"><span aria-hidden className={a.admissible ? 'text-ink3' : 'text-hazard'}>{a.admissible ? '○' : '✕'}</span><span><span className="text-ink">{a.destName}</span> — {a.reason}</span></li>)}
+            {avoided.map(a => <li key={a.destId} className="flex gap-1.5"><span aria-hidden className={a.admissible ? 'text-ink3' : 'text-hazard'}>{a.admissible ? '○' : '✕'}</span><span><span className="text-ink">{a.destName}</span>{a.destId === nearestId && <span className="ml-1 rounded bg-caution/15 px-1 text-[11px] font-semibold text-caution">nearest as the crow flies</span>} — {a.reason}</span></li>)}
           </ul>
         </div>
       )}
@@ -221,6 +224,7 @@ export default function LiveApp() {
                 <span className="text-[11.5px] leading-snug text-ink3">Rockfall band closes shelters</span>
               </button>
             </div>
+            {!s.incident && <p className="mt-2 text-[12px] leading-snug text-ink3">A radio question to Earth and back takes about 22 minutes (Nov 2026, JPL Horizons distances), so the crew must decide on site. Solway answers in about a second, on this device.</p>}
             {s.incident && <p className="mt-2 flex items-start gap-1.5 text-[12px] text-ink3"><KindGlyph kind="scenario" className="mt-1" />Triggered by you (scenario). In operations the storm alert comes from the on-site dose-rate rule; the recorded run shows that path.</p>}
           </Section>
 
