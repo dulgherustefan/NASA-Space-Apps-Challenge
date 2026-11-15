@@ -13,6 +13,7 @@
 		{ "Name": "HttpBlueprint", "Enabled": true },
 		{ "Name": "Niagara", "Enabled": true },
 		{ "Name": "GeometryScripting", "Enabled": true },
-		{ "Name": "PCG", "Enabled": true }
+		{ "Name": "PCG", "Enabled": true },
+		{ "Name": "MovieRenderPipeline", "Enabled": true }
 	]
 }

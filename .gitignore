@@ -54,3 +54,5 @@ unreal_import/meshes/
 dashboard/dist-live/
 dashboard/public/data/
 .vercel
+renders/
+assets_src/
