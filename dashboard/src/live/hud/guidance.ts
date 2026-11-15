@@ -24,6 +24,7 @@ export interface WalkState {
   roverMain: boolean
   rerouting: boolean
   moving: boolean
+  declutter: boolean
   keys: Set<string>
 }
 
@@ -31,7 +32,7 @@ export function newWalkState(route: LiveRoute): WalkState {
   const s = route.samples[0]
   return {
     mode: 'auto', paused: false, speed: 10, t: 0, elapsed: 0, x: s?.x ?? 0, y: s?.y ?? 0, d: 0, i: 0,
-    yaw: initialYaw(route), look: 0, pitch: -0.12, off: 0, offSince: 0, arrived: false, roverMain: false, rerouting: false, moving: false,
+    yaw: initialYaw(route), look: 0, pitch: -0.12, off: 0, offSince: 0, arrived: false, roverMain: false, rerouting: false, moving: false, declutter: false,
     keys: new Set(),
   }
 }
@@ -205,4 +206,30 @@ export const HAZARD_VOICE: Record<HazardKind, (h: HazardSeg) => string> = {
   steep: h => `Caution. ${h.label.replace('°', ' degrees')} ahead.`,
   sand: () => 'Caution. Loose sand ahead.',
   comms: () => 'Radio shadow ahead. No contact with the rover for a while.',
+}
+
+/** Elevation (m) at distance d along the route. */
+export function zAtDist(route: LiveRoute, d: number): number {
+  const s = route.samples
+  if (!s.length) return 0
+  let lo = 0, hi = s.length - 1
+  if (d <= 0) return s[0].z
+  if (d >= s[hi].d) return s[hi].z
+  while (hi - lo > 1) { const m = (lo + hi) >> 1; if (s[m].d <= d) lo = m; else hi = m }
+  const a = s[lo], b = s[lo + 1]
+  const u = b.d > a.d ? (d - a.d) / (b.d - a.d) : 0
+  return a.z + (b.z - a.z) * u
+}
+
+/** Grade of the route between d0 and d1: percent (+ = uphill) and slope angle (deg). */
+export function grade(route: LiveRoute, d0: number, d1: number) {
+  const L = Math.max(1, d1 - d0)
+  const dz = zAtDist(route, d1) - zAtDist(route, d0)
+  return { pct: dz / L * 100, deg: Math.atan2(Math.abs(dz), L) * 180 / Math.PI }
+}
+
+export function fmtDuration(min: number) {
+  if (!isFinite(min) || min <= 0) return 'now'
+  const h = Math.floor(min / 60), m = Math.round(min % 60)
+  return h > 0 ? `${h} h ${m} min` : `${m} min`
 }

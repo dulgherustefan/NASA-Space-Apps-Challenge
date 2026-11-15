@@ -129,10 +129,19 @@ export function SunLights({ u }: { u: SceneUniforms }) {
     scene.environmentIntensity = 0.55
     return () => { scene.environment = null; env.dispose(); pm.dispose(); room.dispose() }
   }, [gl, scene])
+  const dir = useRef<THREE.DirectionalLight>(null)
+  const hemi = useRef<THREE.HemisphereLight>(null)
+  // follow the (moving) Sun: position, and dimming towards the horizon / at night
+  useFrame(() => {
+    const s = u.uSunDir.value
+    const day = THREE.MathUtils.smoothstep(s.y, -0.05, 0.3)
+    if (dir.current) { dir.current.position.set(s.x * 100, s.y * 100, s.z * 100); dir.current.intensity = 1.9 * day }
+    if (hemi.current) hemi.current.intensity = 0.25 + 1.45 * day
+  })
   return (
     <>
-      <hemisphereLight args={["#d9a87a", "#4a2c1c", 1.7]} />
-      <directionalLight position={[d.x * 100, d.y * 100, d.z * 100]} intensity={1.9} color="#ffe6cc" />
+      <hemisphereLight ref={hemi} args={["#d9a87a", "#4a2c1c", 1.7]} />
+      <directionalLight ref={dir} position={[d.x * 100, d.y * 100, d.z * 100]} intensity={1.9} color="#ffe6cc" />
     </>
   )
 }

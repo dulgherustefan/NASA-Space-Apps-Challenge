@@ -11,6 +11,7 @@ import { HorizonDisc, Sky, SunLights, Terrain, useKit, useSceneUniforms } from '
 import type { SceneUniforms } from './material'
 import { COL } from './palette'
 import { ASTRONAUT_URL, ModelAt, ROVER_URL } from './models'
+import { applySun, scenarioStartMs, sunAt } from './sun'
 import './scene.css'
 
 export interface Overview3DProps {
@@ -41,7 +42,7 @@ export function drapeRoute(kit: TerrainKit, route: LiveRoute, lift: number, maxP
 
 function RouteLines({ kit, routes }: { kit: TerrainKit; routes: LiveRoute[] }) {
   const anyChosen = routes.some(r => r.chosen)
-  const items = useMemo(() => routes.map((r, i) => ({ r, i, pts: drapeRoute(kit, r, r.chosen ? 5 : 4) }))
+  const items = useMemo(() => routes.map((r, i) => ({ r, i, pts: drapeRoute(kit, r, r.chosen ? 7 : 6) }))
     .sort((a, b) => Number(a.r.chosen) - Number(b.r.chosen)), [kit, routes])
   return (
     <group>
@@ -64,7 +65,13 @@ function RouteLines({ kit, routes }: { kit: TerrainKit; routes: LiveRoute[] }) {
 }
 
 const KIND_COLOR: Record<Shelter['kind'], string> = { habitat: COL.shelter, rover: COL.shelter, terrain: COL.info }
-const KIND_WORD: Record<Shelter['kind'], string> = { habitat: 'Habitat', rover: 'Rover', terrain: 'Terrain cover' }
+/** Small icon per shelter kind (the name already says what it is: no duplicate kind word). */
+function KindIcon({ kind }: { kind: Shelter['kind'] }) {
+  const c = KIND_COLOR[kind]
+  if (kind === 'rover') return <svg width="13" height="10" viewBox="0 0 13 10" aria-hidden><rect x="1" y="1.5" width="11" height="5" rx="1.5" fill={c} /><circle cx="3.5" cy="8" r="1.6" fill={c} /><circle cx="9.5" cy="8" r="1.6" fill={c} /></svg>
+  if (kind === 'habitat') return <svg width="12" height="10" viewBox="0 0 12 10" aria-hidden><path d="M1 9.5 A5 5 0 0 1 11 9.5 Z" fill={c} /></svg>
+  return <svg width="12" height="10" viewBox="0 0 12 10" aria-hidden><path d="M0.5 9.5 L4 2 L7 6 L8.5 4 L11.5 9.5 Z" fill={c} /></svg>
+}
 
 function Shelters({ kit, shelters }: { kit: TerrainKit; shelters: Shelter[] }) {
   const ref = useRef<THREE.InstancedMesh>(null)
@@ -166,6 +173,8 @@ export default function Overview3D(props: Overview3DProps) {
   const { site, desc, routes, crew, shelters, hazardBand, failXY, onPick } = props
   const kit = useKit(site, desc)
   const u = useSceneUniforms(kit)
+  // the Sun at the scenario time over this site (kept above the horizon so the overview stays readable)
+  useMemo(() => { const s = sunAt(desc, scenarioStartMs()); applySun(u, { ...s, elev: Math.max(s.elev, 12) }) }, [u, desc])
   const stride = useMemo(() => lowEnd() ? 4 : 2, [])
   const horizonY = (site.meta.core.zMin - site.Z0) - 400
   const scale = kit.size / 4000
@@ -173,9 +182,9 @@ export default function Overview3D(props: Overview3DProps) {
   const labelDefs = useMemo(() => {
     const out: { key: string; pos: THREE.Vector3; text: React.ReactNode; cls: string }[] = shelters.map(s => ({
       key: 's:' + s.id, pos: kit.toWorld(s.x, s.y, 40), cls: s.open ? '' : 'closed',
-      text: <><span className="sw3-tag-k">{KIND_WORD[s.kind]}</span>{s.name}{s.open ? '' : ' · closed'}</>,
+      text: <><KindIcon kind={s.kind} />{s.name}{s.open ? '' : ' · closed'}</>,
     }))
-    if (crew) out.push({ key: 'crew', pos: kit.toWorld(crew.x, crew.y, 44), cls: 'crew', text: 'Crew' })
+    if (crew) out.push({ key: 'crew', pos: kit.toWorld(crew.x, crew.y, 44), cls: 'crew', text: <><svg width="10" height="10" viewBox="0 0 10 10" aria-hidden><path d="M5 9.5 L0.5 1 H9.5 Z" fill="currentColor" /></svg>Crew</> })
     return out
   }, [kit, shelters, crew])
   const bind = (key: string, pos: THREE.Vector3) => (el: HTMLElement | null) => {

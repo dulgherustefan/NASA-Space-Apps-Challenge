@@ -2,7 +2,6 @@ import { ENGINE_URL, REPLAY, fileUrl } from './config'
 import { replayCmd, startReplay } from './replay'
 import { applyMessage, setConn, setRoutesFile, setTrajFile, store, type State } from './store'
 import type { EngineMsg, ParamDef, PovItem, RoutesFile, TrajFile } from './types'
-import { chime } from './alert'
 
 let ws: WebSocket | null = null
 let retry: ReturnType<typeof setTimeout> | null = null
@@ -50,21 +49,12 @@ export async function loadTraining() {
   store.set({ training: j === null ? { status: 'missing' } : { status: 'ready', data: j } })
 }
 
-const ALARM_EVERY_MS = 5000
-const ALARM_REPEATS = 8          // a display choice: the cue stops by itself after 40 s, the band stays
-let alarm: ReturnType<typeof setInterval> | null = null
-function stopAlarm() { if (alarm) { clearInterval(alarm); alarm = null } }
-/** The cue for a warning repeats until someone acknowledges it. An advisory sounds once. */
-function raiseAlarm(id: string, urgent: boolean) {
-  stopAlarm()
-  chime(urgent)
+/** A new warning is announced once by a recorded voice line (public/audio/voice); an advisory stays silent. */
+function raiseAlarm(_id: string, urgent: boolean, kind?: string) {
   if (!urgent) return
-  let n = 0
-  alarm = setInterval(() => {
-    if (store.get().alertId !== id || ++n > ALARM_REPEATS) return stopAlarm()
-    chime(true)
-  }, ALARM_EVERY_MS)
+  void import('@/live/hud/voice').then((v) => v.playClip(kind === 'quake' ? 'quake_alert' : 'storm_alert', 3))
 }
+function stopAlarm() { /* the voice line plays once; nothing repeats */ }
 export function acknowledge() {
   stopAlarm()
   store.set({ alertId: null })
@@ -90,7 +80,7 @@ function handle(msg: EngineMsg, quiet = false) {
       if (!midLoaded && msg.phase && (msg.phase === 'simulate' || msg.phase === 'respond')) { midLoaded = true; void loadRoutes(); void loadTrajectories() }
       break
     case 'incident':
-      if (store.get().alertId === msg.id) raiseAlarm(msg.id, msg.kind !== 'science')
+      if (store.get().alertId === msg.id) raiseAlarm(msg.id, msg.kind !== 'science', msg.kind)
       break
     case 'routes':
       void loadRoutes()

@@ -201,11 +201,7 @@ export function clearIncident() { set({ incident: null, routes: [], chosen: null
 
 /** Plays a recorded voice line (public/audio/voice); silent if audio is blocked or missing. */
 export function playVoice(key: string) {
-  try {
-    const a = new Audio(BASE + 'audio/voice/' + key + '.mp3')
-    a.volume = 0.9
-    void a.play().catch(() => undefined)
-  } catch { /* no audio */ }
+  void import('./hud/voice').then(v => v.playClip(key, 3))
 }
 
 export function trigger(kind: IncidentKind) {

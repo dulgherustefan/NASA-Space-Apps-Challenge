@@ -134,3 +134,26 @@
 .hv-caption { position: absolute; left: 50%; bottom: 104px; transform: translateX(-50%); max-width: min(560px, calc(100% - 24px)); text-align: center;
   font-size: 15px; font-weight: 600; line-height: 1.3; padding: 6px 12px; border-radius: var(--hv-r); background: rgb(19 18 16 / .85); box-shadow: var(--hv-shadow); color: var(--hv-ink); pointer-events: none; }
 .hv-root.narrow .hv-caption { bottom: 252px; font-size: 13.5px; }
+
+/* progress strip (Joint AR ConOps 6.1.11): done vs to go, next turn and shelter as ticks */
+.hv-prog { margin-top: 4px; pointer-events: none; }
+.hv-prog-bar { position: relative; height: 6px; border-radius: 3px; background: rgb(239 235 228 / .18); box-shadow: 0 0 0 1px rgb(0 0 0 / .35); }
+.hv-prog-bar > div { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; background: var(--hv-ok); }
+.hv-prog-t { position: absolute; top: -3px; width: 2px; height: 12px; margin-left: -1px; background: var(--hv-ink2); }
+.hv-prog-t.next { background: var(--hv-ink); width: 3px; height: 14px; top: -4px; }
+.hv-prog-s { position: absolute; right: -6px; top: -4px; width: 12px; height: 12px; transform: rotate(45deg); background: var(--color-accent, #e3b472); }
+.hv-prog-l { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--hv-ink); text-shadow: 0 1px 2px #000; margin-top: 3px; }
+.hv-sun { font-size: 11px; color: var(--hv-ink2); text-shadow: 0 1px 2px #000; }
+.hv-bar-n { font-size: 11px; color: var(--hv-ink2); margin-top: 2px; }
+.hv-foot { display: grid; grid-template-columns: 52px 1fr auto; gap: 6px; align-items: baseline; font-size: 12px; border-top: 2px solid; padding-top: 5px; }
+.hv-suit { width: 250px; }
+.hv-bar-top { grid-template-columns: 38px 1fr auto; }
+.hv-dest.decl .hv-dest-row { display: none; }
+.hv-root.narrow .hv-prog-l { font-size: 10.5px; }
+.hv-root.narrow .hv-suit { width: 172px; }
+.hv-root.narrow .hv-bar-n { font-size: 9.5px; }
+.hv-root.narrow .hv-foot { grid-template-columns: 1fr auto; font-size: 10.5px; }
+.hv-root.narrow .hv-foot .hv-bar-l { display: none; }
+.hv-root.narrow .hv-bar-n { display: none; }
+.hv-root.narrow .hv-alerts { bottom: 340px; }
+.hv-root.narrow .hv-caption { bottom: 292px; }

@@ -23,6 +23,7 @@ export function makeSceneUniforms(kit: TerrainKit) {
     uAlpha: { value: 27.8 },
     uZ0: { value: kit.Z0 },
     uExposure: { value: 0.88 },
+    uHTexel: { value: 1 / kit.site.meta.core.na },
   }
 }
 export type SceneUniforms = ReturnType<typeof makeSceneUniforms>
@@ -43,7 +44,7 @@ varying vec3 vWorld;
 varying vec3 vNormal;
 uniform sampler2D tOrtho, tH, tLay, tDetail;
 uniform vec4 uOrthoRect, uHole, uCoreRect;
-uniform float uLevel, uAmbient, uRelight, uTime, uShadows, uDetail, uBand, uAlpha, uZ0, uExposure;
+uniform float uLevel, uAmbient, uRelight, uTime, uShadows, uDetail, uBand, uAlpha, uZ0, uExposure, uHTexel;
 uniform vec3 uSunColor;
 ${MARS_ATMOSPHERE}
 ${NOISE}
@@ -75,9 +76,34 @@ void main() {
   vec2 uv = (xz - uOrthoRect.xy) * uOrthoRect.zw;
   vec4 ortho = texture2D(tOrtho, uv);
   vec3 albedo = ortho.rgb;
+  // soft highlight compression: very bright image patches (dunes) no longer wash out, and the
+  // brightness step between the HiRISE box and the regional image is smaller
+  float aL = dot(albedo, vec3(0.3, 0.5, 0.2));
+  {
+    // local contrast from the orthoimage itself (brightness against a blurred copy, mip bias), so ripples,
+    // boulders and bedrock edges in the HiRISE image read at walking distance
+    vec3 blur = texture2D(tOrtho, uv, 3.5).rgb;
+    float k = uLevel < 0.5 ? 1.0 + 0.8 * (1.0 - smoothstep(60.0, 900.0, length(cameraPosition - vWorld))) : 1.0;
+    albedo = max(blur + (albedo - blur) * k, vec3(0.0));
+    aL = dot(albedo, vec3(0.3, 0.5, 0.2));
+    // Mars palette by brightness (approximate colour): dark basaltic sand -> brown-grey, bright dust -> butterscotch
+    vec3 pal = mix(vec3(0.22, 0.155, 0.12), vec3(0.80, 0.53, 0.33), smoothstep(0.10, 0.65, aL));
+    albedo = mix(albedo, pal * (0.75 + 0.5 * aL), 0.4);
+    aL = dot(albedo, vec3(0.3, 0.5, 0.2));
+  }
+  albedo *= 1.0 / (1.0 + max(aL - 0.42, 0.0) * 1.8);
   vec3 N = normalize(vNormal);
   vec3 toCam = cameraPosition - vWorld;
   float dist = length(toCam);
+  // far away: per-pixel normals from the 5 m heights (smooth ridges instead of mesh facets)
+  if (uLevel < 0.5 && dist > 180.0) {
+    vec2 huv = (xz - uCoreRect.xy) * uCoreRect.zw;
+    float e = uHTexel, cellM = e / uCoreRect.z;
+    float hx0 = texture2D(tH, huv - vec2(e, 0.0)).r, hx1 = texture2D(tH, huv + vec2(e, 0.0)).r;
+    float hz0 = texture2D(tH, huv - vec2(0.0, e)).r, hz1 = texture2D(tH, huv + vec2(0.0, e)).r;
+    vec3 Nt = normalize(vec3(-(hx1 - hx0) / (2.0 * cellM), 1.0, -(hz1 - hz0) / (2.0 * cellM)));
+    N = normalize(mix(N, Nt, smoothstep(180.0, 520.0, dist)));
+  }
 
   float near = (1.0 - smoothstep(25.0, 220.0, dist)) * uDetail;
   if (near > 0.002) {
@@ -86,6 +112,15 @@ void main() {
     float l1 = dot(d1, vec3(0.333)), l2 = dot(d2, vec3(0.333));
     albedo *= mix(1.0, (0.62 + 1.25 * l1) * (0.8 + 0.65 * l2), near * 0.8);
     N = normalize(N + vec3(d1.r - 0.45, 0.0, d1.g - 0.4) * 0.5 * near);
+  }
+  // regolith close up: pebbles and small rocks in the first ~40 m (procedural set dressing, not mapped rocks)
+  float vnear = (1.0 - smoothstep(6.0, 45.0, dist)) * uDetail;
+  if (vnear > 0.002) {
+    float n1 = fbm(xz * 1.7), n2 = fbm(xz * 6.3 + 11.0);
+    float pebble = smoothstep(0.62, 0.78, n2) * (0.6 + 0.4 * n1);
+    albedo *= mix(1.0, 0.8 + 0.34 * n1, vnear * 0.7);
+    albedo = mix(albedo, albedo * 0.55, pebble * vnear * 0.6);
+    N = normalize(N + vec3(n2 - 0.5, 0.0, n1 - 0.5) * 0.3 * vnear);
   }
   float mid = (1.0 - smoothstep(200.0, 2500.0, dist)) * smoothstep(10.0, 120.0, dist);
   albedo *= 1.0 + (fbm(xz * 0.21) - 0.5) * 0.16 * mid;

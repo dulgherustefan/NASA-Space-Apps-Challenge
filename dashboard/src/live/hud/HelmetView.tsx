@@ -11,8 +11,9 @@ import { COL } from '../scene/palette'
 import HelmetScene, { pipRect, type Anchors, type AnchorsWithSafe } from './HelmetScene'
 import {
   AHEAD_M, HAZARD_VOICE, bearing, deg, fmtClock, fmtDist, hazards, instruction, instructionLine, newWalkState, project,
-  round10, routeDuration, routeLength, suitAt, type HazardSeg, type WalkState,
+  round10, routeDuration, routeLength, suitAt, atDist, fmtDuration, type HazardSeg, type WalkState,
 } from './guidance'
+import { applySun, scenarioStartMs, sunAt, type Sun } from '../scene/sun'
 import { CompassTape, HazardIcon, LevelShape, MiniMap, SuitBar, TurnArrow, LEVEL_COLOR, type Level } from './Instruments'
 import { Voice, turnKey } from './voice'
 import './helmet.css'
@@ -62,6 +63,10 @@ export default function HelmetView(props: HelmetViewProps) {
   const [muted, setMuted] = useState(false)
   const [hud, setHud] = useState<Hud>(() => snapshot(st.current))
   const [banner, setBanner] = useState<{ text: string; level: Level } | null>(null)
+  const [declutter, setDeclutter] = useState(false)
+  const t0ms = useRef(scenarioStartMs())
+  const [sun, setSun] = useState<Sun>(() => sunAt(desc, t0ms.current))
+  const etaBefore = useRef<number | null>(null)
   const [dpr, setDpr] = useState(() => Math.min(1.5, window.devicePixelRatio || 1))
   const rootRef = useRef<HTMLDivElement>(null)
   const vp = useViewport()
@@ -121,14 +126,24 @@ export default function HelmetView(props: HelmetViewProps) {
     s.arrived = false
     s.rerouting = false
     const mins = Math.max(1, Math.round((routeDuration(route) - pr.t) / 60))
-    setBanner({ text: `New route · arrive in ${mins} min`, level: 'info' })
+    const was = etaBefore.current
+    etaBefore.current = null
+    setBanner({ text: was != null ? `Route updated · ETA ${fmtClock(was)} → ${fmtClock(routeDuration(route) - pr.t)}` : `Route updated · arrive in ${mins} min`, level: 'info' })
     const ins = instructionLine(instruction(route, pr.d))
     voice.say(`New route. Arrive in ${mins} minutes. ${ins.main} ${ins.sub.replace(' m', ' metres')}`, true)
-    const id = setTimeout(() => setBanner(b => b?.text.startsWith('New route') ? null : b), 5000)
+    const id = setTimeout(() => setBanner(b => b?.text.startsWith('Route updated') ? null : b), 6000)
     return () => clearTimeout(id)
   }, [route, voice])
 
   useEffect(() => () => voice.dispose(), [voice])
+  // real Sun over the site at the scenario time + walk clock (Mars24)
+  useEffect(() => {
+    const upd = () => { const sn = sunAt(desc, t0ms.current + st.current.elapsed * 1000); applySun(u, sn); setSun(sn) }
+    upd()
+    const id = setInterval(upd, 1000)
+    return () => clearInterval(id)
+  }, [desc, u])
+  useEffect(() => { st.current.declutter = declutter }, [declutter])
   const [caption, setCaption] = useState<string | null>(null)
   useEffect(() => {
     let id: ReturnType<typeof setTimeout> | undefined
@@ -174,6 +189,7 @@ export default function HelmetView(props: HelmetViewProps) {
       if (s.mode === 'manual' && s.offSince && performance.now() - s.offSince > 1500 && !s.rerouting && !s.arrived) {
         if (onOffRouteRef.current) {
           s.rerouting = true
+          etaBefore.current = Math.max(0, routeDuration(r) - s.t)
           rerouteAt.current = performance.now()
           setBanner({ text: 'Rerouting…', level: 'caution' })
           voice.say('Rerouting', true, 'rerouting')
@@ -216,12 +232,13 @@ export default function HelmetView(props: HelmetViewProps) {
       if (e.code === 'Escape') { onExit(); return }
       if (e.code === 'KeyM') { setMode(s.mode === 'auto' ? 'manual' : 'auto'); return }
       if (e.code === 'KeyV') { swap(); return }
+      if (e.code === 'KeyD' && s.mode === 'auto') { setDeclutter(v => !v); return }
       if (e.code === 'Digit1') setSpeed(1)
       if (e.code === 'Digit2') setSpeed(10)
       if (e.code === 'Digit3') setSpeed(30)
       if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyQ', 'KeyE', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
         e.preventDefault()
-        if (s.mode === 'auto' && ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown'].includes(e.code)) setMode('manual')
+        if (s.mode === 'auto' && ['KeyW', 'KeyA', 'KeyS', 'ArrowUp', 'ArrowDown'].includes(e.code)) setMode('manual')
         s.keys.add(e.code)
       }
     }
@@ -282,9 +299,27 @@ export default function HelmetView(props: HelmetViewProps) {
   else if (margin != null && margin < 0) { etaLevel = 'warning'; etaWord = 'OVER' }
   else if (margin != null && margin < 120) { etaLevel = 'caution'; etaWord = 'TIGHT' }
   const suit = suitAt(route, hud.t)
+  const tA = Math.max(0, hud.t - 30), tB = Math.min(dur, hud.t + 30)
+  const doseRate = (suitAt(route, tB).doseUGy - suitAt(route, tA).doseUGy) / Math.max(1, tB - tA) * 3600
+  const o2ToReserve = suit.o2Min - 60
+  const heatPct = suit.heatKJ / 506 * 100
+  // footing from the 2.5 m terrain along the route (smoother than the planner's sample heights)
+  const gAt = (d0: number, d1: number) => {
+    const a = atDist(route, Math.max(0, d0)), b = atDist(route, Math.min(len, d1))
+    const L = Math.max(1, Math.min(len, d1) - Math.max(0, d0))
+    const dz = kit.groundY(b.x - kit.half, b.y - kit.half) - kit.groundY(a.x - kit.half, a.y - kit.half)
+    return { pct: dz / L * 100, deg: Math.atan2(Math.abs(dz), L) * 180 / Math.PI }
+  }
+  const gNow = gAt(hud.d - 10, hud.d + 10)
+  const gNext = gAt(hud.d, hud.d + 20)
+  const gMax = Math.max(gNow.deg, gNext.deg)
+  const footLevel: Level = gMax > 20 ? 'warning' : gMax > 15 ? 'caution' : 'ok'
+  const gWord = (g: { pct: number }) => Math.abs(g.pct) < 2 ? 'Level' : `${g.pct > 0 ? 'Uphill' : 'Downhill'} ${Math.round(Math.abs(g.pct))} %`
+  const night = sun.elev < 0
+  const lowSun = !night && sun.elev < 15
   const o2Start = route.samples[0]?.o2Min || 1
   const o2Level: Level = suit.o2Min < 60 ? 'warning' : suit.o2Min < 90 ? 'caution' : 'ok'
-  const heatLevel: Level = suit.heatKJ >= 844 ? 'warning' : suit.heatKJ >= 506 ? 'caution' : 'ok'
+  const heatLvl: Level = suit.heatKJ >= 506 ? 'warning' : suit.heatKJ >= 400 ? 'caution' : 'ok'
   const nearHz = arrived ? [] : hz.filter(h => h.d0 - hud.d > 10 && h.d0 - hud.d < 60).slice(0, 2)
   const activeHz = arrived ? [] : hz.filter(h => hud.d >= h.d0 - 1 && hud.d <= h.d1 + 2)
   const aheadHz = arrived ? [] : hz.filter(h => h.d0 - hud.d > 1 && h.d0 - hud.d < 60).slice(0, 2)
@@ -373,14 +408,22 @@ export default function HelmetView(props: HelmetViewProps) {
               : <><div className="hv-ins-main">{line.main}</div><div className="hv-ins-sub num">{line.sub}</div></>}
           </div>
         </section>
-        <div className="hv-tape-wrap">
+        <div className="hv-tape-wrap" style={{ visibility: declutter && !banner ? 'hidden' : undefined }}>
           <CompassTape heading={hud.heading} marks={marks} width={tapeW} />
           <div className="hv-hdg num">{Math.round(hud.heading).toString().padStart(3, '0')}°</div>
+          <div className="hv-prog" style={{ width: tapeW }} aria-label={`${fmtDist(hud.d)} done, ${fmtDist(remainM)} to go`}>
+            <div className="hv-prog-bar"><div style={{ width: `${Math.min(100, hud.d / Math.max(1, len) * 100)}%` }} />
+              {route.turns.map((tn, k) => <i key={k} className={`hv-prog-t ${k === ins.turnIndex ? 'next' : ''}`} style={{ left: `${tn.d / Math.max(1, len) * 100}%` }} />)}
+              <b className="hv-prog-s" />
+            </div>
+            <div className="hv-prog-l num"><span>{fmtDist(hud.d)} done</span><span>{fmtDist(remainM)} to go</span></div>
+          </div>
+          <div className="hv-sun num" title="Sun over the site now (Mars24 algorithm)">{night ? 'Night · Sun below the horizon' : `Sun ${Math.round(sun.elev)}° · az ${Math.round(sun.az)}°`}</div>
           {banner && <div className={`hv-banner ${banner.level}`}><LevelShape level={banner.level} size={10} />{banner.text}</div>}
           {!banner && hud.mode === 'manual' && hud.off > 15 && !onOffRoute && (
             <div className="hv-banner caution"><LevelShape level="caution" size={10} />Off route {Math.round(hud.off)} m · return to the line</div>)}
         </div>
-        <section className="hv-dest">
+        <section className={`hv-dest ${declutter ? 'decl' : ''}`}>
           {ruleLeft != null && (
             <div className="hv-rule" style={{ borderColor: LEVEL_COLOR[etaLevel] }}>
               <span className="hv-k">{arrived ? 'Inside before the 30-min rule' : 'Time left on the 30-min rule'}</span>
@@ -416,8 +459,16 @@ export default function HelmetView(props: HelmetViewProps) {
       </div>
 
       {/* ---------------------------------------------------------------- left edge: hazards in force */}
-      {(activeHz.length > 0 || (aheadHz.length > 0 && !narrow)) && (
+      {!declutter && (activeHz.length > 0 || (aheadHz.length > 0 && !narrow) || ((lowSun || night) && !arrived)) && (
         <div className="hv-alerts">
+          {(lowSun || night) && !arrived && (
+            <div className={`hv-alert ${night ? 'warning' : 'caution'}`}
+              title="JETT3 field test (EHP-20021, Concl. 2.8): crews misjudged distances by 33-37 % in low-angle light">
+              <LevelShape level={night ? 'warning' : 'caution'} size={14} />
+              <div><b>{night ? 'Night: no sunlight' : `Low sun ${Math.round(sun.elev)}°`}</b>
+                <span>{night ? 'Walk on helmet lights; trust the metres, not your eyes' : 'Long shadows hide holes and steps; distances look shorter'}</span></div>
+            </div>
+          )}
           {activeHz.map(h => (
             <div key={h.id} className={`hv-alert ${h.level}`}><HazardIcon kind={h.kind} size={18} />
               <div><b>{h.kind === 'comms' ? 'No radio contact' : `In ${h.label.toLowerCase()}`}</b><span className="num">{fmtDist(Math.max(0, h.d1 - hud.d))} to exit</span></div>
@@ -432,17 +483,25 @@ export default function HelmetView(props: HelmetViewProps) {
       )}
 
       {/* ---------------------------------------------------------------- bottom-left: suit + mini-map */}
-      <div className="hv-bl">
+      <div className="hv-bl" style={{ display: declutter ? 'none' : undefined }}>
         <MiniMap kit={kit} route={route} shelters={shelters} x={hud.x} y={hud.y} yaw={hud.yaw} d={hud.d} size={narrow ? 96 : 156} />
         <div className="hv-suit">
-          <SuitBar label="O₂" value={suit.o2Min.toFixed(0)} unit="min" frac={suit.o2Min / o2Start} level={o2Level} word={o2Level === 'ok' ? 'OK' : 'LOW'} />
-          <SuitBar label="Heat" value={suit.heatKJ.toFixed(0)} unit="kJ" frac={suit.heatKJ / 844} level={heatLevel} word={heatLevel === 'ok' ? 'OK' : heatLevel === 'caution' ? 'HIGH' : 'LIMIT'} />
-          <SuitBar label="Dose" value={suit.doseUGy < 10 ? suit.doseUGy.toFixed(1) : suit.doseUGy.toFixed(0)} unit="µGy" frac={suit.doseUGy / 1000} level="info" word="WALK" />
+          <SuitBar label="O₂" value={suit.o2Min.toFixed(0)} unit="min left" frac={suit.o2Min / o2Start} level={o2Level} word={o2Level === 'ok' ? 'OK' : 'LOW'}
+            note={o2ToReserve > 0 ? `60-min reserve reached in ${fmtDuration(o2ToReserve)}` : 'On the 60-min reserve'} />
+          <SuitBar label="Heat" value={heatPct.toFixed(0)} unit="% of limit" frac={heatPct / 100} level={heatLvl} word={heatLvl === 'ok' ? 'OK' : heatLvl === 'caution' ? 'HIGH' : 'LIMIT'}
+            note={`${suit.heatKJ.toFixed(0)} of 506 kJ stored (performance limit)`} />
+          <SuitBar label="Dose" value={doseRate < 10 ? doseRate.toFixed(1) : doseRate.toFixed(0)} unit="µGy/h" frac={suit.doseUGy / 1000} level="info" word="NOW"
+            note={`${suit.doseUGy < 10 ? suit.doseUGy.toFixed(1) : suit.doseUGy.toFixed(0)} µGy on this walk`} />
+          <div className="hv-foot" style={{ borderColor: LEVEL_COLOR[footLevel] }}>
+            <span className="hv-bar-l">Footing</span>
+            <span className="num">{gWord(gNow)} · next 20 m: {gWord(gNext).toLowerCase()}</span>
+            <span className="hv-bar-w" style={{ color: LEVEL_COLOR[footLevel] }}><LevelShape level={footLevel} size={9} />{footLevel === 'ok' ? `${Math.round(gMax)}°` : footLevel === 'caution' ? 'STEEP' : 'OVER 20°'}</span>
+          </div>
         </div>
       </div>
 
       {/* ---------------------------------------------------------------- picture-in-picture frame */}
-      <button className="hv-pip" style={{ left: pr.x, top: pr.y, width: pr.w, height: pr.h }} onClick={swap}
+      <button className="hv-pip" style={{ left: pr.x, top: pr.y, width: pr.w, height: pr.h, display: declutter ? 'none' : undefined }} onClick={swap}
         aria-label={hud.roverMain ? 'Show helmet view full screen' : 'Show rover mast camera full screen'}>
         <span className="hv-pip-l">{hud.roverMain ? 'Helmet view' : 'Rover mast camera (simulated)'}</span>
         <span className="hv-pip-s">⤢</span>
@@ -461,6 +520,7 @@ export default function HelmetView(props: HelmetViewProps) {
         </div>
         <button className="hv-btn" onClick={swap}>{hud.roverMain ? 'Helmet view' : 'Rover view'}</button>
         <button className="hv-btn" onClick={() => setMuted(m => !m)} aria-pressed={muted}>{muted ? 'Voice off' : 'Voice on'}</button>
+        <button className="hv-btn" onClick={() => setDeclutter(v => !v)} aria-pressed={declutter} title="Declutter (D): only the instruction, the countdown and the next turn">{declutter ? 'Show all' : 'Declutter'}</button>
         <span className="hv-clock num" title="Walk clock (time compressed)">Walk {fmtClock(hud.elapsed)}{hud.paused ? ' · paused' : ''}</span>
       </div>
       {hud.mode === 'manual' && !narrow && <div className="hv-help">W A S D to walk · ← → to turn · drag to look · leave the line by more than 15 m to reroute</div>}

@@ -258,6 +258,52 @@ function Rocks({ kit, route }: { kit: TerrainKit; route: LiveRoute }) {
   return <instancedMesh key={count} ref={ref} args={[geo, mat, count]} />
 }
 
+
+// ----------------------------------------------------------------------------- dust
+/** Fine dust drifting in the wind around the helmet (helmet layer only; dropped when performance declines). */
+function Dust({ u }: { u: SceneUniforms }) {
+  const N = 420, R = 22
+  const pts = useRef<THREE.Object3D | null>(null)
+  const geo = useMemo(() => {
+    const g = new THREE.BufferGeometry()
+    const p = new Float32Array(N * 3)
+    for (let i = 0; i < N; i++) { p[i * 3] = (Math.random() * 2 - 1) * R; p[i * 3 + 1] = Math.random() * 6 - 1; p[i * 3 + 2] = (Math.random() * 2 - 1) * R }
+    g.setAttribute('position', new THREE.BufferAttribute(p, 3))
+    return g
+  }, [])
+  const mat = useMemo(() => {
+    // round soft grains (a plain point sprite is a square)
+    const cv = document.createElement('canvas'); cv.width = cv.height = 32
+    const g = cv.getContext('2d')!
+    const gr = g.createRadialGradient(16, 16, 0, 16, 16, 16)
+    gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(1, 'rgba(255,255,255,0)')
+    g.fillStyle = gr; g.fillRect(0, 0, 32, 32)
+    const tex = new THREE.CanvasTexture(cv)
+    return new THREE.PointsMaterial({ color: '#e0c3a3', size: 0.035, map: tex, sizeAttenuation: true, transparent: true, opacity: 0.5, depthWrite: false })
+  }, [])
+  useEffect(() => () => { geo.dispose(); mat.map?.dispose(); mat.dispose() }, [geo, mat])
+  useFrame(({ camera }, dt) => {
+    const o = pts.current
+    if (!o) return
+    o.visible = u.uShadows.value > 0.5 && u.uSunDir.value.y > -0.05
+    if (!o.visible) return
+    const p = geo.attributes.position as THREE.BufferAttribute
+    const a = p.array as Float32Array
+    const w = Math.min(dt, 0.1)
+    const cx = camera.position.x, cy = camera.position.y, cz = camera.position.z
+    for (let i = 0; i < N; i++) {
+      let x = a[i * 3] + w * 1.6, y = a[i * 3 + 1] + w * 0.15 * Math.sin(i + u.uTime.value), z = a[i * 3 + 2] + w * 0.6
+      // keep every grain inside a box that travels with the camera
+      if (x - cx > R) x -= 2 * R; else if (x - cx < -R) x += 2 * R
+      if (z - cz > R) z -= 2 * R; else if (z - cz < -R) z += 2 * R
+      if (y - cy > 5) y -= 7; else if (y - cy < -2) y += 7
+      a[i * 3] = x; a[i * 3 + 1] = y; a[i * 3 + 2] = z
+    }
+    p.needsUpdate = true
+  })
+  return <points ref={o => { pts.current = o; setLayer(L_AR)(o) }} geometry={geo} material={mat} frustumCulled={false} />
+}
+
 // ----------------------------------------------------------------------------- models
 function RoverModel() {
   const gltf = useGLTF(BASE + 'models/rover_sev.glb', false, true) as unknown as { scene: THREE.Group }
@@ -426,6 +472,8 @@ function Driver({ kit, u, routeRef, st, focus, anchors, rover }: {
     if (main === roverCam) roverCam.fov = fovFor(main.aspect)
     else helmet.fov = W < H ? 78 : 70
     main.updateProjectionMatrix()
+    // the mast camera has its own (auto-)exposure: it mostly looks down-sun at front-lit ground
+    gl.toneMappingExposure = main === roverCam ? 0.68 : 1.0
     gl.render(scene, main)
     // DOM anchors follow the main camera
     // place labels: project, keep below the top instrument band, then push overlapping labels down (declutter)
@@ -462,6 +510,7 @@ function Driver({ kit, u, routeRef, st, focus, anchors, rover }: {
       placed.push({ x0: it.x - it.w / 2, x1: it.x + it.w / 2, y0: y - it.h, y1: y })
       it.a.el!.style.transform = `translate(${it.x.toFixed(1)}px, ${y.toFixed(1)}px)`
     }
+    if (s.declutter) return
     const y = H - r.y - r.h
     gl.setScissorTest(true)
     gl.setScissor(r.x, y, r.w, r.h)
@@ -470,7 +519,9 @@ function Driver({ kit, u, routeRef, st, focus, anchors, rover }: {
     if (pip === roverCam) roverCam.fov = fovFor(pip.aspect)
     else helmet.fov = 70
     pip.updateProjectionMatrix()
+    gl.toneMappingExposure = pip === roverCam ? 0.68 : 1.0
     gl.render(scene, pip)
+    gl.toneMappingExposure = 1.0
     gl.setScissorTest(false)
   }, 1)
   return null
@@ -491,6 +542,7 @@ export default function HelmetScene({ kit, u, route, routeRef, shelters, st, anc
       <HorizonDisc u={u} y={horizonY} />
       <Terrain kit={kit} u={u} coreStride={coreStride} focus={focus} />
       <Rocks kit={kit} route={route} />
+      <Dust u={u} />
       <Ribbon kit={kit} route={route} st={st} />
       <TurnGate kit={kit} route={route} st={st} />
       <Destination kit={kit} route={route} />

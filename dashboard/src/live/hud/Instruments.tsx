@@ -91,7 +91,7 @@ export function CompassTape({ heading, marks, width }: { heading: number; marks:
   )
 }
 
-export function SuitBar({ label, value, unit, frac, level, word }: { label: string; value: string; unit: string; frac: number; level: Level; word: string }) {
+export function SuitBar({ label, value, unit, frac, level, word, note }: { label: string; value: string; unit: string; frac: number; level: Level; word: string; note?: string }) {
   const c = LEVEL_COLOR[level]
   return (
     <div className="hv-bar">
@@ -101,6 +101,7 @@ export function SuitBar({ label, value, unit, frac, level, word }: { label: stri
         <span className="hv-bar-w" style={{ color: c }}><LevelShape level={level} size={9} />{word}</span>
       </div>
       <div className="hv-bar-track"><div style={{ width: `${Math.max(2, Math.min(100, frac * 100))}%`, background: c }} /></div>
+      {note && <div className="hv-bar-n">{note}</div>}
     </div>
   )
 }
