@@ -49,6 +49,7 @@ export interface LiveState {
   policyLoaded: boolean
   rerouting: boolean
   refining: boolean
+  note: string | null
   mcN: number
 }
 
@@ -80,7 +81,7 @@ function snapWalkable(x: number, y: number): { x: number; y: number } {
 export const useLive = create<LiveState>(() => ({
   phase: 'boot', progress: { label: 'Starting', frac: 0 }, error: null, loaded: null, params: defaultParams(),
   shelters: [], terrainShelters: [], terrainSheltersOutsideBand: [], comms: null, crew: null, incident: null, routes: [], chosen: null,
-  planMs: 0, view: 'map', policyLoaded: false, rerouting: false, refining: false, mcN: 1000,
+  planMs: 0, view: 'map', policyLoaded: false, rerouting: false, refining: false, note: null, mcN: 1000,
 }))
 const S = useLive.getState
 const set = useLive.setState
@@ -115,8 +116,9 @@ export async function useSite(loaded: LoadedSite, policy?: unknown | null) {
   const p = S().params
   set({ progress: { label: 'Finding natural shelters', frac: 0.9 } })
   const st = await engine.statics(p)
-  blockedMask = st.blocked
-  const shelters = engineeredShelters(loaded, st.blocked)
+  const shelters0 = engineeredShelters(loaded, st.blocked)
+  blockedMask = connectedMask(loaded, st.blocked, shelters0)
+  const shelters = shelters0
   const masts = shelters.map(s => ({ x: s.x, y: s.y, h: s.kind === 'habitat' ? 8 : 3 }))
   const comms = masts.length ? await engine.comms(masts) : null
   set({
@@ -124,6 +126,38 @@ export async function useSite(loaded: LoadedSite, policy?: unknown | null) {
     terrainShelters: st.shelters, terrainSheltersOutsideBand: st.sheltersOutsideBand, comms,
     shelters, crew: null, incident: null, routes: [], chosen: null, view: S().view === 'helmet' ? 'map' : S().view,
   })
+}
+
+/**
+ * Cells a crew on foot can stand on: walkable AND connected over walkable ground to the rover or habitat
+ * (they walked out from there). Returned as a "blocked" mask (1 = cannot stand here).
+ */
+function connectedMask(l: LoadedSite, blocked: Uint8Array, shelters: Shelter[]): Uint8Array {
+  const n = l.site.meta.core.na
+  const out = new Uint8Array(n * n).fill(1)
+  const q = new Int32Array(n * n)
+  let head = 0, tail = 0
+  for (const sh of shelters) {
+    const c = Math.min(n - 1, (sh.y / SIM.CELL) | 0) * n + Math.min(n - 1, (sh.x / SIM.CELL) | 0)
+    // seed at the nearest walkable cell of each shelter
+    let seed = -1
+    for (let r = 0; r < 20 && seed < 0; r++) for (let di = -r; di <= r && seed < 0; di++) for (let dj = -r; dj <= r; dj++) {
+      const k = c + di * n + dj
+      if (k >= 0 && k < n * n && !blocked[k]) { seed = k; break }
+    }
+    if (seed >= 0 && out[seed]) { out[seed] = 0; q[tail++] = seed }
+  }
+  if (tail === 0) return blocked
+  while (head < tail) {
+    const c = q[head++], i = (c / n) | 0, j = c - i * n
+    for (let di = -1; di <= 1; di++) for (let dj = -1; dj <= 1; dj++) {
+      const ii = i + di, jj = j + dj
+      if (ii < 0 || jj < 0 || ii >= n || jj >= n) continue
+      const k = ii * n + jj
+      if (out[k] && !blocked[k]) { out[k] = 0; q[tail++] = k }
+    }
+  }
+  return out
 }
 
 /** Habitat and rover: scenario positions on the bundled site; elsewhere the rover is assumed parked near the box centre. */
@@ -154,7 +188,9 @@ export function setCrew(x: number, y: number) {
   if (!l) return
   const size = l.site.meta.core.size
   x = Math.min(size - 3, Math.max(3, x)); y = Math.min(size - 3, Math.max(3, y))
-  set({ crew: snapWalkable(x, y) })
+  const c = snapWalkable(x, y)
+  const moved = Math.hypot(c.x - x, c.y - y)
+  set({ crew: c, note: moved > 15 ? `Moved ${Math.round(moved)} m to the nearest ground a crew can reach on foot from the rover (the clicked spot is too steep or cut off).` : null })
   if (S().incident) void plan()
 }
 

@@ -169,8 +169,12 @@ export default function LiveApp() {
         </div>
       </header>
 
-      <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-        <main className="relative min-h-[52vh] flex-1 lg:min-h-0">
+      <div className="flex shrink-0 items-center gap-2 border-b border-rule bg-bg px-3 py-1 text-[11.5px] text-ink3">
+        <span>Planning aid for crews on foot · not tested with a crew · runs entirely in your browser</span>
+        <span className="hidden items-center gap-1 md:flex"><KindGlyph kind="model" />model <KindGlyph kind="requirement" />requirement <KindGlyph kind="measured" />measured <KindGlyph kind="scenario" />scenario</span>
+      </div>
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto lg:flex-row lg:overflow-hidden">
+        <main className="relative h-[58vh] shrink-0 lg:h-auto lg:min-h-0 lg:flex-1 lg:shrink">
           <div className="absolute left-2 top-2 z-10 flex gap-1 rounded-md bg-black/60 p-1 backdrop-blur">
             {([['map', 'Map', MapIcon], ['3d', '3D', Box]] as const).filter(([v]) => v === 'map' || HAS.d3).map(([v, label, Icon]) => (
               <button key={v} onClick={() => setView(v)} data-testid={`view-${v}`}
@@ -179,6 +183,7 @@ export default function LiveApp() {
             {HAS.hud && <button disabled={!chosen} onClick={() => setView('helmet')} data-testid="view-helmet"
               className="flex h-8 items-center gap-1.5 rounded px-2.5 text-[13px] text-ink2 enabled:hover:text-ink disabled:opacity-40"><Compass size={14} />Helmet HUD</button>}
           </div>
+          {s.note && <div className="absolute bottom-12 left-1/2 z-10 w-[min(92%,520px)] -translate-x-1/2 rounded bg-black/75 px-3 py-1.5 text-center text-[12.5px] text-caution">{s.note}</div>}
           {!s.crew && <div className="pointer-events-none absolute bottom-12 left-1/2 z-10 -translate-x-1/2 rounded bg-black/70 px-3 py-1.5 text-[13px] text-ink">Click anywhere on the terrain to place the crew</div>}
           {s.phase === 'planning' && <div className="absolute left-1/2 top-3 z-10 -translate-x-1/2 rounded bg-black/70 px-3 py-1.5 text-[13px] text-accent">Planning routes and walking {s.mcN.toLocaleString('en-US')} virtual crews per route…</div>}
           {s.view === '3d'
@@ -188,16 +193,7 @@ export default function LiveApp() {
             : <Map2D site={l.site} desc={l.desc} routes={s.routes} crew={s.crew} shelters={s.shelters} bandOn={s.incident?.kind === 'quake'} alphaDeg={s.params.alphaDeg} onPick={setCrew} />}
         </main>
 
-        <aside className="w-full shrink-0 overflow-y-auto border-l border-rule bg-panel lg:w-[400px]" data-testid="panel">
-          <Section title="Terrain" right={HAS.anywhere && <button className="text-[12.5px] text-accent hover:underline" onClick={() => setPickerOpen(true)}>Change</button>}>
-            <div className="flex flex-wrap items-center gap-2"><span className="text-[14px] font-semibold">{l.desc.name}</span><GradeChip desc={l.desc} /></div>
-            <p className="mt-1 text-[12px] leading-snug text-ink3">{l.desc.source}. {l.desc.gradeReason} {l.desc.lat.toFixed(3)}°, {l.desc.lon.toFixed(3)}°E · {l.desc.sizeM / 1000} km box, {l.desc.cellM} m planner cells.</p>
-          </Section>
-
-          <Section title="Crew" right={s.crew && <span className="num text-[12px] text-ink3">x {Math.round(s.crew.x)} m · y {Math.round(s.crew.y)} m</span>}>
-            <p className="text-[13px] text-ink2">{s.crew ? 'Two crew on foot. Click the map to move them; the plan updates.' : 'Click the map to place the two crew on foot.'}</p>
-          </Section>
-
+        <aside className="w-full shrink-0 border-l border-rule bg-panel lg:w-[400px] lg:overflow-y-auto" data-testid="panel">
           <Section title="Incident" right={s.incident && <button className="flex items-center gap-1 text-[12.5px] text-ink3 hover:text-ink" onClick={clearIncident}><RotateCcw size={13} />Clear</button>}>
             <div className="grid grid-cols-2 gap-2">
               <button data-testid="storm" onClick={() => trigger('storm')} disabled={s.phase === 'planning'}
@@ -211,7 +207,7 @@ export default function LiveApp() {
                 <span className="text-[11.5px] leading-snug text-ink3">Rockfall band closes shelters</span>
               </button>
             </div>
-            {s.incident && <p className="mt-2 flex items-start gap-1.5 text-[12px] text-ink3"><KindGlyph kind="scenario" className="mt-1" />Triggered by you: a scenario input, not a live space-weather feed.</p>}
+            {s.incident && <p className="mt-2 flex items-start gap-1.5 text-[12px] text-ink3"><KindGlyph kind="scenario" className="mt-1" />Triggered by you (scenario). In operations the storm alert comes from the on-site dose-rate rule; the recorded run shows that path.</p>}
           </Section>
 
           {s.incident && (
@@ -222,6 +218,15 @@ export default function LiveApp() {
               {s.phase === 'planned' && !chosen && <p className="flex items-start gap-1.5 text-[13px] text-hazard"><AlertTriangle size={15} className="mt-0.5" />No walkable route to any open shelter from here under the hard slope limits. Move the crew.</p>}
             </Section>
           )}
+
+          <Section title="Terrain" right={HAS.anywhere && <button className="text-[12.5px] text-accent hover:underline" onClick={() => setPickerOpen(true)}>Change</button>}>
+            <div className="flex flex-wrap items-center gap-2"><span className="text-[14px] font-semibold">{l.desc.name}</span><GradeChip desc={l.desc} /></div>
+            <p className="mt-1 text-[12px] leading-snug text-ink3">{l.desc.source}. {l.desc.gradeReason} {l.desc.lat.toFixed(3)}°, {l.desc.lon.toFixed(3)}°E · {l.desc.sizeM / 1000} km box, {l.desc.cellM} m planner cells.</p>
+          </Section>
+
+          <Section title="Crew" right={s.crew && <span className="num text-[12px] text-ink3">x {Math.round(s.crew.x)} m · y {Math.round(s.crew.y)} m</span>}>
+            <p className="text-[13px] text-ink2">{s.crew ? 'Two crew on foot. Click the map to move them; the plan updates.' : 'Click the map to place the two crew on foot.'}</p>
+          </Section>
 
           <Section title="How this works">
             <ul className="space-y-1 text-[12px] leading-snug text-ink3">
