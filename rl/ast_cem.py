@@ -391,6 +391,7 @@ def main():
     ap.add_argument("--both", action="store_true")
     ap.add_argument("--sig-scale", type=float, default=1.0)
     ap.add_argument("--no-classes", action="store_true")
+    ap.add_argument("--refine-iters", type=int, default=15)
     ap.add_argument("--tag", default="")
     args = ap.parse_args()
     device = torch.device("cuda")
@@ -408,7 +409,8 @@ def main():
                 routes.append(dict(route=case.routes[r]["id"], shelter=case.routes[r]["shelter"], infeasible=True, nominal=nom,
                                    best_log_p=None, robustness_nats=None))
                 continue
-            res, p = run_route(case, r, nominal, terminal, args.seeds, args.iters, args.pop, args.sig_scale, classes=not args.no_classes)
+            res, p = run_route(case, r, nominal, terminal, args.seeds, args.iters, args.pop, args.sig_scale, classes=not args.no_classes,
+                               refine_iters=args.refine_iters)
             res["nominal"] = nom
             routes.append(res); pts["r%d" % r] = p
             print("  => %s: robustness %.2f nats; top failures: %s" % (
@@ -417,7 +419,7 @@ def main():
         name = "cem_%s_%s%s" % (args.scenario, cfg_name(terminal), args.tag)
         with open(os.path.join(RUNS, name + ".json"), "w") as f:
             json.dump(dict(scenario=args.scenario, config=cfg_name(terminal), sig_scale=args.sig_scale, pop=args.pop, iters=args.iters,
-                           seeds=args.seeds, R_E=R_E, routes=routes, failure_definitions=A.FAILURE_DEFS, assumptions=A.ASSUMPTIONS),
+                           seeds=args.seeds, refine_iters=args.refine_iters, R_E=R_E, routes=routes, failure_definitions=A.FAILURE_DEFS, assumptions=A.ASSUMPTIONS),
                       f, default=float)
         np.savez_compressed(os.path.join(RUNS, name + ".npz"), **pts)
 

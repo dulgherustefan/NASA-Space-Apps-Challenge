@@ -66,7 +66,7 @@ def engine_check(n=20000):
     return out
 
 
-def sensitivity(scenario="S1", scales=(0.7, 1.3), iters=20, pop=2048, seeds=(0, 1)):
+def sensitivity(scenario="S1", scales=(0.7, 1.3), iters=20, pop=2048, seeds=(0, 1, 2)):
     import ast_cem as C
     device = torch.device("cuda")
     case = Case(scenario, device)
@@ -79,8 +79,8 @@ def sensitivity(scenario="S1", scales=(0.7, 1.3), iters=20, pop=2048, seeds=(0, 
                 if not A.feasible(nominal[r]):
                     rows.append(None)
                     continue
-                res = C.cem_multi(case, r, nominal, [dict(seed=s, adapt=True) for s in seeds], terminal, sc, iters, pop, verbose=False)
-                best = max([q["best_log_p"] for q in res if q["best_log_p"] is not None], default=None)
+                res, _ = C.run_route(case, r, nominal, terminal, list(seeds), iters, pop, sig_scale=sc, classes=False, refine_iters=10)
+                best = res["best_log_p"]
                 rows.append(None if best is None else -best)
                 print("sigma x%.1f %s %s: %s nats" % (sc, C.cfg_name(terminal), case.route_name(r), None if best is None else round(-best, 2)), flush=True)
             out["%s|%.1f|%s" % (scenario, sc, C.cfg_name(terminal))] = rows
@@ -157,10 +157,10 @@ def write_extra():
         se = _load("eval_sensitivity_%s.json" % scn)
         if not se:
             continue
-        w("## Sensitivity to the assumed disturbance scales (%s, CEM)" % scn)
+        w("## Sensitivity to the assumed disturbance scales (%s, random search + CEM restarts)" % scn)
         w("")
         w("All Gaussian disturbance scales multiplied by 0.7 and 1.3 (stumble and injury probabilities unchanged). Robustness in nats per route index; "
-          "`None` = infeasible without any disturbance.")
+          "`-` = infeasible without any disturbance, or no failure found above the search floor of -100 nats.")
         w("")
         w("| Sigma scale | Configuration | Robustness per route (nats) | Order of the scored routes |")
         w("|---|---|---|---|")
@@ -205,6 +205,9 @@ def write_extra():
                 re_rows.append((val, cfg, [None if (q is None or q["best_log_p"] is None) else -q["best_log_p"] for q in d["routes"]]))
     if len({v for v, _, _ in re_rows}) > 1:
         w("## Sensitivity of the PPO adversary to R_E (S1)")
+        w("")
+        w("Separate short runs (100 updates, 26M simulator steps per adversary, three seeds each); the value is the best seed. "
+          "The reward for a found failure is R_E; the best failure found moves by less than half a nat across the three values.")
         w("")
         w("| R_E | Configuration | Robustness per route (nats, best seed) |")
         w("|---|---|---|")

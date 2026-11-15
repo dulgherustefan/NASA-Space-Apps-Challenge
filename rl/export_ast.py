@@ -142,8 +142,26 @@ def _best_at(curve, budget, col=1):
     return best
 
 
-def _nf(v):
-    return "no failure found above the search floor (log-likelihood -100 nats)" if v is None else ("%.2f" % v)
+def _clean(o):
+    """Plain JSON only: NaN and infinities become null, numpy scalars become Python numbers."""
+    if isinstance(o, dict):
+        return {str(k): _clean(v) for k, v in o.items()}
+    if isinstance(o, (list, tuple)):
+        return [_clean(v) for v in o]
+    if isinstance(o, (np.floating, float)):
+        o = float(o)
+        return o if math.isfinite(o) else None
+    if isinstance(o, np.integer):
+        return int(o)
+    if isinstance(o, np.ndarray):
+        return _clean(o.tolist())
+    return o
+
+
+def _nf(v, searched=True):
+    if v is None and not searched:
+        return "not searched"
+    return "no failure found above the search floor (log-likelihood -100 nats)" if v is None else ("%.1f" % v)
 
 
 def _radius(f):
@@ -238,7 +256,10 @@ def assemble(scenarios=("S1", "S2", "S3")):
                     d["monte_carlo"] = dict(n=m["n"], fail_rate=round(m["fail_rate"], 6), ci=[round(v, 6) for v in m["ci"]],
                                             classes={k: round(v / m["n"], 6) for k, v in m["classes"].items()}, sim_steps=m["sim_steps"],
                                             best_log_p=m["best_log_p"], best_log_p_without_pace_noise=m["best_log_p_events"])
-                d["robustness_nats"] = None if S["rob"][c][r] is None else round(S["rob"][c][r], 2)
+                d["searched"] = bool(cem[c]) or bool(ppo[c] and ppo[c]["routes"][r])
+                # one decimal: the spread between seeds of the same search is larger than 0.05 nat
+                d["robustness_nats"] = None if S["rob"][c][r] is None else round(S["rob"][c][r], 1)
+                d["robustness_nats_unrounded"] = None if S["rob"][c][r] is None else round(S["rob"][c][r], 3)
                 d["method"] = S["meth"][c][r]
                 if cem[c] and not cem[c]["routes"][r].get("infeasible"):
                     q = cem[c]["routes"][r]
@@ -257,6 +278,7 @@ def assemble(scenarios=("S1", "S2", "S3")):
             entry["headline_configuration"] = headline
             entry["robustness_nats"] = h["robustness_nats"] if feas else None
             entry["robustness_nats_other_configuration"] = cfgs[other]["robustness_nats"] if feas else None
+            entry["other_configuration_searched"] = cfgs[other]["searched"]
             entry["method"] = (h["method"] or "mc") if feas else "mc"
             if "monte_carlo" in h:
                 entry["mc_fail_rate"] = h["monte_carlo"]["fail_rate"]; entry["mc_ci"] = h["monte_carlo"]["ci"]
@@ -349,21 +371,21 @@ def assemble(scenarios=("S1", "S2", "S3")):
     methods = sorted({e["method"] for s_ in results.values() for e in s_["routes"].values() if not e["infeasible"]})
     doc["method"] = "ppo-ast" if methods == ["ppo-ast"] else ("cem" if "cem" in methods else (methods[0] if methods else "mc"))
     with open(os.path.join(OUT, "ast_results.json"), "w", encoding="utf8") as f:
-        json.dump(doc, f, separators=(",", ":"))
+        json.dump(_clean(doc), f, separators=(",", ":"), allow_nan=False)
     with open(os.path.join(OUT, "routes.json"), "w", encoding="utf8") as f:
-        json.dump(dict(common, note="Candidate routes per scenario as planned by rl/planner.py through the engine; the stress test walks "
+        json.dump(_clean(dict(common, note="Candidate routes per scenario as planned by rl/planner.py through the engine; the stress test walks "
                                     "exactly these. time_s is the undisturbed walker of the stress-test simulator, engine_time_s the "
-                                    "engine's polyline walker.", scenarios=routes_doc), f, separators=(",", ":"))
+                                    "engine's polyline walker.", scenarios=routes_doc)), f, separators=(",", ":"), allow_nan=False)
     with open(os.path.join(OUT, "ast_training.json"), "w", encoding="utf8") as f:
-        json.dump(dict(common, axes=dict(x="simulator steps (10 s decisions) used by the search", y="log-likelihood of the most likely "
+        json.dump(_clean(dict(common, axes=dict(x="simulator steps (10 s decisions) used by the search", y="log-likelihood of the most likely "
                                          "failure found so far (nats, higher = more likely failure)"),
                        note="Plain Monte Carlo pays about 0.5 nat per step for its own pace noise, so its curve is also given without "
                             "that term (curve_without_pace_noise). Random search samples the same disturbance script as CEM from a "
-                            "fixed distribution.", scenarios=training), f, separators=(",", ":"))
+                            "fixed distribution.", scenarios=training)), f, separators=(",", ":"), allow_nan=False)
     with open(os.path.join(OUT, "ast_baselines.json"), "w", encoding="utf8") as f:
-        json.dump(dict(common, note="Best failure log-likelihood (nats) found within each simulator-step budget, one value per seed; "
+        json.dump(_clean(dict(common, note="Best failure log-likelihood (nats) found within each simulator-step budget, one value per seed; "
                                     "null = no failure found within that budget or the run was shorter.",
-                       budgets=BUDGETS, scenarios=baselines), f, separators=(",", ":"))
+                       budgets=BUDGETS, scenarios=baselines)), f, separators=(",", ":"), allow_nan=False)
     plots(training, baselines, results, headline)
     report(doc, training, baselines, summary, headline, spread)
     for scn in have:
@@ -424,22 +446,25 @@ def plots(training, baselines, results, headline):
         ax.axis("on")
         tab = baselines[scn][key][c]
         ms = [m for m in ("mc", "random_search", "cem", "cem_restart", "ppo-ast") if m in tab]
-        budget = min([min(tab[m]["sim_steps"]) for m in ms if tab[m]["sim_steps"]] or [1e6])
         for i, m in enumerate(ms):
             runs = training[scn][key][c][m]
-            vals = [_best_at(x["curve"], budget) for x in runs]
+            vals = [_best_at(x["curve"], 1e30) for x in runs]
             vals = [v for v in vals if v is not None]
             if vals:
                 ax.bar(i, -np.mean(vals), color=col[m], alpha=0.85)
                 ax.scatter([i] * len(vals), [-v for v in vals], color="k", s=10, zorder=3)
+                ax.annotate("%.0fM" % (np.mean(tab[m]["sim_steps"]) / 1e6), (i, -np.mean(vals)), ha="center", va="bottom", fontsize=7,
+                            xytext=(0, 3), textcoords="offset points")
         ax.set_xticks(range(len(ms))); ax.set_xticklabels([lab[m].replace(" (nominal noise)", "") for m in ms], fontsize=7, rotation=12)
         if not ax.patches:
             ax.text(0.5, 0.5, "no failure found by any search", ha="center", va="center", transform=ax.transAxes, fontsize=9)
         ax.set_ylabel("nats to the most likely failure found")
-        ax.set_title("%s route %s (%s), %s\nequal budget %.1fM steps (lower = stronger search)" % (
-            scn, key, results[scn]["routes"][key]["shelter"], c.replace("_", " "), budget / 1e6), fontsize=8)
+        ax.set_title("%s route %s (%s), %s\n(lower = stronger search)" % (
+            scn, key, results[scn]["routes"][key]["shelter"], c.replace("_", " ")), fontsize=8)
         ax.grid(alpha=0.25, axis="y")
-    fig.suptitle("Equal-budget comparison; dots are seeds. Model-based, team-assumed disturbance distributions.", fontsize=9)
+    fig.suptitle("Most likely failure found by each search at the end of its run; dots are seeds, the number on a bar is the simulator steps used "
+                 "per seed (millions).\nBudget-by-budget values are in ast_baselines.json. Monte Carlo counts its own pace noise. "
+                 "Model-based, team-assumed disturbance distributions.", fontsize=8)
     fig.tight_layout()
     fig.savefig(os.path.join(OUT, "baselines_ast.png"), dpi=130)
     plt.close(fig)
@@ -465,6 +490,28 @@ def report(doc, training, baselines, summary, headline, spread):
     w("- Disturbance channels: " + "; ".join("%s (%s)" % (k, v) for k, v in doc["disturbance_bounds"].items()) + ".")
     w("- Two configurations: " + "; ".join("`%s`: %s" % (k, v) for k, v in doc["configurations"].items()) + ".")
     w("- Headline configuration: `%s`. Rule: %s" % (headline, doc["headline_rule"]))
+    w("")
+    w("Budgets and seeds:")
+    w("")
+    for scn, S in summary.items():
+        bits = []
+        m = next((x for x in S["mc"].values() if x), None)
+        if m:
+            bits.append("Monte Carlo %d rollouts per route and configuration (seed %d)" % (m["routes"][0]["n"], m["seed"]))
+        c_ = next((x for x in S["cem"].values() if x), None)
+        if c_:
+            bits.append("random search and CEM %d iterations x %d scripts, seeds %s; CEM restarts refine the 3 most likely distinct "
+                        "failures of each random-search seed for %d iterations; one class-restricted CEM per failure class" % (
+                            c_["iters"], c_["pop"], ", ".join(str(q) for q in c_["seeds"]), c_.get("refine_iters", 15)))
+        p_ = next((x for x in S["ppo"].values() if x), None)
+        if p_:
+            bits.append("PPO adversary %d walkers x %d steps x %d updates = %.0fM simulator steps per route and seed, seeds %s, R_E %.0f, "
+                        "gamma %.3g, %s; the shipped seed is the one with the most likely failure on fresh-seed rollouts" % (
+                            p_["envs"], p_["rollout"], p_["updates"], p_["envs"] * p_["rollout"] * p_["updates"] / 1e6,
+                            ", ".join(str(q) for q in p_["seeds"]), p_["R_E"], p_["gamma"], p_["network"]))
+        else:
+            bits.append("no PPO adversary run")
+        w("- %s: %s." % (scn, "; ".join(bits)))
     w("")
     w("Failure definitions (team assumptions):")
     w("")
@@ -501,7 +548,7 @@ def report(doc, training, baselines, summary, headline, spread):
             else:
                 w("| %s %s | %.1f min%s | %s | %s | %s | %s | %s |" % (
                     key, e["label"], nom["time_s"] / 60, "" if nom["slack_s"] is None else ", %.1f min spare" % (nom["slack_s"] / 60), mcs,
-                    _nf(e["robustness_nats"]), _nf(e["robustness_nats_other_configuration"]),
+                    _nf(e["robustness_nats"]), _nf(e["robustness_nats_other_configuration"], e.get("other_configuration_searched", True)),
                     e["failures"][0]["summary"] if e["failures"] else "none found", e["method"]))
         w("")
         for key, e in res["routes"].items():
@@ -537,6 +584,15 @@ def report(doc, training, baselines, summary, headline, spread):
         "Non-adversarial randomness (terrain-noise seed, recovery time after a stumble) is sampled in Monte Carlo and fixed at its "
         "nominal value in the adversarial searches, so that every reported failure replays exactly.",
         "The 1 m DTM has no footstep-scale terrain; the loose-sand layer is an image proxy.",
+        "The \"most likely failure\" is the highest-density failure, not the most frequent one: a failure that needs one precise "
+        "navigation error can score few nats and still be rare in Monte Carlo. Read robustness next to the Monte Carlo rate.",
+        "The crew protocol in the stress-test simulator (re-localise after a blocked move or 90 s without progress, then follow the "
+        "plan cell by cell) is a team assumption; without it the adversary finds freezes of the path follower instead of crew failures.",
+        "The reported failures were replayed in the same simulator only. They were not replayed in the TypeScript reference model "
+        "(`reference/ts_engine/sim.ts`); the cross-check against the engine's walker is a comparison of Monte Carlo rates.",
+        "A search floor applies: a failure less likely than 100 nats (R_E) counts as not found.",
+        "Robustness is an upper bound from a finite search: a more likely failure that no search found may exist. The per-seed "
+        "values above show how often each search reached the reported one.",
     ]:
         w("- " + line)
     w("")
@@ -571,18 +627,30 @@ def findings(doc, baselines, summary, headline, spread):
             big = lambda v: 1e9 if v is None else v          # no failure found ranks above any finite value
             order_h = sorted(feas, key=lambda q: -big(q[1]["robustness_nats"]))
             order_o = sorted(feas, key=lambda q: -big(q[1]["robustness_nats_other_configuration"]))
-            out.append("%s ranking by robustness (`%s`): %s. Other configuration: %s. %s" % (
-                scn, headline, " > ".join("%s (%s)" % (e["label"], _nf(e["robustness_nats"])) for _, e in order_h),
-                " > ".join("%s (%s)" % (e["label"], _nf(e["robustness_nats_other_configuration"])) for _, e in order_o),
-                "The ranking is the same in both configurations." if [k for k, _ in order_h] == [k for k, _ in order_o]
-                else "The ranking differs between the configurations."))
+            vh = [big(e["robustness_nats"]) for _, e in feas]; vo = [big(e["robustness_nats_other_configuration"]) for _, e in feas]
+
+            def line(order, vals, key, srch):
+                if min(vals) >= 1e9:
+                    return "no failure found for any scored route above the search floor (log-likelihood -100 nats)"
+                if max(vals) - min(vals) < 0.3:
+                    return "the routes are not separated (%s; differences under 0.3 nat are within the spread between seeds)" % ", ".join(
+                        "%s %s" % (e["label"], _nf(e[key], e.get("other_configuration_searched", True) if srch else True)) for _, e in order)
+                return " > ".join("%s (%s)" % (e["label"], _nf(e[key], e.get("other_configuration_searched", True) if srch else True)) for _, e in order)
+            sep_h = max(vh) - min(vh) >= 0.3; sep_o = max(vo) - min(vo) >= 0.3
+            tail = ""
+            if sep_h and sep_o:
+                tail = " The ranking is the same in both configurations." if [k for k, _ in order_h] == [k for k, _ in order_o] \
+                    else " The ranking differs between the configurations."
+            out.append("%s by robustness (`%s`): %s. Other configuration: %s.%s" % (
+                scn, headline, line(order_h, vh, "robustness_nats", False),
+                line(order_o, vo, "robustness_nats_other_configuration", True), tail))
             cls = {e["failures"][0]["class"] for _, e in feas if e["failures"]}
             if len(cls) == 1:
                 out.append("%s: every scored route has the same most likely failure class (%s)." % (scn, list(cls)[0]))
         elif len(feas) == 1:
             k, e = feas[0]
             out.append("%s: one route can be scored (%s): %s nats (`%s`), %s (other configuration)." % (
-                scn, e["label"], _nf(e["robustness_nats"]), headline, _nf(e["robustness_nats_other_configuration"])))
+                scn, e["label"], _nf(e["robustness_nats"]), headline, _nf(e["robustness_nats_other_configuration"], e.get("other_configuration_searched", True))))
     # method comparison (final best failure log-likelihood per seed)
     names = {"mc": "Monte Carlo", "random_search": "random search", "cem": "CEM", "cem_restart": "CEM restarts", "ppo-ast": "PPO adversary"}
     tally = {}
