@@ -4,6 +4,7 @@
   "Suit & physiology",
   "Rockfall",
   "Radiation",
+  "Communications",
   "Simulation"
  ],
  "params": [
@@ -412,6 +413,48 @@
    "min": 0.2,
    "max": 0.45,
    "step": 0.01
+  },
+  {
+   "key": "antHabitatM",
+   "label": "Habitat antenna height",
+   "value": 6,
+   "unit": "m",
+   "kind": "assumption",
+   "group": "Communications",
+   "note": "Height above the ground of the habitat radio mast, for the line-of-sight layer.",
+   "source": "Team assumption",
+   "url": "",
+   "min": 2,
+   "max": 15,
+   "step": 1
+  },
+  {
+   "key": "antRoverM",
+   "label": "Rover antenna height",
+   "value": 3,
+   "unit": "m",
+   "kind": "assumption",
+   "group": "Communications",
+   "note": "Height above the ground of the rover antenna, for the line-of-sight layer.",
+   "source": "Team assumption",
+   "url": "",
+   "min": 1,
+   "max": 6,
+   "step": 0.5
+  },
+  {
+   "key": "antCrewM",
+   "label": "Suit antenna height",
+   "value": 1.8,
+   "unit": "m",
+   "kind": "assumption",
+   "group": "Communications",
+   "note": "Height above the ground of the antenna on a suit backpack.",
+   "source": "Team assumption",
+   "url": "",
+   "min": 1,
+   "max": 2.5,
+   "step": 0.1
   },
   {
    "key": "reactS",

@@ -25,6 +25,8 @@ function rewind() {
   if (!rec) return
   stop()
   setReplayFiles(null)
+  // the hello makes the page fetch parameters, the training curve and the arrival views, so the files come first
+  for (const [t, m] of rec.frames) { if (t > 0) break; if (m.type === '_files') setReplayFiles(m.map) }
   handle(rec.hello)
   idx = 0
   elapsed = 0

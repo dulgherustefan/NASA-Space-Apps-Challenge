@@ -19,8 +19,10 @@ The dashboard during the scripted solar particle event. Right: where to go, the 
 shelter rule, the heading, and what is left on arrival. Centre: the map with the chosen route. Left: the incident and
 what it changed. Every figure is labelled as measured, model, requirement, assumption or scenario.
 
+<img src="docs/img/dashboard_field.png" alt="The same screen on a tablet: one column" width="360">
+
 The same screen has three widths: both side panels on a habitat display, one panel on a laptop, and a single column
-with large targets on a tablet. A recorded run of the demo plays in a browser with no engine
+with large targets on a tablet (above). A recorded run of the demo plays in a browser with no engine
 (`npm run build:web`, see below).
 
 ![The 3D view: two crew members walk the chosen route](docs/img/scene.jpg)
@@ -164,7 +166,25 @@ editor, press Play, then start the demo from the dashboard.
 
 The adversary is trained on a separate machine; the task is in `rl/TASK.md`. If `data/ast/ast_results.json` exists, the
 engine serves its numbers with source `data/ast`. Otherwise the engine runs a small local Monte Carlo and labels it
-"local preview". In this checkout `data/ast/` is empty, so the engine uses the local preview.
+"local preview".
+
+This checkout carries the results of that run (`data/ast/`, summary in `data/ast/REPORT.md`): 200,000 Monte Carlo walks
+per route for the solar particle event and the marsquake and 100,000 for the sortie, a cross-entropy search with
+restarts, and a PPO adversary, three seeds each. What it found:
+
+| Incident | Route | Monte Carlo failure rate | Robustness (nats) | Most likely failure found |
+|---|---|---|---|---|
+| Solar particle event | Terrain shelter A | 0.59 % | 7.8 | Incapacitating fall on a 21° slope |
+| Solar particle event | Terrain shelter C | 1.23 % | 4.8 | Late: navigation off by 143 m |
+| Solar particle event | Rover, Habitat | 100 % | not scored | Too far to reach in time even with no disturbance |
+| Marsquake | Rover | 34.5 % | 0.7 | Late: navigation off by 24 m |
+| Science sortie | Both variants | 0.52 % and 0.54 % | 9.3 | Incapacitating fall on a 24° slope |
+
+The PPO adversary did not beat the cross-entropy search in any of 21 seed-by-seed comparisons, so the cross-entropy
+search is the reported method and PPO is listed as it is. The two sortie variants are not separated by the test. The
+batched simulator used for the search and the engine's own walker disagree on how often a walker is late (34.5 % against
+19.7 % on the marsquake route); the table is in the report. All of it is model output from one walk model with
+disturbance distributions that are team assumptions.
 
 ## Repository map
 
@@ -178,7 +198,7 @@ engine serves its numbers with source `data/ast`. Otherwise the engine runs a sm
 | `pipeline/` | `10_build_site.py`: builds the terrain and hazard grids in `data/site/` from the NASA and USGS rasters |
 | `data/site/` | Processed terrain, orthoimages and hazard layers, with `meta.json`; `weather_analogue.json` |
 | `data/scenario/` | Scripted incidents and mission (`mission.json`, `sep-1.json`, `quake-1.json`, `sci-1.json`) |
-| `data/ast/` | Stress-test results from the offline run (empty in this checkout) |
+| `data/ast/` | Stress-test results from the offline run, with `REPORT.md` |
 | `data/exploration_zones_2015.txt` | Text of the first announcement of the 2015 landing-site and exploration-zone workshop, kept as background |
 | `runtime/` | Files the engine writes while running (routes, trajectories, overlays, parameters) |
 | `unreal_import/` | Generated inputs for Unreal (heightmaps, drape textures, meshes, scene layout) |
@@ -240,7 +260,7 @@ the Earth rock scans and ground textures, and the positions of boulders in the r
 
 - One site and three scripted incidents. Planning for another place needs new terrain data and a new scenario.
 - Results are model-based. Fall rate, fall injury chance, suit mass, the sand penalty and the disturbance bounds are team assumptions.
-- The stress test is only as good as the walk model. If `data/ast/` is empty, failure rates come from a small local Monte Carlo and there is no robustness figure.
+- The stress test is only as good as the walk model. Robustness is an upper bound from a finite search: a more likely failure that no search found may exist. If `data/ast/` is removed, failure rates come from a small local Monte Carlo and there is no robustness figure.
 - High-resolution elevation covers the 4 × 4 km core box. Beyond it the terrain is CTX with coarser cells. `data/site/meta.json` records a CTX offset of 10.9 m and a residual RMS of 38.6 m against the HiRISE DTM.
 - The slope limit is a requirement borrowed from lunar suits, not established for Mars. The sand layer is an image proxy.
 - The marsquake is a scenario at Melas Chasma. The rockfall response it uses was observed at Cerberus Fossae.
