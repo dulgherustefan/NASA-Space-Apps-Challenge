@@ -16,8 +16,8 @@ interface TrainingFile {
   scenarios: Record<string, Record<string, Record<string, Methods>>>
 }
 
-const METHOD_NAME: Record<string, string> = { mc: 'Monte Carlo', random: 'Random search', cem: 'Cross-entropy', ppo: 'PPO adversary', 'ppo-ast': 'PPO adversary' }
-const METHOD_COLOR: Record<string, string> = { mc: 'var(--color-ink3)', random: 'var(--color-data)', cem: 'var(--color-accent)', ppo: 'var(--color-safe)', 'ppo-ast': 'var(--color-safe)' }
+const METHOD_NAME: Record<string, string> = { mc: 'Monte Carlo', random: 'Random search', random_search: 'Random search', cem: 'Cross-entropy', cem_restart: 'Cross-entropy with restarts', ppo: 'PPO adversary', 'ppo-ast': 'PPO adversary' }
+const METHOD_COLOR: Record<string, string> = { mc: 'var(--color-ink3)', random: 'var(--color-data)', random_search: 'var(--color-data)', cem: 'var(--color-accent)', cem_restart: 'var(--color-k-scenario)', ppo: 'var(--color-safe)', 'ppo-ast': 'var(--color-safe)' }
 const CONFIG_NAME: Record<string, string> = { falls_terminal: 'A fall ends the walk', falls_penalty: 'A fall costs time and energy' }
 
 function isTraining(d: unknown): d is TrainingFile {
@@ -91,7 +91,7 @@ function Curves({ file }: { file: TrainingFile }) {
           </div>
           <p className="mt-2 text-[12px] leading-snug text-ink3">
             Across: {file.axes?.x ?? 'simulator steps used by the search'} (log scale). Up: {file.axes?.y ?? 'log-likelihood of the most likely failure found so far, in nats'}.
-            Every method gets the same budget of simulator steps. Model output from data/ast/ast_training.json.
+            Each curve runs as far as the simulator steps that search used. Model output from data/ast/ast_training.json.
           </p>
         </>
       )}
