@@ -1,0 +1,1655 @@
+{
+ "generated": "2026-11-14 19:26",
+ "ai_generated": true,
+ "what": "Reinforcement-learning walking policy for the virtual crews (pacing + local steering of a point walker; routes come from the Dijkstra planner). Trained with PPO in a PyTorch mirror of app/src/engine/sim.ts; numbers below are simulation results of our own model, not NASA data.",
+ "exported_run": "run1",
+ "training": {
+  "config": {
+   "envs": 8192,
+   "rollout": 128,
+   "updates": 300,
+   "gamma": 0.995,
+   "lam": 0.95,
+   "clip": 0.2,
+   "ent0": 0.01,
+   "ent1": 0.003,
+   "lr": 0.0003,
+   "lr_end": 3e-05,
+   "epochs": 4,
+   "minibatches": 32,
+   "vf_coef": 0.5,
+   "max_grad": 0.5,
+   "rew_scale": 0.1,
+   "target_kl": 0.03,
+   "hidden": [
+    64,
+    64
+   ],
+   "seed": 1,
+   "fields": 222,
+   "state_dtype": "float64",
+   "value_clip": false,
+   "critic": "MLP 53->256->256->1 (tanh), training only, privileged inputs",
+   "policy": "MLP 44->64->64->10 (tanh), two categorical heads",
+   "reward": {
+    "progress": 0.016666666666666666,
+    "time": 0.08333333333333333,
+    "dose": 0.025,
+    "heat": 0.03,
+    "fall": 1.0,
+    "blocked": 0.2,
+    "band": 0.05,
+    "arrive": 10.0,
+    "in_rule": 5.0,
+    "casualty": -15.0,
+    "timeout": -10.0,
+    "progress_clip": 10.0
+   },
+   "scenario_sampling": {
+    "p_sep": 0.6,
+    "sep_elapsed_max": 2400.0,
+    "deadline": 1800.0,
+    "p_dust": 0.2,
+    "dust_lo": 0.2,
+    "dust_hi": 1.0,
+    "heat_max": 250.0,
+    "o2_lo": 0.25,
+    "o2_hi": 0.6,
+    "fall_mul": [
+     0.6,
+     1.6
+    ],
+    "cool_mul": [
+     0.85,
+     1.1
+    ],
+    "terr_err": 0.25,
+    "terr_err_dust": 0.35,
+    "start_spread": 4.0
+   },
+   "goals": [
+    [
+     "A",
+     2598.0,
+     1858.0
+    ],
+    [
+     "C",
+     2343.0,
+     2083.0
+    ],
+    [
+     "R",
+     1700.0,
+     2600.0
+    ],
+    [
+     "H",
+     700.0,
+     3300.0
+    ],
+    [
+     "T0",
+     3982.5,
+     2.5
+    ],
+    [
+     "T1",
+     3997.5,
+     67.5
+    ],
+    [
+     "T2",
+     3937.5,
+     2.5
+    ],
+    [
+     "T3",
+     3997.5,
+     127.5
+    ],
+    [
+     "T4",
+     3997.5,
+     227.5
+    ],
+    [
+     "T5",
+     3997.5,
+     872.5
+    ],
+    [
+     "T7",
+     952.5,
+     1482.5
+    ],
+    [
+     "T9",
+     3512.5,
+     1762.5
+    ],
+    [
+     "T10",
+     3247.5,
+     1662.5
+    ],
+    [
+     "T11",
+     2877.5,
+     1822.5
+    ],
+    [
+     "T12",
+     2907.5,
+     1992.5
+    ],
+    [
+     "T13",
+     3882.5,
+     517.5
+    ],
+    [
+     "T14",
+     3492.5,
+     1717.5
+    ],
+    [
+     "T15",
+     3472.5,
+     1687.5
+    ],
+    [
+     "W0",
+     3402.5,
+     1022.5
+    ],
+    [
+     "W1",
+     1692.5,
+     792.5
+    ],
+    [
+     "W2",
+     2107.5,
+     3387.5
+    ],
+    [
+     "W3",
+     3267.5,
+     3072.5
+    ],
+    [
+     "W4",
+     2327.5,
+     2237.5
+    ],
+    [
+     "W5",
+     2882.5,
+     3692.5
+    ],
+    [
+     "W6",
+     642.5,
+     2027.5
+    ],
+    [
+     "W7",
+     767.5,
+     2652.5
+    ],
+    [
+     "W8",
+     1292.5,
+     882.5
+    ],
+    [
+     "W9",
+     3852.5,
+     182.5
+    ],
+    [
+     "W10",
+     1977.5,
+     1012.5
+    ],
+    [
+     "W11",
+     907.5,
+     792.5
+    ],
+    [
+     "W12",
+     2707.5,
+     3162.5
+    ],
+    [
+     "W13",
+     3307.5,
+     1882.5
+    ],
+    [
+     "W14",
+     792.5,
+     792.5
+    ],
+    [
+     "W15",
+     577.5,
+     1537.5
+    ],
+    [
+     "W16",
+     827.5,
+     1697.5
+    ],
+    [
+     "W17",
+     3332.5,
+     3942.5
+    ],
+    [
+     "W18",
+     1582.5,
+     3032.5
+    ],
+    [
+     "W19",
+     967.5,
+     3537.5
+    ],
+    [
+     "W20",
+     1812.5,
+     3172.5
+    ],
+    [
+     "W21",
+     3092.5,
+     1802.5
+    ],
+    [
+     "W22",
+     3132.5,
+     322.5
+    ],
+    [
+     "W23",
+     612.5,
+     3642.5
+    ]
+   ],
+   "hazard_states": "band standing (alpha 27.8) + band active with alpha in {21.8, 24, 26, 27.8, 31.4}",
+   "domain_randomisation": "fallPerKm x U(0.6,1.6), coolW x U(0.85,1.1), alphaDeg via the hazard bank; terrainError = 0.25 + 0.35*dust as in worker.ts"
+  },
+  "total_env_steps": 157286400,
+  "updates": 150,
+  "wall_clock_s": 693.1,
+  "device": "NVIDIA GeForce RTX 5070 Ti Laptop GPU",
+  "final_metrics_mean_last_10_updates": {
+   "fps": 285893.8,
+   "entropy": 0.97464,
+   "kl": 0.0012,
+   "ploss": -0.00011,
+   "vloss": 0.16848,
+   "explained_var": 0.99623,
+   "episodes": 6288.8,
+   "ret": 193.73134,
+   "len": 166.71031,
+   "arrive": 0.97652,
+   "incap": 0.02336,
+   "heat": 0.0,
+   "o2": 0.0,
+   "timeout": 0.00013,
+   "stuck": 0.0,
+   "in_rule": 0.5544,
+   "falls": 0.88867,
+   "t_arrive_min": 28.01428,
+   "dose": 212.19301,
+   "band_min": 11.736,
+   "plan_min": 44.81468
+  }
+ },
+ "parity": {
+  "planner": {
+   "grid_max_abs_diff": {
+    "z": 0.0,
+    "slope": 0.0,
+    "rough": 0.0,
+    "sand": 0.0,
+    "beta": 0.0,
+    "sky": 0.0,
+    "keepout_cells_diff": 0,
+    "blocked_cells_diff": 0
+   },
+   "shelters": {
+    "n_py": 16,
+    "n_ts": 16,
+    "max_xy_diff": 0.0,
+    "cells_equal": true
+   },
+   "fields": {
+    "A_standing": {
+     "cost_max_abs": 0.0,
+     "time_max_abs": 0.0,
+     "gx_max_abs": 0.0,
+     "gy_max_abs": 0.0,
+     "next_diff_pct": 0.0,
+     "cost_inf_mismatch": 0
+    },
+    "R_active278": {
+     "cost_max_abs": 0.0,
+     "time_max_abs": 0.0,
+     "gx_max_abs": 0.0,
+     "gy_max_abs": 0.0,
+     "next_diff_pct": 0.0,
+     "cost_inf_mismatch": 0
+    },
+    "H_active218": {
+     "cost_max_abs": 0.0,
+     "time_max_abs": 0.0,
+     "gx_max_abs": 0.0,
+     "gy_max_abs": 0.0,
+     "next_diff_pct": 0.0,
+     "cost_inf_mismatch": 0
+    }
+   }
+  },
+  "env": {
+   "R_active/float64": {
+    "one_step": {
+     "samples": 102400,
+     "obs_max_abs": 2.9802322387695312e-08,
+     "obs_elems_gt_1e3": 0,
+     "state_max_abs": {
+      "x": 0.0,
+      "y": 0.0,
+      "heat": 0.0,
+      "o2": 0.0,
+      "dose": 0.0
+     },
+     "int_mismatch": {
+      "falls": 0,
+      "blockedRun": 0,
+      "status": 0
+     }
+    },
+    "free_run": {
+     "agent_steps": 37815,
+     "steps": 200,
+     "max_abs": {
+      "x": 0.0,
+      "y": 0.0,
+      "heat": 0.0,
+      "o2": 0.0,
+      "dose": 0.0
+     },
+     "status_mismatch": 0
+    }
+   },
+   "R_active/float32": {
+    "one_step": {
+     "samples": 102400,
+     "obs_max_abs": 2.0,
+     "obs_elems_gt_1e3": 29,
+     "state_max_abs": {
+      "x": 0.028564453125,
+      "y": 0.2076416015625,
+      "heat": 0.036163330078125,
+      "o2": 2.562999725341797e-06,
+      "dose": 6.103515625e-05
+     },
+     "int_mismatch": {
+      "falls": 1,
+      "blockedRun": 0,
+      "status": 0
+     }
+    },
+    "free_run": {
+     "agent_steps": 37815,
+     "steps": 200,
+     "max_abs": {
+      "x": 25.842529296875,
+      "y": 22.281982421875,
+      "heat": 12.48781967163086,
+      "o2": 0.0008879601955413818,
+      "dose": 0.617919921875
+     },
+     "status_mismatch": 0
+    }
+   },
+   "A_standing/float64": {
+    "one_step": {
+     "samples": 102400,
+     "obs_max_abs": 1.4901161193847656e-08,
+     "obs_elems_gt_1e3": 0,
+     "state_max_abs": {
+      "x": 0.0,
+      "y": 0.0,
+      "heat": 0.0,
+      "o2": 0.0,
+      "dose": 0.0
+     },
+     "int_mismatch": {
+      "falls": 0,
+      "blockedRun": 0,
+      "status": 0
+     }
+    },
+    "free_run": {
+     "agent_steps": 40472,
+     "steps": 200,
+     "max_abs": {
+      "x": 0.0,
+      "y": 0.0,
+      "heat": 0.0,
+      "o2": 0.0,
+      "dose": 0.0
+     },
+     "status_mismatch": 0
+    }
+   },
+   "A_standing/float32": {
+    "one_step": {
+     "samples": 102400,
+     "obs_max_abs": 0.5129504799842834,
+     "obs_elems_gt_1e3": 19,
+     "state_max_abs": {
+      "x": 0.2706298828125,
+      "y": 0.409912109375,
+      "heat": 0.065155029296875,
+      "o2": 4.649162292480469e-06,
+      "dose": 6.103515625e-05
+     },
+     "int_mismatch": {
+      "falls": 2,
+      "blockedRun": 0,
+      "status": 1
+     }
+    },
+    "free_run": {
+     "agent_steps": 40472,
+     "steps": 200,
+     "max_abs": {
+      "x": 62.765625,
+      "y": 34.073486328125,
+      "heat": 46.54583740234375,
+      "o2": 0.005769811570644379,
+      "dose": 0.47298431396484375
+     },
+     "status_mismatch": 23
+    }
+   },
+   "H_noise/float64": {
+    "one_step": {
+     "samples": 102400,
+     "obs_max_abs": 2.9802322387695312e-08,
+     "obs_elems_gt_1e3": 0,
+     "state_max_abs": {
+      "x": 0.0,
+      "y": 0.0,
+      "heat": 0.0,
+      "o2": 0.0,
+      "dose": 0.0
+     },
+     "int_mismatch": {
+      "falls": 0,
+      "blockedRun": 0,
+      "status": 0
+     }
+    },
+    "free_run": {
+     "agent_steps": 48887,
+     "steps": 200,
+     "max_abs": {
+      "x": 0.0,
+      "y": 0.0,
+      "heat": 0.0,
+      "o2": 0.0,
+      "dose": 0.0
+     },
+     "status_mismatch": 0
+    }
+   },
+   "H_noise/float32": {
+    "one_step": {
+     "samples": 102400,
+     "obs_max_abs": 1.5336041450500488,
+     "obs_elems_gt_1e3": 12,
+     "state_max_abs": {
+      "x": 0.395751953125,
+      "y": 0.277587890625,
+      "heat": 0.037445068359375,
+      "o2": 1.611188054084778e-05,
+      "dose": 0.008472442626953125
+     },
+     "int_mismatch": {
+      "falls": 0,
+      "blockedRun": 1,
+      "status": 0
+     }
+    },
+    "free_run": {
+     "agent_steps": 48887,
+     "steps": 200,
+     "max_abs": {
+      "x": 22.4752197265625,
+      "y": 24.7431640625,
+      "heat": 6.815185546875,
+      "o2": 0.0004845857620239258,
+      "dose": 0.194580078125
+     },
+     "status_mismatch": 1
+    }
+   }
+  },
+  "env_note": "training and evaluation run the environment with float64 state (the *_/float64 rows); float32 rows are shown for reference only"
+ },
+ "recommended_inference": "sample",
+ "evaluation": {
+  "sampled": {
+   "label": "training distribution",
+   "n": 32768,
+   "seed": 20261114,
+   "policies": {
+    "rl_sample": {
+     "episodes": 32768,
+     "arrive_pct": 97.607,
+     "in_rule_pct_sep": 56.165,
+     "incap_fall_pct": 2.371,
+     "heat_casualty_pct": 0.0,
+     "o2_out_pct": 0.0,
+     "timeout_pct": 0.021,
+     "stuck_pct": 0.0,
+     "median_time_min": 26.17,
+     "mean_time_min": 27.87,
+     "mean_dose_uGy": 211.72,
+     "mean_dose_sep_uGy": 348.93,
+     "mean_falls": 0.8892,
+     "heat_peak_mean_kJ": 158.2,
+     "heat_impaired_pct": 1.477,
+     "band_min_active": 14.242,
+     "low_o2_reserve_pct_of_arrivals": 0.0,
+     "pace_share": [
+      0.0016,
+      0.0049,
+      0.0117,
+      0.0685,
+      0.9134
+     ],
+     "heading_share": [
+      0.0111,
+      0.127,
+      0.7392,
+      0.1137,
+      0.0091
+     ],
+     "by_plan_time": {
+      "3-20 min": {
+       "episodes": 7361,
+       "arrive_pct": 99.294,
+       "in_rule_pct_sep": 99.302,
+       "incap_fall_pct": 0.693,
+       "heat_casualty_pct": 0.0,
+       "stuck_pct": 0.0,
+       "median_time_min": 7.67,
+       "mean_falls": 0.2655
+      },
+      "20-40 min": {
+       "episodes": 7590,
+       "arrive_pct": 98.314,
+       "in_rule_pct_sep": 94.204,
+       "incap_fall_pct": 1.686,
+       "heat_casualty_pct": 0.0,
+       "stuck_pct": 0.0,
+       "median_time_min": 18.5,
+       "mean_falls": 0.6366
+      },
+      "40-90 min": {
+       "episodes": 17817,
+       "arrive_pct": 96.61,
+       "in_rule_pct_sep": 22.122,
+       "incap_fall_pct": 3.356,
+       "heat_casualty_pct": 0.0,
+       "stuck_pct": 0.0,
+       "median_time_min": 38.5,
+       "mean_falls": 1.2545
+      }
+     }
+    },
+    "rl_greedy": {
+     "episodes": 32768,
+     "arrive_pct": 96.921,
+     "in_rule_pct_sep": 58.651,
+     "incap_fall_pct": 2.42,
+     "heat_casualty_pct": 0.0,
+     "o2_out_pct": 0.006,
+     "timeout_pct": 0.653,
+     "stuck_pct": 0.0,
+     "median_time_min": 24.83,
+     "mean_time_min": 26.39,
+     "mean_dose_uGy": 207.42,
+     "mean_dose_sep_uGy": 341.85,
+     "mean_falls": 0.8861,
+     "heat_peak_mean_kJ": 162.3,
+     "heat_impaired_pct": 1.797,
+     "band_min_active": 14.907,
+     "low_o2_reserve_pct_of_arrivals": 0.0,
+     "pace_share": [
+      0.0127,
+      0.0032,
+      0.0,
+      0.0023,
+      0.9818
+     ],
+     "heading_share": [
+      0.0067,
+      0.029,
+      0.9189,
+      0.0327,
+      0.0126
+     ],
+     "by_plan_time": {
+      "3-20 min": {
+       "episodes": 7361,
+       "arrive_pct": 98.655,
+       "in_rule_pct_sep": 98.852,
+       "incap_fall_pct": 0.815,
+       "heat_casualty_pct": 0.0,
+       "stuck_pct": 0.0,
+       "median_time_min": 7.33,
+       "mean_falls": 0.2679
+      },
+      "20-40 min": {
+       "episodes": 7590,
+       "arrive_pct": 97.721,
+       "in_rule_pct_sep": 94.663,
+       "incap_fall_pct": 1.765,
+       "heat_casualty_pct": 0.0,
+       "stuck_pct": 0.0,
+       "median_time_min": 17.33,
+       "mean_falls": 0.6489
+      },
+      "40-90 min": {
+       "episodes": 17817,
+       "arrive_pct": 95.864,
+       "in_rule_pct_sep": 26.686,
+       "incap_fall_pct": 3.362,
+       "heat_casualty_pct": 0.0,
+       "stuck_pct": 0.0,
+       "median_time_min": 36.5,
+       "mean_falls": 1.2426
+      }
+     }
+    },
+    "baseline": {
+     "episodes": 32768,
+     "arrive_pct": 90.393,
+     "in_rule_pct_sep": 41.881,
+     "incap_fall_pct": 0.708,
+     "heat_casualty_pct": 0.0,
+     "o2_out_pct": 0.0,
+     "timeout_pct": 0.031,
+     "stuck_pct": 8.868,
+     "median_time_min": 37.17,
+     "mean_time_min": 40.79,
+     "mean_dose_uGy": 277.62,
+     "mean_dose_sep_uGy": 456.51,
+     "mean_falls": 0.3627,
+     "heat_peak_mean_kJ": 127.7,
+     "heat_impaired_pct": 0.046,
+     "band_min_active": 20.726,
+     "low_o2_reserve_pct_of_arrivals": 0.017,
+     "pace_share": [
+      0.0,
+      0.0,
+      0.4873,
+      0.5127,
+      0.0
+     ],
+     "heading_share": [
+      0.0006,
+      0.0013,
+      0.9959,
+      0.002,
+      0.0002
+     ],
+     "by_plan_time": {
+      "3-20 min": {
+       "episodes": 7361,
+       "arrive_pct": 90.681,
+       "in_rule_pct_sep": 92.006,
+       "incap_fall_pct": 0.217,
+       "heat_casualty_pct": 0.0,
+       "stuck_pct": 9.088,
+       "median_time_min": 10.5,
+       "mean_falls": 0.109
+      },
+      "20-40 min": {
+       "episodes": 7590,
+       "arrive_pct": 92.569,
+       "in_rule_pct_sep": 80.446,
+       "incap_fall_pct": 0.461,
+       "heat_casualty_pct": 0.0,
+       "stuck_pct": 6.957,
+       "median_time_min": 26.0,
+       "mean_falls": 0.2743
+      },
+      "40-90 min": {
+       "episodes": 17817,
+       "arrive_pct": 89.347,
+       "in_rule_pct_sep": 4.722,
+       "incap_fall_pct": 1.016,
+       "heat_casualty_pct": 0.0,
+       "stuck_pct": 9.592,
+       "median_time_min": 54.83,
+       "mean_falls": 0.5052
+      }
+     }
+    }
+   },
+   "paired": {
+    "rl_sample": {
+     "both_arrived_pct": 88.7,
+     "median_time_ratio_vs_baseline": 0.7559,
+     "rl_arrived_baseline_not_pct": 8.905,
+     "baseline_arrived_rl_not_pct": 1.691
+    },
+    "rl_greedy": {
+     "both_arrived_pct": 88.4,
+     "median_time_ratio_vs_baseline": 0.7358,
+     "rl_arrived_baseline_not_pct": 8.517,
+     "baseline_arrived_rl_not_pct": 1.99
+    }
+   },
+   "note": "scenario distribution of training (same 42 goals x 6 hazard states, new random draw): start with planned time 3-90 min (uniform in time), storm p=0.6, dust p=0.2, random physiology, fallPerKm x U(0.6,1.6), coolW x U(0.85,1.1)"
+  },
+  "heldout_goals": {
+   "label": "held-out goals",
+   "n": 32768,
+   "seed": 20261115,
+   "policies": {
+    "rl_sample": {
+     "episodes": 32768,
+     "arrive_pct": 97.452,
+     "in_rule_pct_sep": 53.4,
+     "incap_fall_pct": 2.548,
+     "heat_casualty_pct": 0.0,
+     "o2_out_pct": 0.0,
+     "timeout_pct": 0.0,
+     "stuck_pct": 0.0,
+     "median_time_min": 27.67,
+     "mean_time_min": 28.98,
+     "mean_dose_uGy": 221.68,
+     "mean_dose_sep_uGy": 364.54,
+     "mean_falls": 0.9243,
+     "heat_peak_mean_kJ": 159.8,
+     "heat_impaired_pct": 1.529,
+     "band_min_active": 15.215,
+     "low_o2_reserve_pct_of_arrivals": 0.0,
+     "pace_share": [
+      0.0012,
+      0.0046,
+      0.0113,
+      0.066,
+      0.9169
+     ],
+     "heading_share": [
+      0.0093,
+      0.1195,
+      0.7556,
+      0.1077,
+      0.008
+     ],
+     "by_plan_time": {
+      "3-20 min": {
+       "episodes": 6326,
+       "arrive_pct": 99.257,
+       "in_rule_pct_sep": 99.216,
+       "incap_fall_pct": 0.743,
+       "heat_casualty_pct": 0.0,
+       "stuck_pct": 0.0,
+       "median_time_min": 7.83,
+       "mean_falls": 0.2555
+      },
+      "20-40 min": {
+       "episodes": 7589,
+       "arrive_pct": 98.168,
+       "in_rule_pct_sep": 93.255,
+       "incap_fall_pct": 1.832,
+       "heat_casualty_pct": 0.0,
+       "stuck_pct": 0.0,
+       "median_time_min": 18.33,
+       "mean_falls": 0.648
+      },
+      "40-90 min": {
+       "episodes": 18853,
+       "arrive_pct": 96.558,
+       "in_rule_pct_sep": 21.873,
+       "incap_fall_pct": 3.442,
+       "heat_casualty_pct": 0.0,
+       "stuck_pct": 0.0,
+       "median_time_min": 38.67,
+       "mean_falls": 1.2599
+      }
+     }
+    },
+    "rl_greedy": {
+     "episodes": 32768,
+     "arrive_pct": 96.957,
+     "in_rule_pct_sep": 56.068,
+     "incap_fall_pct": 2.606,
+     "heat_casualty_pct": 0.0,
+     "o2_out_pct": 0.076,
+     "timeout_pct": 0.36,
+     "stuck_pct": 0.0,
+     "median_time_min": 26.33,
+     "mean_time_min": 27.46,
+     "mean_dose_uGy": 214.61,
+     "mean_dose_sep_uGy": 352.93,
+     "mean_falls": 0.9248,
+     "heat_peak_mean_kJ": 164.1,
+     "heat_impaired_pct": 1.889,
+     "band_min_active": 15.593,
+     "low_o2_reserve_pct_of_arrivals": 0.003,
+     "pace_share": [
+      0.0055,
+      0.0034,
+      0.0001,
+      0.0015,
+      0.9895
+     ],
+     "heading_share": [
+      0.0044,
+      0.0252,
+      0.9471,
+      0.0179,
+      0.0054
+     ],
+     "by_plan_time": {
+      "3-20 min": {
+       "episodes": 6326,
+       "arrive_pct": 99.115,
+       "in_rule_pct_sep": 98.928,
+       "incap_fall_pct": 0.727,
+       "heat_casualty_pct": 0.0,
+       "stuck_pct": 0.0,
+       "median_time_min": 7.42,
+       "mean_falls": 0.267
+      },
+      "20-40 min": {
+       "episodes": 7589,
+       "arrive_pct": 97.654,
+       "in_rule_pct_sep": 94.278,
+       "incap_fall_pct": 1.924,
+       "heat_casualty_pct": 0.0,
+       "stuck_pct": 0.0,
+       "median_time_min": 17.33,
+       "mean_falls": 0.6628
+      },
+      "40-90 min": {
+       "episodes": 18853,
+       "arrive_pct": 95.953,
+       "in_rule_pct_sep": 26.201,
+       "incap_fall_pct": 3.511,
+       "heat_casualty_pct": 0.0,
+       "stuck_pct": 0.0,
+       "median_time_min": 36.67,
+       "mean_falls": 1.251
+      }
+     }
+    },
+    "baseline": {
+     "episodes": 32768,
+     "arrive_pct": 95.035,
+     "in_rule_pct_sep": 40.88,
+     "incap_fall_pct": 0.851,
+     "heat_casualty_pct": 0.0,
+     "o2_out_pct": 0.009,
+     "timeout_pct": 0.037,
+     "stuck_pct": 4.068,
+     "median_time_min": 39.33,
+     "mean_time_min": 42.43,
+     "mean_dose_uGy": 292.69,
+     "mean_dose_sep_uGy": 480.25,
+     "mean_falls": 0.3735,
+     "heat_peak_mean_kJ": 128.0,
+     "heat_impaired_pct": 0.064,
+     "band_min_active": 22.479,
+     "low_o2_reserve_pct_of_arrivals": 0.0,
+     "pace_share": [
+      0.0,
+      0.0,
+      0.4887,
+      0.5113,
+      0.0
+     ],
+     "heading_share": [
+      0.0002,
+      0.0008,
+      0.9981,
+      0.0009,
+      0.0001
+     ],
+     "by_plan_time": {
+      "3-20 min": {
+       "episodes": 6326,
+       "arrive_pct": 98.609,
+       "in_rule_pct_sep": 98.615,
+       "incap_fall_pct": 0.269,
+       "heat_casualty_pct": 0.0,
+       "stuck_pct": 1.122,
+       "median_time_min": 10.67,
+       "mean_falls": 0.1061
+      },
+      "20-40 min": {
+       "episodes": 7589,
+       "arrive_pct": 95.731,
+       "in_rule_pct_sep": 82.289,
+       "incap_fall_pct": 0.567,
+       "heat_casualty_pct": 0.0,
+       "stuck_pct": 3.703,
+       "median_time_min": 25.83,
+       "mean_falls": 0.2629
+      },
+      "40-90 min": {
+       "episodes": 18853,
+       "arrive_pct": 93.555,
+       "in_rule_pct_sep": 4.714,
+       "incap_fall_pct": 1.162,
+       "heat_casualty_pct": 0.0,
+       "stuck_pct": 5.203,
+       "median_time_min": 55.33,
+       "mean_falls": 0.5078
+      }
+     }
+    }
+   },
+   "paired": {
+    "rl_sample": {
+     "both_arrived_pct": 93.17,
+     "median_time_ratio_vs_baseline": 0.7523,
+     "rl_arrived_baseline_not_pct": 4.285,
+     "baseline_arrived_rl_not_pct": 1.868
+    },
+    "rl_greedy": {
+     "both_arrived_pct": 92.87,
+     "median_time_ratio_vs_baseline": 0.7355,
+     "rl_arrived_baseline_not_pct": 4.086,
+     "baseline_arrived_rl_not_pct": 2.164
+    }
+   },
+   "note": "15 random walkable goals NOT used in training, same hazard states and scenario distribution",
+   "goals": [
+    [
+     1122,
+     1418
+    ],
+    [
+     782,
+     1092
+    ],
+    [
+     3082,
+     1298
+    ],
+    [
+     2168,
+     1022
+    ],
+    [
+     1082,
+     2678
+    ],
+    [
+     3018,
+     2808
+    ],
+    [
+     288,
+     942
+    ],
+    [
+     3238,
+     3852
+    ],
+    [
+     2312,
+     2828
+    ],
+    [
+     692,
+     2198
+    ],
+    [
+     2728,
+     112
+    ],
+    [
+     1212,
+     882
+    ],
+    [
+     1448,
+     3602
+    ],
+    [
+     3732,
+     102
+    ],
+    [
+     802,
+     3122
+    ]
+   ]
+  },
+  "demo": [
+   {
+    "scenario": "storm_standing",
+    "desc": "solar storm, T+60 s; rockfall band standing (alpha 27.8); start (2800,1500)",
+    "dest": "A",
+    "goal": [
+     2598.0,
+     1858.0
+    ],
+    "plan_min": 21.41,
+    "n": 20000,
+    "policies": {
+     "rl_sample": {
+      "episodes": 20000,
+      "arrive_pct": 98.91,
+      "in_rule_pct_sep": 98.91,
+      "incap_fall_pct": 1.09,
+      "heat_casualty_pct": 0.0,
+      "o2_out_pct": 0.0,
+      "timeout_pct": 0.0,
+      "stuck_pct": 0.0,
+      "median_time_min": 12.83,
+      "mean_time_min": 12.93,
+      "mean_dose_uGy": 64.18,
+      "mean_dose_sep_uGy": 64.18,
+      "mean_falls": 0.3228,
+      "heat_peak_mean_kJ": 60.1,
+      "heat_impaired_pct": 0.0,
+      "band_min_active": null,
+      "low_o2_reserve_pct_of_arrivals": 0.0
+     },
+     "rl_greedy": {
+      "episodes": 20000,
+      "arrive_pct": 99.15,
+      "in_rule_pct_sep": 99.15,
+      "incap_fall_pct": 0.85,
+      "heat_casualty_pct": 0.0,
+      "o2_out_pct": 0.0,
+      "timeout_pct": 0.0,
+      "stuck_pct": 0.0,
+      "median_time_min": 11.67,
+      "mean_time_min": 11.85,
+      "mean_dose_uGy": 59.21,
+      "mean_dose_sep_uGy": 59.21,
+      "mean_falls": 0.2619,
+      "heat_peak_mean_kJ": 60.1,
+      "heat_impaired_pct": 0.0,
+      "band_min_active": null,
+      "low_o2_reserve_pct_of_arrivals": 0.0
+     },
+     "baseline": {
+      "episodes": 20000,
+      "arrive_pct": 99.55,
+      "in_rule_pct_sep": 99.55,
+      "incap_fall_pct": 0.45,
+      "heat_casualty_pct": 0.0,
+      "o2_out_pct": 0.0,
+      "timeout_pct": 0.0,
+      "stuck_pct": 0.0,
+      "median_time_min": 15.5,
+      "mean_time_min": 15.61,
+      "mean_dose_uGy": 78.49,
+      "mean_dose_sep_uGy": 78.49,
+      "mean_falls": 0.1442,
+      "heat_peak_mean_kJ": 59.9,
+      "heat_impaired_pct": 0.0,
+      "band_min_active": null,
+      "low_o2_reserve_pct_of_arrivals": 0.0
+     }
+    }
+   },
+   {
+    "scenario": "storm_standing",
+    "desc": "solar storm, T+60 s; rockfall band standing (alpha 27.8); start (2800,1500)",
+    "dest": "C",
+    "goal": [
+     2343.0,
+     2083.0
+    ],
+    "plan_min": 30.21,
+    "n": 20000,
+    "policies": {
+     "rl_sample": {
+      "episodes": 20000,
+      "arrive_pct": 97.32,
+      "in_rule_pct_sep": 97.32,
+      "incap_fall_pct": 2.68,
+      "heat_casualty_pct": 0.0,
+      "o2_out_pct": 0.0,
+      "timeout_pct": 0.0,
+      "stuck_pct": 0.0,
+      "median_time_min": 18.67,
+      "mean_time_min": 18.75,
+      "mean_dose_uGy": 98.97,
+      "mean_dose_sep_uGy": 98.97,
+      "mean_falls": 0.7781,
+      "heat_peak_mean_kJ": 61.4,
+      "heat_impaired_pct": 0.0,
+      "band_min_active": null,
+      "low_o2_reserve_pct_of_arrivals": 0.0
+     },
+     "rl_greedy": {
+      "episodes": 20000,
+      "arrive_pct": 97.405,
+      "in_rule_pct_sep": 97.405,
+      "incap_fall_pct": 2.595,
+      "heat_casualty_pct": 0.0,
+      "o2_out_pct": 0.0,
+      "timeout_pct": 0.0,
+      "stuck_pct": 0.0,
+      "median_time_min": 16.83,
+      "mean_time_min": 16.97,
+      "mean_dose_uGy": 87.35,
+      "mean_dose_sep_uGy": 87.35,
+      "mean_falls": 0.7807,
+      "heat_peak_mean_kJ": 62.2,
+      "heat_impaired_pct": 0.0,
+      "band_min_active": null,
+      "low_o2_reserve_pct_of_arrivals": 0.0
+     },
+     "baseline": {
+      "episodes": 20000,
+      "arrive_pct": 98.845,
+      "in_rule_pct_sep": 98.83,
+      "incap_fall_pct": 1.155,
+      "heat_casualty_pct": 0.0,
+      "o2_out_pct": 0.0,
+      "timeout_pct": 0.0,
+      "stuck_pct": 0.0,
+      "median_time_min": 22.0,
+      "mean_time_min": 22.2,
+      "mean_dose_uGy": 125.61,
+      "mean_dose_sep_uGy": 125.61,
+      "mean_falls": 0.4324,
+      "heat_peak_mean_kJ": 60.0,
+      "heat_impaired_pct": 0.0,
+      "band_min_active": null,
+      "low_o2_reserve_pct_of_arrivals": 0.0
+     }
+    }
+   },
+   {
+    "scenario": "storm_standing",
+    "desc": "solar storm, T+60 s; rockfall band standing (alpha 27.8); start (2800,1500)",
+    "dest": "R",
+    "goal": [
+     1700.0,
+     2600.0
+    ],
+    "plan_min": 70.03,
+    "n": 20000,
+    "policies": {
+     "rl_sample": {
+      "episodes": 20000,
+      "arrive_pct": 95.91,
+      "in_rule_pct_sep": 0.0,
+      "incap_fall_pct": 4.09,
+      "heat_casualty_pct": 0.0,
+      "o2_out_pct": 0.0,
+      "timeout_pct": 0.0,
+      "stuck_pct": 0.0,
+      "median_time_min": 39.83,
+      "mean_time_min": 40.33,
+      "mean_dose_uGy": 331.91,
+      "mean_dose_sep_uGy": 331.91,
+      "mean_falls": 1.3835,
+      "heat_peak_mean_kJ": 66.7,
+      "heat_impaired_pct": 0.015,
+      "band_min_active": null,
+      "low_o2_reserve_pct_of_arrivals": 0.0
+     },
+     "rl_greedy": {
+      "episodes": 20000,
+      "arrive_pct": 95.835,
+      "in_rule_pct_sep": 0.695,
+      "incap_fall_pct": 4.165,
+      "heat_casualty_pct": 0.0,
+      "o2_out_pct": 0.0,
+      "timeout_pct": 0.0,
+      "stuck_pct": 0.0,
+      "median_time_min": 37.0,
+      "mean_time_min": 37.34,
+      "mean_dose_uGy": 290.04,
+      "mean_dose_sep_uGy": 290.04,
+      "mean_falls": 1.362,
+      "heat_peak_mean_kJ": 67.8,
+      "heat_impaired_pct": 0.02,
+      "band_min_active": null,
+      "low_o2_reserve_pct_of_arrivals": 0.0
+     },
+     "baseline": {
+      "episodes": 20000,
+      "arrive_pct": 97.71,
+      "in_rule_pct_sep": 0.0,
+      "incap_fall_pct": 1.805,
+      "heat_casualty_pct": 0.0,
+      "o2_out_pct": 0.0,
+      "timeout_pct": 0.0,
+      "stuck_pct": 0.485,
+      "median_time_min": 49.17,
+      "mean_time_min": 49.68,
+      "mean_dose_uGy": 487.42,
+      "mean_dose_sep_uGy": 487.42,
+      "mean_falls": 0.7301,
+      "heat_peak_mean_kJ": 60.0,
+      "heat_impaired_pct": 0.0,
+      "band_min_active": null,
+      "low_o2_reserve_pct_of_arrivals": 0.0
+     }
+    }
+   },
+   {
+    "scenario": "storm_standing",
+    "desc": "solar storm, T+60 s; rockfall band standing (alpha 27.8); start (2800,1500)",
+    "dest": "H",
+    "goal": [
+     700.0,
+     3300.0
+    ],
+    "plan_min": 107.94,
+    "n": 20000,
+    "policies": {
+     "rl_sample": {
+      "episodes": 20000,
+      "arrive_pct": 93.535,
+      "in_rule_pct_sep": 0.0,
+      "incap_fall_pct": 6.465,
+      "heat_casualty_pct": 0.0,
+      "o2_out_pct": 0.0,
+      "timeout_pct": 0.0,
+      "stuck_pct": 0.0,
+      "median_time_min": 60.67,
+      "mean_time_min": 61.26,
+      "mean_dose_uGy": 688.24,
+      "mean_dose_sep_uGy": 688.24,
+      "mean_falls": 2.245,
+      "heat_peak_mean_kJ": 81.3,
+      "heat_impaired_pct": 0.44,
+      "band_min_active": null,
+      "low_o2_reserve_pct_of_arrivals": 0.0
+     },
+     "rl_greedy": {
+      "episodes": 20000,
+      "arrive_pct": 93.53,
+      "in_rule_pct_sep": 0.0,
+      "incap_fall_pct": 6.4,
+      "heat_casualty_pct": 0.0,
+      "o2_out_pct": 0.0,
+      "timeout_pct": 0.07,
+      "stuck_pct": 0.0,
+      "median_time_min": 56.5,
+      "mean_time_min": 56.99,
+      "mean_dose_uGy": 613.1,
+      "mean_dose_sep_uGy": 613.1,
+      "mean_falls": 2.1801,
+      "heat_peak_mean_kJ": 85.7,
+      "heat_impaired_pct": 0.615,
+      "band_min_active": null,
+      "low_o2_reserve_pct_of_arrivals": 0.0
+     },
+     "baseline": {
+      "episodes": 20000,
+      "arrive_pct": 96.655,
+      "in_rule_pct_sep": 0.0,
+      "incap_fall_pct": 2.83,
+      "heat_casualty_pct": 0.0,
+      "o2_out_pct": 0.0,
+      "timeout_pct": 0.0,
+      "stuck_pct": 0.515,
+      "median_time_min": 75.5,
+      "mean_time_min": 76.29,
+      "mean_dose_uGy": 969.94,
+      "mean_dose_sep_uGy": 969.94,
+      "mean_falls": 1.1716,
+      "heat_peak_mean_kJ": 60.6,
+      "heat_impaired_pct": 0.005,
+      "band_min_active": null,
+      "low_o2_reserve_pct_of_arrivals": 0.0
+     }
+    }
+   },
+   {
+    "scenario": "quake_active",
+    "desc": "marsquake hold: band ACTIVE (alpha 27.8); solar storm T+15 min; start (2598,1858)",
+    "dest": "A",
+    "goal": [
+     2598.0,
+     1858.0
+    ],
+    "plan_min": 0.0,
+    "n": 20000,
+    "policies": {
+     "rl_sample": {
+      "episodes": 20000,
+      "arrive_pct": 100.0,
+      "in_rule_pct_sep": 100.0,
+      "incap_fall_pct": 0.0,
+      "heat_casualty_pct": 0.0,
+      "o2_out_pct": 0.0,
+      "timeout_pct": 0.0,
+      "stuck_pct": 0.0,
+      "median_time_min": 0.17,
+      "mean_time_min": 0.17,
+      "mean_dose_uGy": 30.81,
+      "mean_dose_sep_uGy": 30.81,
+      "mean_falls": 0.0,
+      "heat_peak_mean_kJ": 59.9,
+      "heat_impaired_pct": 0.0,
+      "band_min_active": 0.167,
+      "low_o2_reserve_pct_of_arrivals": 0.0
+     },
+     "rl_greedy": {
+      "episodes": 20000,
+      "arrive_pct": 100.0,
+      "in_rule_pct_sep": 100.0,
+      "incap_fall_pct": 0.0,
+      "heat_casualty_pct": 0.0,
+      "o2_out_pct": 0.0,
+      "timeout_pct": 0.0,
+      "stuck_pct": 0.0,
+      "median_time_min": 0.17,
+      "mean_time_min": 0.17,
+      "mean_dose_uGy": 30.81,
+      "mean_dose_sep_uGy": 30.81,
+      "mean_falls": 0.0,
+      "heat_peak_mean_kJ": 59.9,
+      "heat_impaired_pct": 0.0,
+      "band_min_active": 0.167,
+      "low_o2_reserve_pct_of_arrivals": 0.0
+     },
+     "baseline": {
+      "episodes": 20000,
+      "arrive_pct": 100.0,
+      "in_rule_pct_sep": 100.0,
+      "incap_fall_pct": 0.0,
+      "heat_casualty_pct": 0.0,
+      "o2_out_pct": 0.0,
+      "timeout_pct": 0.0,
+      "stuck_pct": 0.0,
+      "median_time_min": 0.17,
+      "mean_time_min": 0.17,
+      "mean_dose_uGy": 30.81,
+      "mean_dose_sep_uGy": 30.81,
+      "mean_falls": 0.0,
+      "heat_peak_mean_kJ": 59.9,
+      "heat_impaired_pct": 0.0,
+      "band_min_active": 0.167,
+      "low_o2_reserve_pct_of_arrivals": 0.0
+     }
+    }
+   },
+   {
+    "scenario": "quake_active",
+    "desc": "marsquake hold: band ACTIVE (alpha 27.8); solar storm T+15 min; start (2598,1858)",
+    "dest": "C",
+    "goal": [
+     2343.0,
+     2083.0
+    ],
+    "plan_min": 14.55,
+    "n": 20000,
+    "policies": {
+     "rl_sample": {
+      "episodes": 20000,
+      "arrive_pct": 99.06,
+      "in_rule_pct_sep": 99.06,
+      "incap_fall_pct": 0.94,
+      "heat_casualty_pct": 0.0,
+      "o2_out_pct": 0.0,
+      "timeout_pct": 0.0,
+      "stuck_pct": 0.0,
+      "median_time_min": 9.33,
+      "mean_time_min": 9.36,
+      "mean_dose_uGy": 92.95,
+      "mean_dose_sep_uGy": 92.95,
+      "mean_falls": 0.3299,
+      "heat_peak_mean_kJ": 62.6,
+      "heat_impaired_pct": 0.0,
+      "band_min_active": 1.266,
+      "low_o2_reserve_pct_of_arrivals": 0.0
+     },
+     "rl_greedy": {
+      "episodes": 20000,
+      "arrive_pct": 99.04,
+      "in_rule_pct_sep": 99.04,
+      "incap_fall_pct": 0.96,
+      "heat_casualty_pct": 0.0,
+      "o2_out_pct": 0.0,
+      "timeout_pct": 0.0,
+      "stuck_pct": 0.0,
+      "median_time_min": 8.33,
+      "mean_time_min": 8.44,
+      "mean_dose_uGy": 85.39,
+      "mean_dose_sep_uGy": 85.39,
+      "mean_falls": 0.3497,
+      "heat_peak_mean_kJ": 64.0,
+      "heat_impaired_pct": 0.0,
+      "band_min_active": 1.237,
+      "low_o2_reserve_pct_of_arrivals": 0.0
+     },
+     "baseline": {
+      "episodes": 20000,
+      "arrive_pct": 99.565,
+      "in_rule_pct_sep": 99.565,
+      "incap_fall_pct": 0.435,
+      "heat_casualty_pct": 0.0,
+      "o2_out_pct": 0.0,
+      "timeout_pct": 0.0,
+      "stuck_pct": 0.0,
+      "median_time_min": 10.83,
+      "mean_time_min": 10.93,
+      "mean_dose_uGy": 106.62,
+      "mean_dose_sep_uGy": 106.62,
+      "mean_falls": 0.1872,
+      "heat_peak_mean_kJ": 60.2,
+      "heat_impaired_pct": 0.0,
+      "band_min_active": 1.099,
+      "low_o2_reserve_pct_of_arrivals": 0.0
+     }
+    }
+   },
+   {
+    "scenario": "quake_active",
+    "desc": "marsquake hold: band ACTIVE (alpha 27.8); solar storm T+15 min; start (2598,1858)",
+    "dest": "R",
+    "goal": [
+     1700.0,
+     2600.0
+    ],
+    "plan_min": 53.49,
+    "n": 20000,
+    "policies": {
+     "rl_sample": {
+      "episodes": 20000,
+      "arrive_pct": 97.14,
+      "in_rule_pct_sep": 42.275,
+      "incap_fall_pct": 2.86,
+      "heat_casualty_pct": 0.0,
+      "o2_out_pct": 0.0,
+      "timeout_pct": 0.0,
+      "stuck_pct": 0.0,
+      "median_time_min": 30.5,
+      "mean_time_min": 30.8,
+      "mean_dose_uGy": 361.31,
+      "mean_dose_sep_uGy": 361.31,
+      "mean_falls": 0.9448,
+      "heat_peak_mean_kJ": 69.0,
+      "heat_impaired_pct": 0.0,
+      "band_min_active": 1.205,
+      "low_o2_reserve_pct_of_arrivals": 0.0
+     },
+     "rl_greedy": {
+      "episodes": 20000,
+      "arrive_pct": 97.225,
+      "in_rule_pct_sep": 72.1,
+      "incap_fall_pct": 2.775,
+      "heat_casualty_pct": 0.0,
+      "o2_out_pct": 0.0,
+      "timeout_pct": 0.0,
+      "stuck_pct": 0.0,
+      "median_time_min": 28.17,
+      "mean_time_min": 28.45,
+      "mean_dose_uGy": 324.29,
+      "mean_dose_sep_uGy": 324.29,
+      "mean_falls": 0.9349,
+      "heat_peak_mean_kJ": 70.6,
+      "heat_impaired_pct": 0.0,
+      "band_min_active": 1.095,
+      "low_o2_reserve_pct_of_arrivals": 0.0
+     },
+     "baseline": {
+      "episodes": 20000,
+      "arrive_pct": 97.6,
+      "in_rule_pct_sep": 0.405,
+      "incap_fall_pct": 1.24,
+      "heat_casualty_pct": 0.0,
+      "o2_out_pct": 0.0,
+      "timeout_pct": 0.0,
+      "stuck_pct": 1.16,
+      "median_time_min": 37.5,
+      "mean_time_min": 37.76,
+      "mean_dose_uGy": 481.32,
+      "mean_dose_sep_uGy": 481.32,
+      "mean_falls": 0.4874,
+      "heat_peak_mean_kJ": 60.4,
+      "heat_impaired_pct": 0.0,
+      "band_min_active": 1.093,
+      "low_o2_reserve_pct_of_arrivals": 0.0
+     }
+    }
+   },
+   {
+    "scenario": "quake_active",
+    "desc": "marsquake hold: band ACTIVE (alpha 27.8); solar storm T+15 min; start (2598,1858)",
+    "dest": "H",
+    "goal": [
+     700.0,
+     3300.0
+    ],
+    "plan_min": 91.4,
+    "n": 20000,
+    "policies": {
+     "rl_sample": {
+      "episodes": 20000,
+      "arrive_pct": 94.47,
+      "in_rule_pct_sep": 0.0,
+      "incap_fall_pct": 5.53,
+      "heat_casualty_pct": 0.0,
+      "o2_out_pct": 0.0,
+      "timeout_pct": 0.0,
+      "stuck_pct": 0.0,
+      "median_time_min": 51.33,
+      "mean_time_min": 51.94,
+      "mean_dose_uGy": 738.24,
+      "mean_dose_sep_uGy": 738.24,
+      "mean_falls": 1.8014,
+      "heat_peak_mean_kJ": 84.6,
+      "heat_impaired_pct": 0.39,
+      "band_min_active": 1.137,
+      "low_o2_reserve_pct_of_arrivals": 0.0
+     },
+     "rl_greedy": {
+      "episodes": 20000,
+      "arrive_pct": 94.495,
+      "in_rule_pct_sep": 0.0,
+      "incap_fall_pct": 5.485,
+      "heat_casualty_pct": 0.0,
+      "o2_out_pct": 0.0,
+      "timeout_pct": 0.02,
+      "stuck_pct": 0.0,
+      "median_time_min": 47.67,
+      "mean_time_min": 48.12,
+      "mean_dose_uGy": 669.7,
+      "mean_dose_sep_uGy": 669.7,
+      "mean_falls": 1.755,
+      "heat_peak_mean_kJ": 89.6,
+      "heat_impaired_pct": 0.55,
+      "band_min_active": 1.054,
+      "low_o2_reserve_pct_of_arrivals": 0.0
+     },
+     "baseline": {
+      "episodes": 20000,
+      "arrive_pct": 96.295,
+      "in_rule_pct_sep": 0.0,
+      "incap_fall_pct": 2.53,
+      "heat_casualty_pct": 0.0,
+      "o2_out_pct": 0.0,
+      "timeout_pct": 0.0,
+      "stuck_pct": 1.175,
+      "median_time_min": 63.83,
+      "mean_time_min": 64.38,
+      "mean_dose_uGy": 962.48,
+      "mean_dose_sep_uGy": 962.48,
+      "mean_falls": 0.9381,
+      "heat_peak_mean_kJ": 60.7,
+      "heat_impaired_pct": 0.005,
+      "band_min_active": 1.091,
+      "low_o2_reserve_pct_of_arrivals": 0.0
+     }
+    }
+   }
+  ],
+  "table": [
+   {
+    "policy": "rl_sample",
+    "arrive_pct": 97.607,
+    "in_rule_pct_sep": 56.165,
+    "incap_fall_pct": 2.371,
+    "heat_casualty_pct": 0.0,
+    "stuck_pct": 0.0,
+    "timeout_pct": 0.021,
+    "median_time_min": 26.17,
+    "mean_dose_uGy": 211.72,
+    "mean_falls": 0.8892
+   },
+   {
+    "policy": "rl_greedy",
+    "arrive_pct": 96.921,
+    "in_rule_pct_sep": 58.651,
+    "incap_fall_pct": 2.42,
+    "heat_casualty_pct": 0.0,
+    "stuck_pct": 0.0,
+    "timeout_pct": 0.653,
+    "median_time_min": 24.83,
+    "mean_dose_uGy": 207.42,
+    "mean_falls": 0.8861
+   },
+   {
+    "policy": "baseline",
+    "arrive_pct": 90.393,
+    "in_rule_pct_sep": 41.881,
+    "incap_fall_pct": 0.708,
+    "heat_casualty_pct": 0.0,
+    "stuck_pct": 8.868,
+    "timeout_pct": 0.031,
+    "median_time_min": 37.17,
+    "mean_dose_uGy": 277.62,
+    "mean_falls": 0.3627
+   }
+  ]
+ },
+ "node_verification": null,
+ "honest_summary": "PPO policy trained for 157 M ten-second decisions; it learned pacing (share of decisions at 0/0.4/0.65/0.95/1.3 m/s: 0%/0%/1%/7%/91%) and small steering corrections around the planner corridor, not route finding. On 32768 sampled episodes (sample inference) vs the scripted baseline: arrival 97.6% vs 90.4% (better), arrived within the 30-min storm rule 56.2% vs 41.9% (better), median time 26.2 vs 37.2 min, mean dose 212 vs 278 uGy. Costs: incapacitating falls 2.37% vs 0.71% (worse), falls per crew 0.89 vs 0.36 (worse), heat casualties 0.00% vs 0.00% (equal), stuck 0.00% vs 8.87%.",
+ "limitations": [
+  "Point walker with a physiological budget on a 5 m grid: no humanoid locomotion, joints or vision.",
+  "Fall rate, injury probability, metabolic and thermal models are team assumptions fitted to Apollo-era numbers, not validated for Mars.",
+  "Trained and evaluated on one site (NE Melas Chasma EVA box); demo destinations are part of the training goal set.",
+  "The policy cannot observe the user-adjustable parameters; it was trained with mild randomisation of fall rate and suit cooling only."
+ ]
+}

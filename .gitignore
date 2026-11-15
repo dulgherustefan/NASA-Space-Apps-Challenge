@@ -49,3 +49,8 @@ unreal/MelasSim/Content/Collections/
 
 # terrain meshes for the Unreal import (rebuilt by tools/make_terrain_meshes.py)
 unreal_import/meshes/
+
+# live web build
+dashboard/dist-live/
+dashboard/public/data/
+.vercel

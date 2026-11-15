@@ -13,7 +13,7 @@ import { Menu } from './ui/menu'
 import { ToggleGroup, ToggleGroupItem } from './ui/toggle-group'
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip'
 
-function Mark() {
+export function Mark() {
   return (
     <svg width="26" height="26" viewBox="0 0 24 24" aria-hidden>
       <defs>
