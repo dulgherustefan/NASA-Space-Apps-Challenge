@@ -33,7 +33,7 @@ Fallback: if the live engine is down, a recorded run plays and is labeled "Recor
 - [ ] Demo: 7 slides max including the title, or a 30 s video max. Shows the live tool.
 - [ ] NASA data and resources named, each with what it drives: HiRISE/CTX DTMs (terrain, slope), MSL RAD (dose rule), CCMC DONKI (storm timing), Mars Trek/USGS where used. A Global Award needs at least one NASA resource.
 - [ ] References: every external dataset, paper (e.g. Lowe et al. 2025), library, font and asset. Tick the "original work / all external items listed" boxes.
-- [ ] AI ("SI") disclosure: SI-generated code/data acknowledged in the description and metadata. SI images/video carry a visible watermark. SI must not be the source of the idea.
+- [ ] Generated-content ("SI") disclosure: generated code/data acknowledged in the description and metadata; generated images/video carry a visible watermark; generated content must not be the source of the idea.
 - [ ] No NASA logos, flags or mission marks in our own or generated assets. Add a "not affiliated with or endorsed by NASA" line.
 - [ ] Limits section: what is simulated or modelled, the known gap (batched sim vs engine walker lateness, 34.5 % vs 19.7 % on the quake route; PPO did not beat cross-entropy search), no crew testing.
 - [ ] Screenshots or GIF of the map, the response panel and the HUD. Submit before Sun 15 Nov, 23:59 Bucharest time.
@@ -43,4 +43,4 @@ Fallback: if the live engine is down, a recorded run plays and is labeled "Recor
 2. **Overclaiming.** "Tested with crews", "NASA-validated", "safe route", or precise-looking numbers (0.59 %) with no confidence interval. Say "planning aid" and show the interval.
 3. **Decorative NASA data.** Layers that do not change the route or the alert. Relevance asks for data as a core input, so show cause and effect (DTM to slope cost, RAD rule to alert, DONKI to timing).
 4. **Broken or gated link.** Engine offline, a cold start over 10 s, a login wall, or a desktop-only layout. Judges see an empty map. Keep the recorded-run fallback and test the link in a private window on a phone.
-5. **Missing AI disclosure or rule breaks.** No SI acknowledgement, unwatermarked AI imagery, NASA branding, a demo over 30 s or 7 slides, or non-English content. These risk eligibility, not just points.
+5. **Missing disclosure or rule breaks.** No SI acknowledgement, unwatermarked generated imagery, NASA branding, a demo over 30 s or 7 slides, or non-English content. These risk eligibility, not just points.

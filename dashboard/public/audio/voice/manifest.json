@@ -1,5 +1,5 @@
 {
- "voice": "ElevenLabs premade voice \"Sarah\", model eleven_multilingual_v2, generated 15 Nov 2026 (AI-generated speech, declared in ASSETS.md)",
+ "voice": "ElevenLabs premade voice \"Sarah\", model eleven_multilingual_v2, generated 15 Nov 2026 (synthetic speech, declared in ASSETS.md)",
  "clips": {
   "bear_left_50": {
    "file": "bear_left_50.mp3",
