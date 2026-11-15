@@ -339,7 +339,7 @@ function toLiveRoute(r: RouteResult, sh: Shelter, start: { heat: number; o2: num
 }
 
 /** Resample the planner path every ~5 m and integrate the walker model along it (planner pace, model values). */
-function buildSamples(xy: Float32Array, site: SiteData, p: Params, start: { heat: number; o2: number; dose: number }, sepElapsedS: number, bandActive: boolean): RouteSample[] {
+export function buildSamples(xy: Float32Array, site: SiteData, p: Params, start: { heat: number; o2: number; dose: number }, sepElapsedS: number, bandActive: boolean): RouteSample[] {
   const n = site.meta.core.na, cell = SIM.CELL
   const idx = (x: number, y: number) => Math.min(n - 1, Math.max(0, (y / cell) | 0)) * n + Math.min(n - 1, Math.max(0, (x / cell) | 0))
   const comms = S().comms
@@ -384,7 +384,7 @@ function buildSamples(xy: Float32Array, site: SiteData, p: Params, start: { heat
 }
 
 /** Turn-by-turn: simplify the route, then call out heading changes larger than 25°. */
-function buildTurns(sm: RouteSample[]): Turn[] {
+export function buildTurns(sm: RouteSample[]): Turn[] {
   if (sm.length < 3) return []
   // Douglas-Peucker on (x, y), 8 m tolerance
   const keep = new Uint8Array(sm.length); keep[0] = 1; keep[sm.length - 1] = 1
@@ -419,3 +419,31 @@ function buildTurns(sm: RouteSample[]): Turn[] {
 
 // inspection hook for automated tests
 ;(globalThis as unknown as { __solwayLive: typeof useLive }).__solwayLive = useLive
+
+// ------------------------------------------------------------------------------------------------ dashboard bridge
+
+let booting: Promise<void> | null = null
+/** Make sure the bundled HiRISE site and the workers are up (used by the main dashboard's "Plan a walk"). */
+export async function ensureBundled() {
+  const l = S().loaded
+  if (l?.desc.bundled && engine) return
+  if (!booting) booting = bootBundled().finally(() => { booting = null })
+  await booting
+  if (!S().loaded) throw new Error(S().error ?? 'terrain did not load')
+}
+
+/** One route from a point to a point on the bundled site, with the full Monte Carlo stress test (no incident). */
+export async function planPoint(from: { x: number; y: number }, to: { x: number; y: number }, n = 1000): Promise<LiveRoute | null> {
+  await ensureBundled()
+  const p = S().params
+  const start0 = snapWalkable(from.x, from.y)
+  const start = { x: start0.x, y: start0.y, heat: 60, o2: 0.46, dose: 0 }
+  const dest: Destination = { id: 'target', kind: 'target', name: 'Chosen point', x: to.x, y: to.y, shield: 0 }
+  const r = await engine!.evaluate({
+    params: p, bandActive: false, start, sepElapsedS: -1, deadlineS: Infinity, dust: 0, n, useRL: p.useRL >= 0.5, greedy: false,
+    trackAgents: 0, dest, seed: 4242, ignoreBandForDest: true,
+  })
+  const sh: Shelter = { id: 'target', kind: 'terrain', name: 'Chosen point', x: to.x, y: to.y, shield: 0, open: true }
+  const lr = toLiveRoute(r, sh, start, -1, false, Infinity)
+  return lr && lr.samples.length ? lr : null
+}

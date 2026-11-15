@@ -55,7 +55,7 @@ function useShortcuts(active: boolean) {
       const st = store.get()
       if (e.key === ' ' && !onControl) { e.preventDefault(); togglePlay() }
       else if (e.key.toLowerCase() === 'a' && st.alertId) acknowledge()
-      else if (e.key.toLowerCase() === 'p' && st.mode === 'live' && st.conn === 'online') store.set({ planMode: !st.planMode, selectedPlace: null })
+      else if (e.key.toLowerCase() === 'p' && st.conn === 'online') store.set({ planMode: !st.planMode, selectedPlace: null })
       else if (e.key === 'Escape') {
         if (st.planMode) store.set({ planMode: false })
         else if (st.selectedPlace) store.set({ selectedPlace: null })

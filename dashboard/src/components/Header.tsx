@@ -109,6 +109,8 @@ function Nav() {
   const items = [
     { label: 'Mission', href: hrefFor('console'), on: page === 'console' },
     { label: 'Reference', href: hrefFor('method'), on: page !== 'console' },
+    // the free-standing live tool (any location on Mars) ships only with the web build
+    ...(import.meta.env.MODE === 'live' ? [{ label: 'Anywhere on Mars', href: './live.html', on: false }] : []),
   ]
   return (
     <ul className="flex h-full items-stretch gap-4 sm:gap-5">

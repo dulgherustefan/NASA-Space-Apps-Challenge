@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { Minus, Plus, Route, Scan, X as Close } from 'lucide-react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
+import { Box, Compass, Minus, Plus, Route, Scan, X as Close } from 'lucide-react'
 import { CORE_DEFAULT, LAYER_LABEL, ORTHO_PATH, fileUrl, type Layer } from '@/lib/config'
 import { focusBundle, focusIncidentId, store, useStore } from '@/lib/store'
 import { requestPlan } from '@/lib/engine'
@@ -10,6 +10,9 @@ import type { RouteStatus } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { LayerLegend, LayerMenu } from './console/Layers'
 import { KIND_NAME } from './console/Situation'
+
+// 3D map and helmet HUD over the dashboard, loaded on first use (src/live)
+const Views3D = lazy(() => import('@/live/Views3D'))
 import { Timeline } from './Timeline'
 import { PlaceView } from './console/PlaceView'
 import { Button } from './ui/button'
@@ -77,7 +80,9 @@ export function MapView() {
   const focusId = useStore(focusIncidentId)
   const planMode = useStore((s) => s.planMode)
   const planFrom = useStore((s) => s.planFrom)
-  const canPlan = useStore((s) => s.mode === 'live')
+  // a recorded-run web build plans in the browser (src/live/bridge.ts)
+  const canPlan = useStore((s) => s.mode === 'live' || s.mode === 'replay')
+  const [view3d, setView3d] = useState<null | '3d' | 'hud'>(null)
   const online = useStore((s) => s.conn === 'online')
   const planRef = useRef(planMode)
   planRef.current = planMode
@@ -505,7 +510,26 @@ export function MapView() {
               <TooltipContent side="bottom">Ask the engine for a route to any point: turn this on, then click the map (P)</TooltipContent>
             </Tooltip>
           )}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button type="button" onClick={() => setView3d('3d')} data-testid="open-3d"
+                className="flex h-10 items-center gap-2 rounded-[8px] bg-panel px-3 text-[13.5px] text-ink shadow-float transition-colors duration-150 hover:bg-panel2">
+                <Box size={15} /><span className="hidden sm:inline">3D</span>
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">The walk area and the route in 3D, on the HiRISE elevation model</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button type="button" onClick={() => setView3d('hud')} disabled={!hasRoutes} data-testid="open-hud"
+                className="flex h-10 items-center gap-2 rounded-[8px] bg-panel px-3 text-[13.5px] text-ink shadow-float transition-colors duration-150 hover:bg-panel2 disabled:opacity-50">
+                <Compass size={15} /><span className="hidden sm:inline">Helmet HUD</span>
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">Walk the route in a simulated helmet display, with turn-by-turn guidance and the rover camera</TooltipContent>
+          </Tooltip>
         </div>
+        {view3d && <Suspense fallback={null}><Views3D mode={view3d} onClose={() => setView3d(null)} /></Suspense>}
         <PlaceCard />
         <div className="float absolute right-3 top-3 flex flex-col overflow-hidden rounded-[8px]">
           <button type="button" className={mapBtn} aria-label="Zoom in" onClick={() => zoomAt(1.5)}><Plus size={16} /></button>
@@ -538,7 +562,7 @@ function PlaceCard() {
   const place = useStore((s) => s.hello?.places?.find((p) => p.id === s.selectedPlace))
   const sh = useStore((s) => focusBundle(s)?.assessment?.shelters?.find((x) => x.id === s.selectedPlace))
   const lead = useStore((s) => s.snapshot?.crew[0])
-  const live = useStore((s) => s.mode === 'live')
+  const live = useStore((s) => s.mode === 'live' || s.mode === 'replay')
   const online = useStore((s) => s.conn === 'online')
   const planMode = useStore((s) => s.planMode)
   if (!place || planMode) return null

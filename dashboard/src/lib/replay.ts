@@ -119,6 +119,10 @@ export function replayCmd(cmd: Record<string, unknown>): boolean {
       play(); return true
     case 'reset':
       rewind(); return true
+    case 'plan':
+      // no engine behind a static page: the browser engine plans the walk and answers with the same message
+      void import('@/live/bridge').then((m) => m.browserPlan(cmd, handle))
+      return true
     default:
       return false
   }
