@@ -149,7 +149,9 @@ function RouteRow({ r, bundle, open }: { r: RouteSummary; bundle: IncidentBundle
           <div className="mt-3 border-t border-rule pt-3"><StressDetail r={r} st={st} /></div>
           {st && <Failures list={st.failures} />}
           <div className="mt-3 flex items-center justify-between gap-3">
-            {r.status !== 'chosen' && r.status !== 'infeasible' && !replay
+            {bundle.plan
+              ? <span className="text-[12.5px] text-ink3">A plan only: the crew is not told to walk it.</span>
+              : r.status !== 'chosen' && r.status !== 'infeasible' && !replay
               ? <Button variant="outline" size="md" className="tap" onClick={() => { sendCmd({ cmd: 'choose', route_id: r.id }); reveal() }}>Choose route {r.id} instead</Button>
               : <span className="text-[12.5px] text-ink3">{r.status === 'chosen' ? 'The crew is told to take this route.' : ''}</span>}
             <GroupKind kind="model" source={PLANNER_SRC} label={`Route ${r.id} planner figures`} />

@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
-import { ArrowUp, Check, CircleCheck, ShieldAlert, TriangleAlert } from 'lucide-react'
-import { focusBundle, useStore, type IncidentBundle } from '@/lib/store'
+import { ArrowUp, Check, CircleCheck, Route, ShieldAlert, TriangleAlert, X } from 'lucide-react'
+import { focusBundle, store, useStore, type IncidentBundle } from '@/lib/store'
 import { fileUrl } from '@/lib/config'
-import { compass, deadlineOf, walkView, type Deadline, type WalkView } from '@/lib/derive'
-import { dur, missionT, num, splitLabel } from '@/lib/format'
+import { compass, deadlineOf, progressOn, walkView, type Deadline, type WalkView } from '@/lib/derive'
+import { closePlan } from '@/lib/engine'
+import { dur, missionT, num, pct1, splitLabel } from '@/lib/format'
 import type { Decision, RouteSummary } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { Fig, GroupKind } from '../Kind'
@@ -165,6 +166,101 @@ function Decided({ b, d, route, compact }: { b: IncidentBundle; d: Decision; rou
   )
 }
 
+const PLAN_SRC = 'Path planner on the HiRISE elevation model (5 m grid) with the walk model. A model result, not a measurement.'
+
+/** A request on its way to the engine, or the reason the engine refused the last one. */
+function PlanStatus() {
+  const pending = useStore((s) => s.planPending)
+  const fail = useStore((s) => s.planFail)
+  if (pending) {
+    return (
+      <div role="status" className="mb-4 flex items-center gap-2.5 rounded-[8px] bg-panel3 px-3 py-2.5 text-[13px] text-ink">
+        <span className="pulse-dot h-2 w-2 shrink-0 rounded-full bg-accent" />
+        Planning a walk to <span className="num">e {Math.round(pending.e)}, s {Math.round(pending.s)}</span>
+      </div>
+    )
+  }
+  if (fail) {
+    return (
+      <div role="alert" className="mb-4 flex items-start gap-2.5 rounded-[8px] bg-hazard/10 px-3 py-2.5 text-[13px]">
+        <TriangleAlert size={15} className="mt-[2px] shrink-0 text-hazard" />
+        <div className="min-w-0 flex-1 leading-snug"><span className="font-medium text-ink">No plan. </span><span className="text-ink2">{fail.reason ?? 'The engine refused the request'}.</span></div>
+        <button type="button" aria-label="Dismiss" className="shrink-0 text-ink3 hover:text-ink" onClick={() => store.set({ planFail: null })}><X size={15} /></button>
+      </div>
+    )
+  }
+  return null
+}
+
+/** A route the operator asked for before a walk. No incident, no rule, and the crew is not sent anywhere. */
+function PlannedWalk({ b, compact }: { b: IncidentBundle; compact?: boolean }) {
+  const plan = b.plan!
+  const routesFile = useStore((s) => s.routesFile)
+  const selected = useStore((s) => s.selectedRoute)
+  const route = b.routes?.find((r) => r.id === selected) ?? b.routes?.find((r) => r.id === plan.recommended) ?? b.routes?.[0]
+  const st = route ? b.stress[route.id] : undefined
+  const geom = routesFile && routesFile.incident_id === b.id ? routesFile.routes.find((r) => r.id === route?.id) : undefined
+  const progress = geom && plan.from ? progressOn(geom.points, plan.from.e, plan.from.s) : null
+  const dest = plan.to?.label ?? `e ${Math.round(plan.to?.e ?? 0)}, s ${Math.round(plan.to?.s ?? 0)}`
+  const start = plan.from?.label ?? 'the start'
+  const walkable = !!route && route.status !== 'infeasible'
+  return (
+    <div key={b.id} className="anim-rise">
+      <div className="flex items-center justify-between gap-3 text-[13px]">
+        <div className="flex min-w-0 items-center gap-2">
+          <Route size={16} strokeWidth={1.8} className="shrink-0 text-ink2" />
+          <span className="font-medium text-ink">Plan</span>
+          <span className="truncate text-[12px] text-ink3">before the walk, no incident</span>
+        </div>
+        <button type="button" className="shrink-0 text-[12.5px] text-ink2 underline decoration-dotted underline-offset-2 hover:text-ink" onClick={closePlan}>Close plan</button>
+      </div>
+      <h2 className="mt-5 text-balance text-[24px] font-semibold leading-[1.15] tracking-[-0.02em] text-ink">
+        <span className={walkable ? 'text-accent' : 'text-hazard'}>Planned walk to</span> <span className="tabular-nums">{dest}</span>
+      </h2>
+      {route && <p className="mt-1 text-[12.5px] text-ink3">From {start === 'Crew position' ? 'the crew position' : start} · route {route.id}{route.label ? `, ${route.label.toLowerCase()}` : ''} · not sent to the crew</p>}
+
+      {route && walkable && (
+        <div className="mt-4 flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
+          <div className="flex items-baseline gap-2">
+            <Fig value={dur(route.time_s)} kind="model" source={PLAN_SRC} label="Walking time of the planned route"
+              valueClassName={cn('font-medium leading-none tracking-[-0.03em]', compact ? 'text-[46px]' : 'text-[56px]')} />
+            <span className="text-[13px] text-ink3">walk</span>
+          </div>
+          <Heading walk={{ phase: 'ready', left_s: route.time_s, progress, lead: null }} />
+        </div>
+      )}
+      {route && !walkable && <p className="mt-3 flex gap-2 text-[14px] leading-snug text-hazard"><TriangleAlert size={15} className="mt-[2px] shrink-0" />The walk model does not reach the destination on this route within its limits.</p>}
+
+      {route && (
+        <>
+          <div className="mt-5 grid grid-cols-3 gap-4">
+            <Meter label="Oxygen" frac={route.o2_margin} source={PLAN_SRC} hint="usable oxygen left on arrival" />
+            <Meter label="Heat" frac={route.heat_margin} source={PLAN_SRC} hint="room left before the heat-storage limit on arrival" />
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="text-[11.5px] text-ink2">Dose</span>
+              <Fig value={route.dose} unit="mSv" digits={2} kind="model" source={PLAN_SRC} label="Dose on this walk" />
+            </div>
+          </div>
+          <p className="mt-2 text-[12px] leading-snug text-ink3">Left on arrival, from the walk model.</p>
+          <ul className="mt-4 space-y-1.5 text-[13px] leading-snug text-ink">
+            <li><span className="num">{num(route.length_m)} m</span><span className="text-ink2">, climbing </span><span className="num">{num(route.ascent_m)} m</span><span className="text-ink2">, steepest slope </span><span className="num">{num(route.max_slope, 1)}°</span></li>
+            {st && st.mc_fail_rate !== null && st.mc_fail_rate !== undefined && (
+              <li>
+                <span className="text-ink2">Fails in </span>
+                <Fig value={pct1(st.mc_fail_rate)} kind="model" source={`Monte Carlo, ${st.n ? st.n.toLocaleString('en-US') : 'a small number of'} walks, local preview: a small run by the engine just now`} label="Failure rate of the planned route" />
+                <span className="text-ink2"> of {st.n ? st.n.toLocaleString('en-US') : ''} local preview walks{st.mc_ci ? ` (${pct1(st.mc_ci[0])} to ${pct1(st.mc_ci[1])})` : ''}</span>
+              </li>
+            )}
+            {route.nolos_m !== undefined && route.nolos_m >= 1 && <li><span className="num">{num(route.nolos_m)} m</span><span className="text-ink2"> without radio line of sight to the habitat or the rover</span></li>}
+            {route.band_m !== undefined && route.band_m >= 1 && <li className="text-caution">Crosses {num(route.band_m)} m of the rockfall runout band</li>}
+          </ul>
+        </>
+      )}
+      <p className="mt-4 text-[12px] leading-snug text-ink3">{plan.note ?? 'A plan only: the crew is not told to walk it. Model-based, not crew-tested.'}</p>
+    </div>
+  )
+}
+
 function Planning({ b }: { b: IncidentBundle }) {
   const phase = useStore((s) => s.snapshot?.phase ?? 'idle')
   const live = useStore((s) => s.snapshot?.incident_id === b.id)
@@ -245,7 +341,8 @@ export function ActionCard({ compact }: { compact?: boolean }) {
   const route = b?.routes?.find((r) => r.id === d?.route_id)
   return (
     <div className="overflow-hidden px-4 pb-6 pt-4" aria-live="polite">
-      {b ? (
+      <PlanStatus />
+      {b?.plan ? <PlannedWalk b={b} compact={compact} /> : b ? (
         <>
           <AlertStrip b={b} />
           <IncidentLine b={b} />

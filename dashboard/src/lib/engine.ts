@@ -21,12 +21,12 @@ async function getJson<T>(path: string): Promise<T | null> {
   }
 }
 
-export async function loadRoutes() {
-  const f = await getJson<RoutesFile>('runtime/routes.json')
+export async function loadRoutes(path = 'runtime/routes.json') {
+  const f = await getJson<RoutesFile>(path)
   if (f && Array.isArray(f.routes)) setRoutesFile(f)
 }
-export async function loadTrajectories() {
-  const f = await getJson<TrajFile>('runtime/trajectories.json')
+export async function loadTrajectories(path = 'runtime/trajectories.json') {
+  const f = await getJson<TrajFile>(path)
   if (f && Array.isArray(f.runs)) setTrajFile(f)
 }
 export async function loadParams() {
@@ -73,6 +73,9 @@ function handle(msg: EngineMsg) {
     case 'routes':
       void loadRoutes()
       break
+    case 'plan':
+      if (msg.ok && msg.file) { void loadRoutes(msg.file); if (msg.trajectories) void loadTrajectories(msg.trajectories) }
+      break
     case 'stress':
       void loadTrajectories()
       break
@@ -112,6 +115,21 @@ export function sendCmd(cmd: Record<string, unknown>): boolean {
   if (REPLAY) return replayCmd(cmd)
   if (ws && ws.readyState === WebSocket.OPEN) { ws.send(JSON.stringify(cmd)); return true }
   return false
+}
+
+/** Ask the engine for a walking route to a point of the map (free planning, no incident). */
+export function requestPlan(to: { e: number; s: number }) {
+  const from = store.get().planFrom
+  const cmd: Record<string, unknown> = { cmd: 'plan', to: { e: Math.round(to.e * 10) / 10, s: Math.round(to.s * 10) / 10 } }
+  if (from) cmd.from = from
+  if (sendCmd(cmd)) store.set({ planPending: to, planFail: null })
+}
+
+/** Leave the plan and go back to the live incident, whose route files the plan had replaced on the map. */
+export function closePlan() {
+  store.set({ focusId: null, selectedRoute: null, planFail: null })
+  void loadRoutes()
+  void loadTrajectories()
 }
 
 export function retryNow() {

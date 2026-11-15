@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { Menu as MenuIcon, Pause, Play, RotateCcw, SlidersHorizontal, Volume2, VolumeX } from 'lucide-react'
-import { useStore } from '@/lib/store'
+import { Menu as MenuIcon, Pause, Play, RotateCcw, Route, SlidersHorizontal, Volume2, VolumeX } from 'lucide-react'
+import { store, useStore } from '@/lib/store'
 import { FALLBACK_PRODUCT } from '@/lib/config'
 import { sendCmd } from '@/lib/engine'
 import { hm, lightTime } from '@/lib/format'
@@ -98,8 +98,21 @@ function Controls({ close }: { close: () => void }) {
   const notStarted = useStore((s) => !!s.snapshot && s.snapshot.clock.paused && s.snapshot.t < 0.5 && s.order.length === 0)
   const [muted, setM] = useState(isMuted)
   const replay = useStore((s) => s.mode === 'replay')
+  const planMode = useStore((s) => s.planMode)
   return (
     <div className="space-y-3">
+      <Tooltip>
+        <TooltipTrigger asChild>
+          {/* the wrapper keeps the tip working while the button is disabled */}
+          <span tabIndex={replay ? 0 : -1} className="block">
+            <Button variant={planMode ? 'default' : 'quiet'} size="md" className="w-full justify-start" aria-pressed={planMode} disabled={off || replay}
+              onClick={() => { store.set((s) => ({ planMode: !s.planMode })); close() }}>
+              <Route size={14} />{planMode ? 'Stop planning' : 'Plan a walk'}
+            </Button>
+          </span>
+        </TooltipTrigger>
+        <TooltipContent side="left">{replay ? 'Needs the live engine' : 'Click a point on the map to get the walking route to it from the crew. No incident involved; the crew is not sent anywhere.'}</TooltipContent>
+      </Tooltip>
       <Button variant="quiet" size="md" className="w-full justify-start" disabled={off} onClick={() => { sendCmd({ cmd: 'demo' }); close() }}><Play size={14} />Run the demo from the start</Button>
       <div className="border-t border-rule2 pt-3">
         <div className="cap mb-1.5">Mission clock</div>

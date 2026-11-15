@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Minus, Plus, Scan } from 'lucide-react'
 import { CORE_DEFAULT, LAYER_LABEL, ORTHO_PATH, fileUrl, type Layer } from '@/lib/config'
 import { focusBundle, focusIncidentId, store, useStore } from '@/lib/store'
+import { requestPlan } from '@/lib/engine'
 import { ROUTE_STYLE, OUTCOME_FAIL, FAIL_LABEL } from '@/lib/routeStyle'
 import type { RouteStatus } from '@/lib/types'
 import { cn } from '@/lib/utils'
@@ -58,6 +59,10 @@ export function MapView() {
   const [tip, setTip] = useState<{ x: number; y: number; title: string; lines: string[] } | null>(null)
   const [coord, setCoord] = useState<{ e: number; s: number } | null>(null)
   const focusId = useStore(focusIncidentId)
+  const planMode = useStore((s) => s.planMode)
+  const planFrom = useStore((s) => s.planFrom)
+  const planRef = useRef(planMode)
+  planRef.current = planMode
   const routesFileInc = useStore((s) => s.routesFile?.incident_id)
   const helloCore = useStore((s) => s.hello?.site.core)
   const core = helloCore ?? CORE_DEFAULT
@@ -132,12 +137,13 @@ export function MapView() {
     const c = cv.current
     if (!c) return
     let drag: { x: number; y: number } | null = null
+    let press: { x: number; y: number } | null = null
     const onWheel = (e: WheelEvent) => {
       e.preventDefault()
       const r = c.getBoundingClientRect()
       zoomAt(Math.exp(-e.deltaY * 0.0016), e.clientX - r.left, e.clientY - r.top)
     }
-    const onDown = (e: PointerEvent) => { drag = { x: e.clientX, y: e.clientY }; c.setPointerCapture(e.pointerId); c.style.cursor = 'grabbing' }
+    const onDown = (e: PointerEvent) => { drag = { x: e.clientX, y: e.clientY }; press = drag; c.setPointerCapture(e.pointerId); c.style.cursor = 'grabbing' }
     const onMove = (e: PointerEvent) => {
       const r = c.getBoundingClientRect()
       const x = e.clientX - r.left, y = e.clientY - r.top
@@ -146,12 +152,26 @@ export function MapView() {
       const v = view.current
       setCoord({ e: e0 + (x - v.ox) / v.k, s: s0 + (y - v.oy) / v.k })
     }
-    const onUp = (e: PointerEvent) => { drag = null; c.style.cursor = 'grab'; try { c.releasePointerCapture(e.pointerId) } catch { /* not captured */ } }
+    const onUp = (e: PointerEvent) => {
+      drag = null; c.style.cursor = ''
+      try { c.releasePointerCapture(e.pointerId) } catch { /* not captured */ }
+      const still = press && Math.hypot(e.clientX - press.x, e.clientY - press.y) < 6
+      press = null
+      if (!planRef.current || !still || e.button !== 0) return
+      const r = c.getBoundingClientRect(), v = view.current
+      const pt = { e: e0 + (e.clientX - r.left - v.ox) / v.k, s: s0 + (e.clientY - r.top - v.oy) / v.k }
+      if (e.shiftKey) store.set({ planFrom: { e: Math.round(pt.e * 10) / 10, s: Math.round(pt.s * 10) / 10 } })
+      else requestPlan(pt)
+    }
     const onLeave = () => { hoverRef.current = null; setCoord(null); setTip(null) }
     c.addEventListener('wheel', onWheel, { passive: false })
     c.addEventListener('pointerdown', onDown); c.addEventListener('pointermove', onMove)
     c.addEventListener('pointerup', onUp); c.addEventListener('pointerleave', onLeave); c.addEventListener('dblclick', fitView)
+    // Esc leaves "Plan a walk"
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && planRef.current) store.set({ planMode: false }) }
+    window.addEventListener('keydown', onKey)
     return () => {
+      window.removeEventListener('keydown', onKey)
       c.removeEventListener('wheel', onWheel); c.removeEventListener('pointerdown', onDown); c.removeEventListener('pointermove', onMove)
       c.removeEventListener('pointerup', onUp); c.removeEventListener('pointerleave', onLeave); c.removeEventListener('dblclick', fitView)
     }
@@ -357,6 +377,26 @@ export function MapView() {
 
       for (const l of crewLabels) halo(ctx, l.names.join(' · '), l.x, l.y - 17, l.bad ? '#ff5f57' : '#e3b472', 'center')
 
+      // free plan: where it starts, where it ends, and a request still on its way
+      const mark = (e: number, s: number, label: string, kind: 'to' | 'from' | 'wait') => {
+        const x = X(e), y = Y(s)
+        ctx.lineWidth = 2; ctx.strokeStyle = '#0a0c0f'; ctx.fillStyle = '#e3b472'
+        if (kind === 'from') { ctx.beginPath(); ctx.arc(x, y, 5.5, 0, 6.283); ctx.fillStyle = '#0a0c0f'; ctx.fill(); ctx.strokeStyle = '#e3b472'; ctx.stroke() }
+        else {
+          const r = kind === 'wait' ? 9 + 3 * Math.sin(now / 160) : 9
+          ctx.beginPath(); ctx.arc(x, y, r, 0, 6.283); ctx.strokeStyle = 'rgba(6,8,10,.85)'; ctx.lineWidth = 4.5; ctx.stroke()
+          ctx.strokeStyle = '#e3b472'; ctx.lineWidth = 2; ctx.stroke()
+          ctx.beginPath(); ctx.moveTo(x - r - 5, y); ctx.lineTo(x - 3, y); ctx.moveTo(x + 3, y); ctx.lineTo(x + r + 5, y)
+          ctx.moveTo(x, y - r - 5); ctx.lineTo(x, y - 3); ctx.moveTo(x, y + 3); ctx.lineTo(x, y + r + 5); ctx.stroke()
+        }
+        halo(ctx, label, x + 14, y - 12, '#e3b472')
+      }
+      const plan = bundle?.plan
+      if (plan?.to?.e !== undefined && plan.to.s !== undefined) mark(plan.to.e, plan.to.s, plan.to.label ? `Plan to ${plan.to.label}` : 'Plan destination', 'to')
+      if (plan?.from && plan.from.label !== 'Crew position') mark(plan.from.e, plan.from.s, 'Plan start', 'from')
+      if (st.planMode && st.planFrom && !(plan?.from && plan.from.label !== 'Crew position')) mark(st.planFrom.e, st.planFrom.s, 'Start', 'from')
+      if (st.planPending) mark(st.planPending.e, st.planPending.s, 'Planning', 'wait')
+
       // scale bar
       let len = 20
       for (const n of [20, 50, 100, 200, 250, 500, 1000, 2000]) if (n * k <= 130) len = n
@@ -395,7 +435,16 @@ export function MapView() {
   return (
     <div className="flex h-full min-h-0 flex-col bg-bg">
       <div ref={wrap} className="relative min-h-0 flex-1 overflow-hidden">
-        <canvas ref={cv} className="absolute inset-0 cursor-grab touch-none" aria-label="Map of the 4 by 4 km walk area" />
+        <canvas ref={cv} className={cn('absolute inset-0 touch-none', planMode ? 'cursor-crosshair' : 'cursor-grab')} aria-label="Map of the 4 by 4 km walk area" />
+        {planMode && (
+          <div role="status" className="anim-rise pointer-events-none absolute inset-x-3 bottom-3 flex justify-center">
+            <div className="pointer-events-auto flex max-w-full flex-wrap items-center gap-x-3 gap-y-1 rounded-[8px] bg-bg/90 px-3.5 py-2 text-[13px] text-ink shadow-[0_4px_16px_rgba(0,0,0,.45)]">
+              <span><span className="font-medium text-accent">Planning a walk.</span> Click the destination. Shift and click sets another start.</span>
+              {planFrom && <button type="button" className="text-ink2 underline decoration-dotted underline-offset-2 hover:text-ink" onClick={() => store.set({ planFrom: null })}>Start from the crew</button>}
+              <button type="button" className="text-ink2 underline decoration-dotted underline-offset-2 hover:text-ink" onClick={() => store.set({ planMode: false })}>Stop (Esc)</button>
+            </div>
+          </div>
+        )}
         <div className="absolute left-3 top-3"><LayerMenu /></div>
         <div className="absolute right-3 top-3 flex flex-col overflow-hidden rounded-[8px] bg-bg/90 shadow-[0_4px_16px_rgba(0,0,0,.45)]">
           <button type="button" className={mapBtn} aria-label="Zoom in" onClick={() => zoomAt(1.5)}><Plus size={16} /></button>

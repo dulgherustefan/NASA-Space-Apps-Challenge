@@ -70,8 +70,16 @@ export interface Decision {
   /** Dose on the chosen walk in mSv, when the engine sends it. */
   dose_msv?: number
 }
+/** A point of a free plan, local metres. `label` is a place name, "Crew position", "Chosen start" or null. */
+export interface PlanPoint { e: number; s: number; z?: number; label?: string | null }
+/** Answer to the `plan` command: a walking route asked for by the operator, with no incident involved. */
+export interface PlanMsg {
+  type: 'plan'; t: number; id: string; ok: boolean; reason?: string
+  from?: PlanPoint; to?: Partial<PlanPoint>; file?: string; trajectories?: string
+  routes?: RouteSummary[]; stress?: Stress[]; recommended?: number; conditions?: Quantity[]; note?: string
+}
 export interface LogMsg { type: 'log'; t: number; level: string; text: string; source?: string }
-export type EngineMsg = Hello | Snapshot | Incident | Assessment | RoutesMsg | Stress | Decision | LogMsg
+export type EngineMsg = Hello | Snapshot | Incident | Assessment | RoutesMsg | Stress | Decision | LogMsg | PlanMsg
 
 // runtime files
 export interface RoutesFile { incident_id: string; routes: { id: number; shelter: string; points: [number, number, number][]; time_s: number; length_m: number }[] }

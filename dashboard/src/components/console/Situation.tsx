@@ -100,7 +100,12 @@ export function Situation() {
       <Section title="Incidents" aside={order.length > 1 ? `${order.length} so far` : undefined} className="border-t-0">
         <Incidents />
       </Section>
-      {bundle && (
+      {bundle?.plan && (
+        <Section title="What the plan assumes">
+          <Figures items={bundle.plan.conditions ?? []} first={5} />
+        </Section>
+      )}
+      {bundle && !bundle.plan && (
         <Section title="What changed on the map" aside={a ? undefined : 'assessing'}>
           {a ? <Figures items={a.changes} first={4} /> : <Empty>The hazard map is being updated for this incident.</Empty>}
         </Section>

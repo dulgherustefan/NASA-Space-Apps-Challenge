@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react'
 import type {
-  Assessment, CrewState, Decision, EngineMsg, Hello, Incident, ParamDef, Phase, PovItem, RouteSummary, RoutesFile, RoutesMsg, Snapshot, Stress, TrajFile,
+  Assessment, CrewState, Decision, EngineMsg, Hello, Incident, ParamDef, Phase, PlanMsg, PovItem, RouteSummary, RoutesFile, RoutesMsg, Snapshot, Stress, TrajFile,
 } from './types'
 
 export type Conn = 'connecting' | 'online' | 'offline'
@@ -12,6 +12,8 @@ export interface IncidentBundle {
   routes?: RouteSummary[]
   stress: Record<number, Stress>
   decision?: Decision
+  /** set when this bundle is a free plan, not an incident: routes and stress come from the plan message */
+  plan?: PlanMsg
   /** mission time at which each stage message arrived */
   stageT: Partial<Record<Exclude<Phase, 'idle'>, number>>
 }
@@ -63,6 +65,14 @@ export interface State {
   trails: Record<number, [number, number][]>
   /** wall time of the newest incident, for the alert cue */
   alertAt: number
+  /** "Plan a walk" is on: a click on the map asks the engine for a route to that point */
+  planMode: boolean
+  /** start point picked by the operator; null means the crew's position */
+  planFrom: { e: number; s: number } | null
+  /** destination sent to the engine and not answered yet */
+  planPending: { e: number; s: number } | null
+  /** the last plan the engine refused, with its reason */
+  planFail: PlanMsg | null
 }
 
 const initial = (): State => ({
@@ -72,6 +82,7 @@ const initial = (): State => ({
   params: { status: 'idle', items: [] }, training: { status: 'idle' }, pov: {},
   overlay: { layer: 'hazard', opacity: 0.42, userSet: false }, contours: true, selectedRoute: null, showReplays: true,
   routeChangedAt: {}, trails: {}, alertAt: 0,
+  planMode: false, planFrom: null, planPending: null, planFail: null,
 })
 
 let state: State = initial()
@@ -218,6 +229,24 @@ export function applyMessage(msg: EngineMsg) {
         incidents: { ...state.incidents, [id]: { ...b, decision: msg, stageT: { ...b.stageT, respond: msg.t } } },
         selectedRoute: null,
         log: pushLog({ t: msg.t, type: 'decision', title: `Route ${msg.route_id} chosen${msg.auto === false ? ' (operator)' : ''}`, detail: msg.reasons.join('; '), incident_id: id, raw: msg }),
+      })
+      return
+    }
+    case 'plan': {
+      if (!msg.ok || !msg.routes) {
+        store.set({ planPending: null, planFail: msg, log: pushLog({ t: msg.t, type: 'plan', level: 'warn', title: 'Plan refused', detail: msg.reason, source: 'engine', raw: msg }) })
+        return
+      }
+      // A plan is kept beside the incidents, not in their order: it never shows in the incident list.
+      const b: IncidentBundle = {
+        id: msg.id, plan: msg, routes: msg.routes, stageT: {},
+        stress: Object.fromEntries((msg.stress ?? []).map((s) => [s.route_id, { ...s, type: 'stress' as const, t: msg.t }])),
+        incident: { type: 'incident', t: msg.t, id: msg.id, kind: 'science', title: 'Planned walk', scenario: false },
+      }
+      store.set({
+        incidents: { ...state.incidents, [msg.id]: b }, focusId: msg.id, selectedRoute: msg.recommended ?? null,
+        planPending: null, planFail: null,
+        log: pushLog({ t: msg.t, type: 'plan', title: `Planned walk to ${msg.to?.label ?? `e ${Math.round(msg.to?.e ?? 0)}, s ${Math.round(msg.to?.s ?? 0)}`}`, detail: msg.routes.map((r) => `${r.label ?? r.id}: ${r.length_m} m, ${Math.round(r.time_s / 60)} min`).join('; '), source: 'engine', raw: msg }),
       })
       return
     }

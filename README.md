@@ -153,6 +153,12 @@ The dashboard has five pages: Console, Method, Parameters, Log (decision log wit
 The **Run demo** button plays the three incidents. The button beside it opens the exercise controls: clock, single
 incidents, alert sound.
 
+**Plan a walk**, in the same menu, is for before a walk: a click on the map returns the walking route from the crew to
+that point (Shift and click sets another start). It uses the same planner, hazard layers and walk model as the incident
+routes, and its stress test is the engine's small Monte Carlo run, labelled "local preview". It involves no incident and
+the crew is not sent anywhere. It needs the live engine, so it is off in the recorded run. The command and its answer are
+in `docs/CONTRACT.md`, section 8.
+
 **Without an engine.** `npm run build:web` makes a static site in `dist-web/` that plays a recorded run of the demo:
 the engine's own messages and files, saved by `python tools/record_demo.py` into `dashboard/public/replay/`. Any static
 host can serve it. Adding `?replay` to the address does the same in the development server. The header then says
