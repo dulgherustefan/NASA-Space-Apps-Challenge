@@ -1,0 +1,95 @@
+{
+ "checks": {
+  "throughput": {
+   "steps_per_s": 1524133.6531354825,
+   "sim_steps": 18665805,
+   "ok": true,
+   "floor_ok": true
+  },
+  "parity": {
+   "max_abs_state_diff": 0.0,
+   "baseline": {
+    "arrive": 0.8993382734120087,
+    "stuck": 0.09160491568322508,
+    "incap": 0.00905681090476626,
+    "episodes": 32793
+   },
+   "reference": {
+    "arrive": 0.90393,
+    "stuck": 0.08868,
+    "incap": 0.00708
+   },
+   "max_diff_pp": 0.45917265879913405,
+   "nominal_arrive_routes": 4,
+   "nominal_with_reserve_routes": 2,
+   "routes": 4,
+   "ok": 1.0
+  },
+  "hooks": {
+   "forced_incap_rate": 1.0,
+   "heat_peak_nominal_kj": [
+    150.0,
+    150.0,
+    150.0,
+    150.0
+   ],
+   "heat_peak_degraded_kj": [
+    239.6986083984375,
+    324.9144592285156,
+    405.5203857421875,
+    405.5203857421875
+   ],
+   "ok": true
+  },
+  "reachability": {
+   "fail_rate_falls_terminal": [
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "fail_rate_falls_penalty": [
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "ok": true
+  },
+  "likelihood": {
+   "mc_mean_log_p": -48.63564871686551,
+   "expected_gaussian_part": -46.91212051559448,
+   "mean_steps": 90.66390991210938,
+   "undisturbed_log_p": [
+    -0.14616380399798148,
+    -0.42272550697858485,
+    -0.5306749364027384,
+    -0.5306749364027384
+   ],
+   "forced_stumble_log_p": [
+    -9.73632176455785,
+    -8.413173574453232,
+    -8.41223197843737,
+    -8.41223197843737
+   ],
+   "forced_stumble_expected": [
+    -9.73632143680753,
+    -8.413173454460273,
+    -8.412232194480387,
+    -8.412232194480387
+   ],
+   "forced_err": 3.277503193288567e-07,
+   "gaussian_part": -47.12059470384325,
+   "bernoulli_part": -1.5150540130222456,
+   "bernoulli_expected": -1.510044823627415,
+   "ok": true
+  }
+ },
+ "passed": {
+  "throughput": true,
+  "parity": true,
+  "hooks": true,
+  "reachability": true,
+  "likelihood": true
+ }
+}
