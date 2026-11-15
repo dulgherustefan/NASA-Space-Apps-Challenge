@@ -59,8 +59,11 @@ class Adversary(nn.Module):
         s2 = math.sqrt(2)
         self.actor = GMLP(G, [n_obs, 128, 128, N_ACT + 2], [s2, s2, 0.01], seeds)
         self.critic = GMLP(G, [n_obs, 256, 256, 1], [s2, s2, 1.0], [s + 500 for s in seeds])
-        ls = torch.zeros(G, 1, N_ACT)          # episode channels start at their nominal spread (std 1), pace drift at exp(-0.5)
-        ls[..., 4] = -0.5
+        # Episode channels start at their nominal spread (std 1). Pace drift starts narrow (std exp(-2)): every step of
+        # exploration noise in that channel is charged in the reward, which otherwise makes long walks look costly and
+        # pulls the adversary toward early falls.
+        ls = torch.zeros(G, 1, N_ACT)
+        ls[..., 4] = -2.0
         self.logstd = nn.Parameter(ls)
         self.register_buffer("mean", torch.zeros(G, 1, n_obs)); self.register_buffer("var", torch.ones(G, 1, n_obs))
         self.register_buffer("count", torch.tensor(1e-4))

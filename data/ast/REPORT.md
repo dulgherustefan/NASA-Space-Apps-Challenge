@@ -2,7 +2,7 @@
 
 Adaptive Stress Testing (Lee et al., 2020) uses reinforcement learning to search a simulator for the most likely failure. We apply it to a physics-based walk model with documented bounds. Results are model-based, not crew-validated.
 
-Generated 2026-11-15T02:37:14Z on an RTX 5070 Ti laptop GPU (PyTorch, CUDA). Everything below is model-based: one walk model, one site, disturbance distributions that are team assumptions. Robustness in nats is minus the log-likelihood of the most likely failure found, a likelihood ratio and not a probability.
+Generated 2026-11-15T03:01:17Z on an RTX 5070 Ti laptop GPU (PyTorch, CUDA). Everything below is model-based: one walk model, one site, disturbance distributions that are team assumptions. Robustness in nats is minus the log-likelihood of the most likely failure found, a likelihood ratio and not a probability.
 
 ## Setup
 
@@ -50,12 +50,27 @@ Start (2800, 1500) core metres, pace 0.95 m/s, 29.0 min of walking allowed (30-m
 - Route 1, `falls_terminal`: Monte Carlo classes fall 1.213 %, late 0.017 %; most likely failure per class (nats): fall 7.65, heat not found, oxygen not found, late 4.76, stuck not found; CEM best log-likelihood per seed: -7.66, -7.66, -7.65; random search best log-likelihood per seed: -8.31, -7.47, -8.01; CEM restarts best log-likelihood per seed: -7.66, -4.76, -7.76.
 - Route 1, `falls_penalty`: Monte Carlo classes late 0.019 %; most likely failure per class (nats): heat not found, oxygen not found, late 4.39, stuck not found; CEM best log-likelihood per seed: -12.89, -15.58, -13.64; random search best log-likelihood per seed: -16.63, -19.02, -16.65; CEM restarts best log-likelihood per seed: -9.81, -7.07, -4.39.
 
+
+### S2: Marsquake
+
+Start (2690, 1582) core metres, pace 0.95 m/s, 45.0 min of walking allowed (expected dose-rate peak).
+
+| Route | Undisturbed walk | Monte Carlo failure rate (95 % Wilson) | Robustness, nats (`falls_terminal`) | Robustness, nats (other) | Most likely failure | Method |
+|---|---|---|---|---|---|---|
+| 0 Rover | 42.2 min, 2.8 min spare | 34.549 % (34.341 to 34.758), n = 200000 | 0.73 | 0.73 | Not under cover at the expected dose-rate peak (45 min of walking): navigation off by 24 m | cem |
+| 1 Habitat | infeasible without any disturbance (late) | 100.000 % (99.998 to 100.000), n = 200000 | not scored | not scored | Infeasible without any disturbance: the undisturbed walker is not under cover in time (planned walk 67 min) | n/a |
+
+- Route 0, `falls_terminal`: Monte Carlo classes fall 1.719 %, late 32.830 %; most likely failure per class (nats): fall 7.77, heat not found, oxygen not found, late 0.73, stuck not found; CEM best log-likelihood per seed: -0.73, -0.73, -0.74; random search best log-likelihood per seed: -0.89, -0.86, -0.87; CEM restarts best log-likelihood per seed: -0.73, -0.73, -0.74.
+- Route 0, `falls_penalty`: Monte Carlo classes late 33.687 %; most likely failure per class (nats): heat not found, oxygen not found, late 0.73, stuck not found; CEM best log-likelihood per seed: -0.73, -0.74, -0.74; random search best log-likelihood per seed: -1.25, -1.18, -1.19; CEM restarts best log-likelihood per seed: -0.74, -0.74, -0.74.
+
 ## What held and what did not
 
 - Smoke test (U2 section 9.8) on S1: 5 of 5 checks passed (throughput, parity, hooks, reachability, likelihood). Throughput 1524k simulator steps per second with the hooks on; the hooked step reproduces the original step exactly (max difference 0); see `rl/runs/ast/smoke_S1.json`.
 - S1: Rover, Habitat are infeasible without any disturbance (the undisturbed walker is not under cover in time) and not scored.
 - S1 ranking by robustness (`falls_terminal`): Terrain shelter A (7.78) > Terrain shelter C (4.76). Other configuration: Terrain shelter A (no failure found above the search floor (log-likelihood -100 nats)) > Terrain shelter C (4.39). The ranking is the same in both configurations.
-- Which search found the most likely failure (within 0.05 nat of the best, per route and configuration, 3 cases): CEM 1, CEM restarts 3.
+- S2: Habitat is infeasible without any disturbance (the undisturbed walker is not under cover in time) and not scored.
+- S2: one route can be scored (Rover): 0.73 nats (`falls_terminal`), 0.73 (other configuration).
+- Which search found the most likely failure (within 0.05 nat of the best, per route and configuration, 5 cases): CEM 3, CEM restarts 5.
 - A single-Gaussian CEM can settle in the first failure basin it meets (often the incapacitating fall) and miss a more likely failure elsewhere; CEM restarts (random search, then local refinement) are the reference search here.
 - No PPO adversary results are included in this export; the cross-entropy search is the headline method.
 
@@ -69,3 +84,20 @@ Start (2800, 1500) core metres, pace 0.95 m/s, 29.0 min of walking allowed (30-m
 - The 1 m DTM has no footstep-scale terrain; the loose-sand layer is an image proxy.
 
 Files: `ast_results.json`, `routes.json`, `ast_training.json`, `ast_baselines.json`, `ast_heatmap_<scenario>_<route>.png`, `learning_curve_ast.png`, `baselines_ast.png`. Code: `rl/ast_env.py`, `rl/ast_mc.py`, `rl/ast_cem.py`, `rl/train_ast.py`, `rl/eval_ast.py`, `rl/export_ast.py`.
+
+## Cross-check against the engine's walker
+
+The stress test runs on the batched field-following simulator (`rl/ast_env.py`). The engine replays walkers with its own port of the same model that follows the drawn polyline (`engine/walk.py`). Plain Monte Carlo failure rates of both, same routes, same nominal disturbances (falls can be incapacitating):
+
+| Scenario | Route | Engine walker (n = 20000) | Batched simulator |
+|---|---|---|---|
+| S1 | 0 Terrain shelter A | 0.575 % (fall 0.555 %, late 0.020 %) | 0.590 % (fall 0.591 %) |
+| S1 | 1 Terrain shelter C | 2.645 % (fall 1.360 %, late 1.285 %) | 1.230 % (fall 1.213 %, late 0.018 %) |
+| S1 | 2 Rover | 100.000 % (fall 2.080 %, late 97.920 %) | 100.000 % (fall 1.388 %, late 98.612 %) |
+| S1 | 3 Habitat | 100.000 % (fall 3.250 %, late 96.750 %) | 100.000 % (fall 1.344 %, late 98.656 %) |
+| S2 | 0 Rover | 19.720 % (fall 1.580 %, late 18.140 %) | 34.549 % (fall 1.719 %, late 32.830 %) |
+| S2 | 1 Habitat | 100.000 % (fall 2.950 %, late 97.050 %) | 100.000 % (fall 1.758 %, late 98.242 %) |
+| S3 | 0 Boulder and back, band-avoiding weights | 0.635 % (fall 0.535 %, stuck 0.100 %) | not run |
+| S3 | 1 Boulder and back, standing weights | 0.850 % (fall 0.595 %, stuck 0.255 %) | not run |
+
+Differences come from the path following (guidance field with a 53 m navigation offset applied to the believed position, against pure pursuit of the polyline) and are part of the model uncertainty.

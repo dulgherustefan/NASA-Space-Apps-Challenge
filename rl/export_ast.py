@@ -402,11 +402,16 @@ def plots(training, baselines, results, headline):
                     pts = [(s, v) for s, v in x["curve_without_pace_noise"] if v is not None]
                     if pts:
                         ax.plot([p[0] for p in pts], [p[1] for p in pts], color=col[m], lw=1.0, ls=":", label="Monte Carlo, pace noise not counted")
-        ax.set_xscale("log")
         ax.set_title("%s route %s (%s)\n%s" % (scn, key, results[scn]["routes"][key]["shelter"], c.replace("_", " ")), fontsize=9)
         ax.set_xlabel("simulator steps"); ax.set_ylabel("best failure log-likelihood (nats)")
         ax.grid(alpha=0.25)
-        ax.legend(fontsize=6.5, loc="lower right")
+        if ax.lines:
+            ax.set_xscale("log")
+            ax.legend(fontsize=6.5, loc="lower right")
+        else:
+            ax.text(0.5, 0.5, "no failure found by any search\n(above the floor of -100 nats)", ha="center", va="center",
+                    transform=ax.transAxes, fontsize=9)
+            ax.set_xticks([]); ax.set_yticks([])
     fig.suptitle("Most likely failure found vs search budget, every seed shown. Model-based, team-assumed disturbance distributions.", fontsize=9)
     fig.tight_layout()
     fig.savefig(os.path.join(OUT, "learning_curve_ast.png"), dpi=130)
@@ -428,6 +433,8 @@ def plots(training, baselines, results, headline):
                 ax.bar(i, -np.mean(vals), color=col[m], alpha=0.85)
                 ax.scatter([i] * len(vals), [-v for v in vals], color="k", s=10, zorder=3)
         ax.set_xticks(range(len(ms))); ax.set_xticklabels([lab[m].replace(" (nominal noise)", "") for m in ms], fontsize=7, rotation=12)
+        if not ax.patches:
+            ax.text(0.5, 0.5, "no failure found by any search", ha="center", va="center", transform=ax.transAxes, fontsize=9)
         ax.set_ylabel("nats to the most likely failure found")
         ax.set_title("%s route %s (%s), %s\nequal budget %.1fM steps (lower = stronger search)" % (
             scn, key, results[scn]["routes"][key]["shelter"], c.replace("_", " "), budget / 1e6), fontsize=8)

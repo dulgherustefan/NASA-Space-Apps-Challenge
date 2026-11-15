@@ -198,7 +198,7 @@ def write_extra():
                                                               "n/a" if q["mc_fail_rate"] is None else "%.3f %%" % (100 * q["mc_fail_rate"])))
         w("")
     re_rows = []
-    for tag, val in (("_re50", 50), ("", 100), ("_re200", 200)):
+    for tag, val in (("_re50", 50), ("_re100", 100), ("_re200", 200)):
         for cfg in CONFIGS:
             d = _load("ppo_S1_%s%s.json" % (cfg, tag))
             if d:
