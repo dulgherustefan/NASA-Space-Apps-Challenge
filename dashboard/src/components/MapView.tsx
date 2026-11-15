@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils'
 import { LayerLegend, LayerMenu } from './console/Layers'
 import { KIND_NAME } from './console/Situation'
 import { Timeline } from './Timeline'
+import { PlaceView } from './console/PlaceView'
 import { Button } from './ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip'
 
@@ -41,8 +42,8 @@ function getImg(url: string, online: boolean): Img | null {
 interface View { k: number; ox: number; oy: number; fit: number; w: number; h: number; fitted: boolean }
 interface Hit { x: number; y: number; r: number; title: string; lines: string[]; place?: string }
 const INK = MAP.ink
-const DARK = '#0b0e10'
-const FACE = '"B612", system-ui, sans-serif'
+const DARK = '#0c0b0a'
+const FACE = getComputedStyle(document.documentElement).getPropertyValue("--font-sans").trim() || "system-ui, sans-serif"
 const LABEL = `400 12px ${FACE}`
 
 /** Distance in pixels from a point to a segment. */
@@ -225,7 +226,7 @@ export function MapView() {
       if (!v.w) return
       const dpr = window.devicePixelRatio || 1
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-      ctx.fillStyle = st.theme === 'night' ? '#0d1012' : '#dfe3e3'; ctx.fillRect(0, 0, v.w, v.h)
+      ctx.fillStyle = DARK; ctx.fillRect(0, 0, v.w, v.h)
       const k = v.k
       const X = (e: number) => v.ox + (e - e0) * k
       const Y = (s: number) => v.oy + (s - s0) * k
@@ -339,7 +340,7 @@ export function MapView() {
           ctx.globalAlpha = back ? 0.7 : 1
           ctx.fillStyle = chosen ? MAP.route : DARK; ctx.strokeStyle = chosen ? DARK : back ? MAP.quiet : sty.map; ctx.lineWidth = sel ? 2 : 1.4
           ctx.beginPath(); ctx.arc(tx, ty, sel ? 10 : 9, 0, 6.283); ctx.fill(); ctx.stroke()
-          ctx.font = `700 11.5px ${FACE}`; ctx.fillStyle = chosen ? '#1d0614' : INK; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+          ctx.font = `600 11.5px ${FACE}`; ctx.fillStyle = chosen ? '#06231c' : INK; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
           ctx.fillText(String(r.id), tx, ty + 0.5)
           ctx.globalAlpha = 1
         }
@@ -359,7 +360,7 @@ export function MapView() {
             ctx.globalAlpha = isSel || selId === null ? 1 : 0.55
             ctx.fillStyle = MAP.hazard; ctx.strokeStyle = DARK; ctx.lineWidth = 1.5
             ctx.beginPath(); ctx.moveTo(x, y - rr); ctx.lineTo(x + rr, y); ctx.lineTo(x, y + rr); ctx.lineTo(x - rr, y); ctx.closePath(); ctx.stroke(); ctx.fill()
-            if (isSel) { ctx.font = `700 9.5px ${FACE}`; ctx.fillStyle = '#1a0807'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(String(i + 1), x, y + 0.5) }
+            if (isSel) { ctx.font = `600 9.5px ${FACE}`; ctx.fillStyle = '#1a0807'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(String(i + 1), x, y + 0.5) }
             ctx.globalAlpha = 1
             hits.push({ x, y, r: rr + 4, title: `Route ${stress.route_id}: ${FAIL_LABEL[f.class] ?? f.class} (failure ${i + 1})`, lines: [f.summary ?? '', `log p ${f.log_p.toFixed(1)}`] })
           })
@@ -382,7 +383,7 @@ export function MapView() {
           }
           ctx.beginPath(); ctx.arc(x, y, 15, 0, 6.283)
           ctx.strokeStyle = MAP.line; ctx.lineWidth = 5; ctx.stroke()
-          ctx.strokeStyle = MAP.route; ctx.lineWidth = 2.2; ctx.stroke()
+          ctx.strokeStyle = MAP.select; ctx.lineWidth = 2.2; ctx.stroke()
         }
         ctx.lineWidth = 1.6; ctx.strokeStyle = DARK; ctx.fillStyle = col
         ctx.beginPath()
@@ -424,12 +425,12 @@ export function MapView() {
       // free plan: where it starts, where it ends, and a request still on its way
       const mark = (e: number, s: number, label: string, kind: 'to' | 'from' | 'wait') => {
         const x = X(e), y = Y(s)
-        ctx.lineWidth = 2; ctx.strokeStyle = DARK; ctx.fillStyle = MAP.route
-        if (kind === 'from') { ctx.beginPath(); ctx.arc(x, y, 5.5, 0, 6.283); ctx.fillStyle = DARK; ctx.fill(); ctx.strokeStyle = MAP.route; ctx.stroke() }
+        ctx.lineWidth = 2; ctx.strokeStyle = DARK; ctx.fillStyle = MAP.select
+        if (kind === 'from') { ctx.beginPath(); ctx.arc(x, y, 5.5, 0, 6.283); ctx.fillStyle = DARK; ctx.fill(); ctx.strokeStyle = MAP.select; ctx.stroke() }
         else {
           const r = kind === 'wait' ? 9 + 3 * Math.sin(now / 160) : 9
           ctx.beginPath(); ctx.arc(x, y, r, 0, 6.283); ctx.strokeStyle = 'rgba(6,8,10,.85)'; ctx.lineWidth = 4.5; ctx.stroke()
-          ctx.strokeStyle = MAP.route; ctx.lineWidth = 2; ctx.stroke()
+          ctx.strokeStyle = MAP.select; ctx.lineWidth = 2; ctx.stroke()
           ctx.beginPath(); ctx.moveTo(x - r - 5, y); ctx.lineTo(x - 3, y); ctx.moveTo(x + 3, y); ctx.lineTo(x + r + 5, y)
           ctx.moveTo(x, y - r - 5); ctx.lineTo(x, y - 3); ctx.moveTo(x, y + 3); ctx.lineTo(x, y + r + 5); ctx.stroke()
         }
@@ -455,7 +456,7 @@ export function MapView() {
       ctx.fillStyle = 'rgba(11,14,16,.8)'; ctx.beginPath(); ctx.arc(nx, ny, 17, 0, 6.283); ctx.fill()
       ctx.strokeStyle = 'rgba(231,234,238,.3)'; ctx.lineWidth = 1; ctx.stroke()
       ctx.beginPath(); ctx.moveTo(nx, ny - 12); ctx.lineTo(nx + 4.5, ny + 3); ctx.lineTo(nx, ny); ctx.lineTo(nx - 4.5, ny + 3); ctx.closePath(); ctx.fillStyle = INK; ctx.fill()
-      ctx.font = `700 9.5px ${FACE}`; ctx.fillStyle = INK; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText('N', nx, ny + 4)
+      ctx.font = `600 9.5px ${FACE}`; ctx.fillStyle = INK; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText('N', nx, ny + 4)
 
       if (overlayNote) halo(ctx, overlayNote, v.w / 2, v.h - 14, MAP.quiet, 'center')
 
@@ -485,7 +486,7 @@ export function MapView() {
         {planMode && (
           <div role="status" className="anim-rise pointer-events-none absolute inset-x-3 bottom-3 flex justify-center">
             <div className="float pointer-events-auto flex max-w-full flex-wrap items-center gap-x-3 gap-y-1 rounded-[8px] px-3.5 py-2 text-[13px] text-ink">
-              <span><span className="font-bold">Planning a walk.</span> Click the destination. Shift and click sets another start.</span>
+              <span><span className="font-semibold">Planning a walk.</span> Click the destination. Shift and click sets another start.</span>
               {planFrom && <button type="button" className="text-ink2 underline decoration-dotted underline-offset-2 hover:text-ink" onClick={() => store.set({ planFrom: null })}>Start from the crew</button>}
               <button type="button" className="text-ink2 underline decoration-dotted underline-offset-2 hover:text-ink" onClick={() => store.set({ planMode: false })}>Stop (Esc)</button>
             </div>
@@ -497,7 +498,7 @@ export function MapView() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <button type="button" aria-pressed={planMode} disabled={!online} onClick={() => store.set({ planMode: !planMode, selectedPlace: null })}
-                  className={cn('flex h-10 items-center gap-2 rounded-[8px] px-3 text-[13.5px] shadow-float transition-colors duration-150 disabled:opacity-50', planMode ? 'bg-solid font-bold text-on-solid' : 'bg-panel text-ink hover:bg-panel2')}>
+                  className={cn('flex h-10 items-center gap-2 rounded-[8px] px-3 text-[13.5px] shadow-float transition-colors duration-150 disabled:opacity-50', planMode ? 'bg-solid font-semibold text-on-solid' : 'bg-panel text-ink hover:bg-panel2')}>
                   <Route size={15} /><span className="hidden sm:inline">Plan a walk</span>
                 </button>
               </TooltipTrigger>
@@ -516,7 +517,7 @@ export function MapView() {
         </div>
         {tip && (
           <div className="invert pointer-events-none absolute z-10 max-w-[260px] rounded-[6px] bg-panel3 px-2.5 py-1.5 text-[12.5px] shadow-float" style={{ left: Math.min(tip.x + 14, (wrap.current?.clientWidth ?? 400) - 270), top: Math.max(6, tip.y - 12) }}>
-            <div className="font-bold text-ink">{tip.title}</div>
+            <div className="font-semibold text-ink">{tip.title}</div>
             {tip.lines.map((l, i) => <div key={i} className="text-ink2">{l}</div>)}
           </div>
         )}
@@ -543,13 +544,15 @@ function PlaceCard() {
   if (!place || planMode) return null
   const line = lead ? lineTo(lead.e, lead.s, place.e, place.s) : null
   return (
-    <div className="float anim-rise absolute left-3 top-[60px] w-[min(280px,calc(100%-24px))] rounded-[8px] p-3" role="region" aria-label={`Selected place: ${place.name}`}>
+    <div className="float anim-rise absolute left-3 top-[60px] w-[min(280px,calc(100%-24px))] overflow-hidden rounded-[10px]" role="region" aria-label={`Selected place: ${place.name}`}>
+      <PlaceView key={place.id} placeId={place.id} name={place.name} imgClassName="aspect-[2/1]" className="[&>figcaption]:px-3" caption="Render from the HiRISE elevation model. Colour is approximate." />
+      <div className="p-3">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <div className="truncate text-[15px] font-bold text-ink">{place.name}</div>
+          <div className="truncate text-[15px] font-semibold text-ink">{place.name}</div>
           <div className="text-[12.5px] text-ink3">
             {KIND_NAME[place.kind] ?? place.kind}
-            {sh && <span className={cn('font-bold', sh.open ? 'text-safe' : 'text-hazard')}> · {sh.open ? 'Open' : 'Closed'}</span>}
+            {sh && <span className={cn('font-semibold', sh.open ? 'text-safe' : 'text-hazard')}> · {sh.open ? 'Open' : 'Closed'}</span>}
           </div>
         </div>
         <button type="button" aria-label="Close" className="-mr-1 -mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-[6px] text-ink3 transition-colors duration-150 hover:bg-panel3 hover:text-ink" onClick={() => store.set({ selectedPlace: null })}><Close size={15} /></button>
@@ -559,7 +562,7 @@ function PlaceCard() {
         {line && (
           <div className="flex items-baseline justify-between gap-3">
             <dt className="text-ink2">From {lead?.name ?? 'the crew'}</dt>
-            <dd className="num font-bold text-ink">{num(Math.round(line.dist_m / 10) * 10)} m · {bearingText(line.bearing)}</dd>
+            <dd className="num font-semibold text-ink">{num(Math.round(line.dist_m / 10) * 10)} m · {bearingText(line.bearing)}</dd>
           </div>
         )}
         <div className="flex items-baseline justify-between gap-3">
@@ -571,6 +574,7 @@ function PlaceCard() {
       {live
         ? <Button variant="default" size="md" className="mt-2.5 w-full" disabled={!online} onClick={() => { requestPlan({ e: place.e, s: place.s }); store.set({ selectedPlace: null }) }}><Route size={14} />Plan a walk here</Button>
         : <p className="mt-2 border-t border-rule pt-2 text-[12px] leading-snug text-ink3">A recorded run cannot plan new routes. That needs the engine.</p>}
+      </div>
     </div>
   )
 }

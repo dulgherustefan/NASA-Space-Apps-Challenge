@@ -45,12 +45,12 @@ function StressDetail({ r, st }: { r: RouteSummary; st?: Stress }) {
           </Tooltip>
           {st.robustness_nats === null || st.robustness_nats === undefined
             ? <Tooltip><TooltipTrigger asChild><span tabIndex={0} className="cursor-help text-[13px] text-ink3">not reported</span></TooltipTrigger><TooltipContent>{METHOD_HELP[st.method] ?? 'This method does not report robustness.'}</TooltipContent></Tooltip>
-            : <Fig value={st.robustness_nats} unit="nats" kind="model" source={`${METHOD[st.method] ?? st.method}, ${src}`} label={`Route ${r.id} robustness`} valueClassName="text-[16px] font-bold" />}
+            : <Fig value={st.robustness_nats} unit="nats" kind="model" source={`${METHOD[st.method] ?? st.method}, ${src}`} label={`Route ${r.id} robustness`} valueClassName="text-[16px] font-semibold" />}
         </div>
         <div>
           <div className="cap">Failure rate</div>
           {st.mc_fail_rate === null || st.mc_fail_rate === undefined ? <span className="num text-[13px] text-ink3">-</span> : (
-            <Fig value={pct1(st.mc_fail_rate)} kind="model" source={`Monte Carlo${st.n ? `, ${st.n.toLocaleString('en-US')} runs` : ''}, ${src}`} label={`Route ${r.id} failure rate`} valueClassName="text-[16px] font-bold" />
+            <Fig value={pct1(st.mc_fail_rate)} kind="model" source={`Monte Carlo${st.n ? `, ${st.n.toLocaleString('en-US')} runs` : ''}, ${src}`} label={`Route ${r.id} failure rate`} valueClassName="text-[16px] font-semibold" />
           )}
           {st.mc_ci && <div className="num text-[12px] text-ink3">{pct1(st.mc_ci[0])} to {pct1(st.mc_ci[1])}{st.n ? ` · n ${st.n.toLocaleString('en-US')}` : ''}</div>}
         </div>
@@ -77,7 +77,7 @@ function Failures({ list }: { list: Failure[] }) {
               <span className="num mt-[1px] flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border border-hazard text-[12px] text-hazard">{i + 1}</span>
               <div className="min-w-0 flex-1">
                 <div className="flex items-baseline justify-between gap-2">
-                  <span className="text-[13px] font-bold text-ink">{FAIL_LABEL[f.class] ?? f.class}</span>
+                  <span className="text-[13px] font-semibold text-ink">{FAIL_LABEL[f.class] ?? f.class}</span>
                   <span className="num whitespace-nowrap text-[12px] text-ink3">{dur(f.t)} in · log p {logp(f.log_p)}</span>
                 </div>
                 {f.summary && <p className="mt-0.5 text-[12.5px] leading-snug text-ink2">{f.summary}</p>}
@@ -114,9 +114,9 @@ function RouteRow({ r, bundle, open }: { r: RouteSummary; bundle: IncidentBundle
     <li ref={li} className={cn('border-b border-rule last:border-b-0', r.status === 'infeasible' && 'opacity-60')} data-route={r.id} data-status={r.status}>
       <button type="button" onClick={() => { store.set({ selectedRoute: open ? null : r.id }); if (!open) reveal() }} aria-expanded={open}
         className={cn('card-hover relative flex min-h-[56px] w-full items-center gap-3 py-2.5 pl-4 pr-3 text-left', open && 'bg-panel2')}>
-        <span className="num flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-[1.5px] text-[12.5px] font-bold text-ink" style={r.status === 'chosen' ? { borderColor: style.ink, background: style.ink, color: 'var(--color-on-accent)' } : { borderColor: style.ink }}>{r.id}</span>
+        <span className="num flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-[1.5px] text-[12.5px] font-semibold text-ink" style={r.status === 'chosen' ? { borderColor: style.ink, background: style.ink, color: '#06231c' } : { borderColor: style.ink }}>{r.id}</span>
         <div className="min-w-0 flex-1">
-          <div className={cn('truncate text-[14px] font-bold text-ink', r.status === 'rejected' && 'font-normal text-ink2')}>{name}{variant && <span className="font-normal text-ink3"> · {variant}</span>}</div>
+          <div className={cn('truncate text-[14px] font-semibold text-ink', r.status === 'rejected' && 'font-normal text-ink2')}>{name}{variant && <span className="font-normal text-ink3"> · {variant}</span>}</div>
           <div className="flex items-center gap-2 text-[12px]">
             {r.status === 'rejected' && r.rule_ok !== false
               ? <span className="inline-flex items-center gap-1.5 text-[12px] text-ink3"><span className="h-2 w-2 rounded-full border-[1.5px] border-ink3" />Not chosen</span>

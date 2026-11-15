@@ -53,7 +53,7 @@ export function LayerMenu() {
           {LAYERS.map((l) => (
             <DropdownMenuRadioItem key={l} value={l}>
               <div className="min-w-0">
-                <div className="flex items-baseline gap-2 leading-tight">{LAYER_LABEL[l]}{fromEngine.has(l) && <span className="text-[12px] font-bold text-ink2">updated by this incident</span>}</div>
+                <div className="flex items-baseline gap-2 leading-tight">{LAYER_LABEL[l]}{fromEngine.has(l) && <span className="text-[12px] font-semibold text-ink2">updated by this incident</span>}</div>
                 <div className="text-[12px] leading-snug text-ink3">{SHORT[l]}</div>
               </div>
             </DropdownMenuRadioItem>

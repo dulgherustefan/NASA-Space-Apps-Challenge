@@ -14,7 +14,7 @@ function Tile({ label, value, unit, kind, source, digits }: { label: string; val
       <div className="cap truncate">{label}</div>
       {value === undefined || value === null
         ? <span className="num text-[14px] text-ink3">-</span>
-        : <Fig value={value} unit={unit} digits={digits} kind={kind} source={source} label={label} valueClassName="text-[15px] font-bold" />}
+        : <Fig value={value} unit={unit} digits={digits} kind={kind} source={source} label={label} valueClassName="text-[15px] font-semibold" />}
     </div>
   )
 }

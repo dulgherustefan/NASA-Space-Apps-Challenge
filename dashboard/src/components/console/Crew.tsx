@@ -26,15 +26,15 @@ export function Crew() {
           {crew.map((c) => (
             <li key={c.id}>
               <div className="mb-1.5 flex items-baseline justify-between gap-2">
-                <span className="text-[14px] font-bold text-ink">{crewName(c)}</span>
-                <span className={cn('text-[12.5px]', crewBad(c) ? 'font-bold text-hazard' : 'text-ink3')}>{CREW_STATUS[c.status] ?? `status ${c.status}`}</span>
+                <span className="text-[14px] font-semibold text-ink">{crewName(c)}</span>
+                <span className={cn('text-[12.5px]', crewBad(c) ? 'font-semibold text-hazard' : 'text-ink3')}>{CREW_STATUS[c.status] ?? `status ${c.status}`}</span>
               </div>
               <div className="grid grid-cols-3 gap-4">
                 <Meter label="Oxygen" frac={c.o2} source={MODEL_SRC} hint="usable oxygen left" />
                 <Meter label="Heat margin" frac={1 - c.heat} source={MODEL_SRC} hint="room left before the heat-storage limit" />
                 <div className="min-w-0">
                   <div className="cap">Dose</div>
-                  <Fig value={c.dose} unit="mSv" kind="model" source={MODEL_SRC} label={`${crewName(c)} dose on this walk`} digits={3} valueClassName="text-[15px] font-bold" />
+                  <Fig value={c.dose} unit="mSv" kind="model" source={MODEL_SRC} label={`${crewName(c)} dose on this walk`} digits={3} valueClassName="text-[15px] font-semibold" />
                 </div>
               </div>
             </li>

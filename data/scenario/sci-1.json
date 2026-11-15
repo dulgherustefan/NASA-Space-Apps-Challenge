@@ -3,7 +3,7 @@
   "kind": "science",
   "title": "Fresh boulder",
   "scenario": true,
-  "summary": "One sol later, no storm. A fresh boulder stopped below the wall, inside the runout band. Sortie from the rover to the boulder and back, with the band as a hazard.",
+  "summary": "One sol later, no storm. A fresh boulder has stopped below the wall, inside the rockfall runout band. The crew walks from the rover to the boulder and back, and the band is a hazard on the way.",
   "source": "Scripted science target; reach angle from Grindrod et al. 2021",
   "at_s": 88835,
   "trigger": {

@@ -36,10 +36,15 @@ export function num(x: number | string | null | undefined, d?: number): string {
   if (a >= 10) return x.toFixed(1).replace(/\.0$/, '')
   return x.toFixed(2).replace(/0$/, '').replace(/\.0$/, '')
 }
+/** Planner settings as the scenario files name them, in plain words. */
+const VARIANT: Record<string, string> = { 'band-avoiding weights': 'clear of the rockfall band', 'standing weights': 'direct' }
+export const plainLabel = (s: string) => s.replace(/band-avoiding weights|standing weights/g, (m) => VARIANT[m])
 /** "Boulder and back, band-avoiding weights" -> name and planner variant. */
 export function splitLabel(label: string): { name: string; variant?: string } {
   const i = label.indexOf(', ')
-  return i > 0 ? { name: label.slice(0, i), variant: label.slice(i + 2) } : { name: label }
+  if (i <= 0) return { name: label }
+  const v = label.slice(i + 2)
+  return { name: label.slice(0, i), variant: VARIANT[v] ?? v }
 }
 export function pct1(x: number): string {
   const v = x * 100

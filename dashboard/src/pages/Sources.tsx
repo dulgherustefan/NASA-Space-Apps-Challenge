@@ -42,7 +42,7 @@ const MODELS: Row[] = [
   { name: 'dry_ground_rocks', credit: 'Rob Tuytel (Poly Haven)', terms: 'CC0 1.0', use: 'Ground detail texture' },
 ]
 const SOFTWARE: Row[] = [
-  { name: 'B612, bundled through Fontsource', credit: '© 2012 The B612 Project Authors', terms: 'SIL Open Font License 1.1', use: 'Interface type. A typeface drawn for aircraft cockpit displays.' },
+  { name: 'Instrument Sans, bundled through Fontsource', credit: '© 2022 The Instrument Sans Project Authors', terms: 'SIL Open Font License 1.1', use: 'Interface type' },
   { name: 'Electron, React, Recharts, Radix UI, Tailwind CSS, lucide icons', credit: 'Their authors', terms: 'MIT and ISC licences', use: 'This dashboard' },
 ]
 

@@ -1,3 +1,5 @@
+<img src="docs/img/logo.svg" width="96" alt="Solway mark: a planet with a lit rim and an orbit trail">
+
 # Solway
 
 Solway is an incident-response aid for crews on foot on the Martian surface. It is meant for a crew member or a
@@ -28,7 +30,8 @@ Nothing runs when the dashboard opens: it stands by with the crew, the nearest c
 rate against the alert threshold, ground motion, daylight left, the round trip of a question to Earth). The map is
 interactive: a click on a place gives its distance and bearing from the crew and can ask for a route to it, a click on
 a route line opens that route, and the bar under the map plays, pauses and scrubs the recorded run or reopens an
-earlier incident. The display has a day and a night setting and uses the colour meanings of NASA-STD-3001 Volume 2
+earlier incident. A selected place and the chosen destination show a view rendered from the HiRISE elevation model.
+The display is dark and uses the colour meanings of NASA-STD-3001 Volume 2
 (red warning, yellow caution, blue advisory, cyan for stale data), always with a word or a shape beside the colour.
 Keys: Space plays or pauses, A acknowledges, P plans a walk, Esc closes.
 
@@ -88,7 +91,7 @@ The demo plays three linked scenario incidents (`data/scenario/`):
 |---|---|---|
 | `sep-1` | Solar particle event | Timing follows the 20 May 2024 event seen by the MSL RAD instrument. The on-site dose-rate rule raises the alert a few seconds after the storm reaches the site. The crew walks to a shelter under a 30-minute rule. |
 | `quake-1` | Marsquake | The rockfall runout band below the wall becomes active, shelters inside it close, routes are planned again from where the crew is. |
-| `sci-1` | Fresh boulder | One sol later, no storm. A sortie from the rover to a fresh boulder and back, with the runout band as a hazard. A boulder that came down the wall brings rock from layers nobody can walk to, the reason Apollo 17 sampled the boulders at Station 6. |
+| `sci-1` | Fresh boulder | One sol later, no storm. A walk from the rover to a fresh boulder and back, with the runout band as a hazard. A boulder that came down the wall brings rock from layers nobody can walk to, the reason Apollo 17 sampled the boulders at Station 6. |
 
 ## Architecture
 
@@ -172,7 +175,7 @@ Environment variables: `VITE_ENGINE_URL` (default `ws://127.0.0.1:8765/ws`), `SO
 `SOLWAY_ENGINE=external` (do not start an engine from Electron).
 The top bar has two destinations: Mission (the display above) and Reference (Method and limits, Parameters, Sources,
 Event log with JSON export). **Play demo** under the map plays the three incidents; nothing starts by itself. The
-settings menu holds the day and night display, the alert sound and the exercise controls (reset, clock speed, single
+settings menu holds the alert sound and the exercise controls (reset, clock speed, single
 incidents).
 
 **Plan a walk**, in the same menu, is for before a walk: a click on the map returns the walking route from the crew to
@@ -199,7 +202,7 @@ engine serves its numbers with source `data/ast`. Otherwise the engine runs a sm
 "local preview".
 
 This checkout carries the results of that run (`data/ast/`, summary in `data/ast/REPORT.md`): 200,000 Monte Carlo walks
-per route for the solar particle event and the marsquake and 100,000 for the sortie, a cross-entropy search with
+per route for the solar particle event and the marsquake and 100,000 for the science walk, a cross-entropy search with
 restarts, and a PPO adversary, three seeds each. What it found:
 
 | Incident | Route | Monte Carlo failure rate | Robustness (nats) | Most likely failure found |
@@ -208,10 +211,10 @@ restarts, and a PPO adversary, three seeds each. What it found:
 | Solar particle event | Terrain shelter C | 1.23 % | 4.8 | Late: navigation off by 143 m |
 | Solar particle event | Rover, Habitat | 100 % | not scored | Too far to reach in time even with no disturbance |
 | Marsquake | Rover | 34.5 % | 0.7 | Late: navigation off by 24 m |
-| Science sortie | Both variants | 0.52 % and 0.54 % | 9.3 | Incapacitating fall on a 24° slope |
+| Science walk | Both variants | 0.52 % and 0.54 % | 9.3 | Incapacitating fall on a 24° slope |
 
 The PPO adversary did not beat the cross-entropy search in any of 21 seed-by-seed comparisons, so the cross-entropy
-search is the reported method and PPO is listed as it is. The two sortie variants are not separated by the test. The
+search is the reported method and PPO is listed as it is. The two science-walk variants are not separated by the test. The
 batched simulator used for the search and the engine's own walker disagree on how often a walker is late (34.5 % against
 19.7 % on the marsquake route); the table is in the report. All of it is model output from one walk model with
 disturbance distributions that are team assumptions.

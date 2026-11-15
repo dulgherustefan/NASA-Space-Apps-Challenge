@@ -1,102 +1,66 @@
 @import "tailwindcss";
-@import "@fontsource/b612/400.css";
-@import "@fontsource/b612/700.css";
+@import "@fontsource-variable/instrument-sans/index.css";
 
 @theme {
-  /* B612: drawn for cockpit displays. Its figures all share one width, so numbers line up without a second typeface. */
-  --font-sans: "B612", ui-sans-serif, system-ui, sans-serif;
+  /* One family for text and figures. Figures are set tabular where they change (.num). */
+  --font-sans: "Instrument Sans Variable", ui-sans-serif, system-ui, sans-serif;
 
-  /* Day display: dark figures on a light ground, the readable polarity under bright light. */
-  --color-bg: #e9ecec;
-  --color-panel: #fbfbfa;
-  --color-panel2: #f0f2f1;
-  --color-panel3: #e3e6e6;
-  --color-rule: #dde1e0;
-  --color-rule2: #bfc5c5;
-  --color-ink: #12171a;
-  --color-ink2: #394147;
-  --color-ink3: #596168;
+  /* One dark display. Neutrals lean toward the ochre of the terrain, so the map and the panels read as one surface. */
+  --color-bg: #0c0b0a;
+  --color-panel: #131210;
+  --color-panel2: #1b1917;
+  --color-panel3: #25221f;
+  --color-rule: #272421;
+  --color-rule2: #3a3631;
+  --color-ink: #efebe4;
+  --color-ink2: #b9b2a7;
+  --color-ink3: #8d867b;
+
+  /* one warm accent: the primary action, the active step, the current selection */
+  --color-accent: #e3b472;
+  --color-accent-dim: #e3b4721f;
+  --color-on-accent: #1c1407;
   /* surface and ink of a filled control */
-  --color-solid: #12171a;
-  --color-on-solid: #fbfbfa;
+  --color-solid: #e3b472;
+  --color-on-solid: #1c1407;
 
-  /* the active route and the current selection, nothing else */
-  --color-accent: #b0127a;
-  --color-accent-dim: #b0127a1a;
-  --color-on-accent: #ffffff;
+  /* alert classes: red warning, orange caution, blue advisory, cyan stale data */
+  --color-hazard: #ff5f57;
+  --color-on-hazard: #1f0705;
+  --color-caution: #ff9a2e;
+  --color-caution-fill: #ff9a2e;
+  --color-advisory: #7cc4ff;
+  --color-on-advisory: #06182c;
+  --color-stale: #5fd3de;
+  /* good state: chosen route, open shelter, healthy margin */
+  --color-safe: #4fd1b0;
+  /* neutral data ink for traces and unselected routes */
+  --color-data: #9db4c4;
 
-  /* alert classes: red warning, yellow caution, blue advisory, cyan stale data */
-  --color-hazard: #c2241b;
-  --color-on-hazard: #ffffff;
-  --color-caution: #7d5200;
-  --color-caution-fill: #f2c200;
-  --color-advisory: #1c5cb8;
-  --color-on-advisory: #ffffff;
-  --color-stale: #00707c;
-  /* nominal state: open shelter, margin in hand */
-  --color-safe: #17704c;
-  /* neutral data ink for traces */
-  --color-data: #33566f;
+  /* kinds of number */
+  --color-k-measured: #7cc4ff;
+  --color-k-model: #b6a1ff;
+  --color-k-requirement: #6fd3b5;
+  --color-k-assumption: #b8c0cb;
+  --color-k-scenario: #f29cc1;
 
-  /* kinds of number are told apart by shape; one quiet ink for all */
-  --color-k-measured: var(--color-ink3);
-  --color-k-model: var(--color-ink3);
-  --color-k-requirement: var(--color-ink3);
-  --color-k-assumption: var(--color-ink3);
-  --color-k-scenario: var(--color-ink3);
-
-  --shadow-float: 0 1px 2px rgb(18 23 26 / .14), 0 6px 20px rgb(18 23 26 / .16);
+  --shadow-float: 0 1px 2px rgb(0 0 0 / .5), 0 8px 24px rgb(0 0 0 / .45);
   --ease-out-expo: cubic-bezier(.16, 1, .3, 1);
 }
 
-/* Night display: for a dim habitat. Same meanings, lifted for a dark ground. */
-:root[data-theme="night"] {
-  color-scheme: dark;
-  --color-bg: #0d1012;
-  --color-panel: #14181b;
-  --color-panel2: #1b2024;
-  --color-panel3: #252b30;
-  --color-rule: #262c31;
-  --color-rule2: #3b434a;
-  --color-ink: #eef1f2;
-  --color-ink2: #c0c7cc;
-  --color-ink3: #98a1a8;
-  --color-solid: #eef1f2;
-  --color-on-solid: #12171a;
-  --color-accent: #ff6cc6;
-  --color-accent-dim: #ff6cc626;
-  --color-on-accent: #1d0614;
-  --color-hazard: #ff6a5f;
-  --color-on-hazard: #1d0705;
-  --color-caution: #f2c200;
-  --color-advisory: #74adff;
-  --color-on-advisory: #06162e;
-  --color-stale: #55d3de;
-  --color-safe: #5fd09a;
-  --color-data: #9fb9cc;
-  --shadow-float: 0 1px 2px rgb(0 0 0 / .5), 0 8px 24px rgb(0 0 0 / .5);
-}
+/* A chip that sits above a panel (tooltips): one step lighter than the panel under it. */
+.invert { --color-panel3: #2e2a26; --color-rule2: #4a453f; }
 
-/* A dark chip on the light display (tooltips): the same tokens, turned over. */
-.invert {
-  --color-panel3: #1b2125;
-  --color-rule2: #3d464c;
-  --color-ink: #f2f4f4;
-  --color-ink2: #c9cfd3;
-  --color-ink3: #a2abb1;
-  --color-k-measured: #a2abb1; --color-k-model: #a2abb1; --color-k-requirement: #a2abb1; --color-k-assumption: #a2abb1; --color-k-scenario: #a2abb1;
-}
-:root[data-theme="night"] .invert { --color-panel3: #2c3338; }
-
-:root { color-scheme: light; }
+:root { color-scheme: dark; }
 html, body, #root { height: 100%; }
 body {
   background: var(--color-bg);
   color: var(--color-ink);
   font-family: var(--font-sans);
   font-size: 14px;
-  line-height: 1.45;
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  font-optical-sizing: auto;
   overflow: hidden;
 }
 * { scrollbar-width: thin; scrollbar-color: var(--color-rule2) transparent; }
@@ -111,8 +75,10 @@ a { text-underline-offset: 3px; }
   .cap { font-size: 12px; line-height: 1.3; color: var(--color-ink3); }
   .eyebrow { font-size: 12px; color: var(--color-ink3); }
   .tap { min-height: 44px; }
-  /* figures: B612 digits already share one width */
+  /* figures share one width, so a running clock does not shift */
   .num { font-variant-numeric: tabular-nums; }
+  /* heading of a group inside a panel */
+  .sec { font-size: 12.5px; line-height: 1.3; font-weight: 600; color: var(--color-ink2); }
   .rule-t { border-top: 1px solid var(--color-rule); }
   .rule-b { border-bottom: 1px solid var(--color-rule); }
   .card-hover { transition: background 120ms; }
@@ -134,7 +100,7 @@ a { text-underline-offset: 3px; }
 .pulse-dot { animation: pulse-ring 1.4s ease-out infinite; }
 /* an alert nobody has acknowledged yet */
 .alert-flash { animation: flash 1s steps(2, jump-none) infinite; }
-.testing-bar { background-image: repeating-linear-gradient(90deg, var(--color-ink2) 0 8px, transparent 8px 16px); animation: march 700ms linear infinite; }
+.testing-bar { background-image: repeating-linear-gradient(90deg, var(--color-accent) 0 8px, transparent 8px 16px); animation: march 700ms linear infinite; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }

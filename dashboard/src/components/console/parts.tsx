@@ -39,7 +39,7 @@ function Step({ phase, last }: { phase: Exclude<Phase, 'idle'>; last: boolean })
         state === 'active' ? 'pulse-dot bg-solid text-solid' : state === 'done' ? 'bg-panel3 text-ink2' : 'border border-rule2')}>
         {state === 'done' && <Check size={10} strokeWidth={3} />}
       </span>
-      <span className={cn('whitespace-nowrap text-[12.5px] transition-colors', state === 'active' ? 'font-bold text-ink' : state === 'done' ? 'text-ink2' : 'text-ink3')}>{PHASE_META[phase].title}</span>
+      <span className={cn('whitespace-nowrap text-[12.5px] transition-colors', state === 'active' ? 'font-semibold text-ink' : state === 'done' ? 'text-ink2' : 'text-ink3')}>{PHASE_META[phase].title}</span>
       {!last && <span className={cn('mx-1 h-px min-w-2 flex-1', state === 'done' ? 'bg-rule2' : 'bg-rule')} />}
     </li>
   )
@@ -62,7 +62,7 @@ export function Row({ id, title, meta, flag, children }: { id: DetailId; title: 
       <h3>
         <button type="button" aria-expanded={open} onClick={() => store.set({ detail: open ? null : id })}
           className={cn('card-hover flex min-h-[48px] w-full items-center gap-2.5 px-4 text-left', open && 'bg-panel2')}>
-          <span className="text-[14px] font-bold text-ink">{title}</span>
+          <span className="text-[14px] font-semibold text-ink">{title}</span>
           {flag && <span className="h-2 w-2 rounded-full bg-hazard" aria-label="needs attention" />}
           <span className="ml-auto text-[12.5px] text-ink3">{meta}</span>
           <ChevronDown size={15} className={cn('shrink-0 text-ink3 transition-transform duration-200', open && 'rotate-180')} />
@@ -77,7 +77,7 @@ export function Section({ title, aside, children, className }: { title: string; 
   return (
     <section className={cn('border-t border-rule px-4 pb-4 pt-4 first:border-t-0', className)}>
       <div className="mb-2 flex items-baseline justify-between gap-3">
-        <h4 className="text-[13px] font-bold text-ink">{title}</h4>
+        <h4 className="text-[13px] font-semibold text-ink">{title}</h4>
         {aside && <div className="text-[12.5px] text-ink3">{aside}</div>}
       </div>
       {children}

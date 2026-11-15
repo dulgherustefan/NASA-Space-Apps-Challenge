@@ -570,7 +570,7 @@ class Director:
             p = self.sc.place(inc["start"])
             self._park(p["x"], p["y"], status=C_IDLE)
             self.dose_base = 0.0
-            self.log("One sol later: new EVA from the %s" % p["name"].lower())
+            self.log("One sol later: a new walk from the %s" % p["name"].lower())
         elif self.walk:
             self._freeze_crew()
         self.inc_t0 = self.clock.t
@@ -618,7 +618,7 @@ class Director:
             sh_pub = [dict(id=target["id"], name=target["name"], e=round(target["e"], 1), s=round(target["s"], 1), open=True,
                            reason="Science target (inside the rockfall runout band)"),
                       dict(id=home["id"], name=home["name"], e=round(home["e"], 1), s=round(home["s"], 1), open=True,
-                           reason="Start and end of the sortie")]
+                           reason="Start and end of the walk")]
         limits = dict(shelter_s=round(ctx["deadline_walk"], 1) if math.isfinite(ctx["deadline_walk"]) else None,
                       peak_s=round(ctx["deadline_peak"], 1) if math.isfinite(ctx["deadline_peak"]) else None)
         self.emit(dict(type="assessment", incident_id=iid, changes=self.sc.assessment_changes(inc, ctx), overlays=overlays,
@@ -740,9 +740,9 @@ class Director:
         rule_txt = "the %d-minute rule" % PARAMS["shelterRuleMin"] if math.isfinite(chosen["ctx"]["deadline_walk"]) else "the rules"
         if ok:
             if have_rob:
-                reasons.append("Highest robustness (%.1f nats) of the routes that meet %s" % (chosen["robustness_nats"], rule_txt))
+                reasons.append("Hardest to make fail in the stress test (robustness %.1f) of the routes that meet %s" % (chosen["robustness_nats"], rule_txt))
             else:
-                reasons.append("Lowest failure rate of the routes that meet %s: %.1f%% (95%% CI %.1f-%.1f%%, %s, n=%s)" % (
+                reasons.append("Fails least often of the routes that meet %s: %.1f%% of simulated walks (95%% CI %.1f-%.1f%%, %s, n=%s)" % (
                     rule_txt, 100 * fr(chosen), 100 * (res.get("mc_ci") or [0, 0])[0], 100 * (res.get("mc_ci") or [0, 0])[1],
                     res.get("source", "local preview"), res.get("n")))
         elif by_peak:
@@ -750,7 +750,7 @@ class Director:
                            "dose-rate peak (%d min after the storm alert)" % (PARAMS["shelterRuleMin"], PARAMS["sepPeakMin"]))
             for why in chosen["rule_reasons"]:
                 reasons.append("Chosen route %s" % why)
-            reasons.append("Lowest failure rate: %.1f%% (95%% CI %.1f-%.1f%%, %s, n=%s), of which %.1f%% arrive after the peak" % (
+            reasons.append("Fails least often in the stress test: %.1f%% of simulated walks (95%% CI %.1f-%.1f%%, %s, n=%s); %.1f%% arrive after the peak" % (
                 100 * fr(chosen), 100 * (res.get("mc_ci") or [0, 0])[0], 100 * (res.get("mc_ci") or [0, 0])[1],
                 res.get("source", "local preview"), res.get("n"), 100 * (fr(chosen) - fr_not_late(chosen))))
         else:
@@ -761,17 +761,17 @@ class Director:
                 100 * fr_not_late(chosen), res.get("source", "local preview"), res.get("n")))
         dl = chosen["ctx"]["deadline_walk"]
         if by_peak:
-            reasons.append("Nominal walk %.1f min with %.1f min available under the shelter rule and %.1f min before the expected peak" % (
+            reasons.append("The walk takes %.1f min; the shelter rule leaves %.1f min and the expected peak is %.1f min away" % (
                 chosen["time_s"] / 60, dl / 60, chosen["ctx"]["deadline_peak"] / 60))
         elif math.isfinite(dl):
-            reasons.append("Nominal walk %.1f min with %.1f min available under the shelter rule" % (chosen["time_s"] / 60, dl / 60))
+            reasons.append("The walk takes %.1f min; the shelter rule leaves %.1f min" % (chosen["time_s"] / 60, dl / 60))
         else:
-            reasons.append("Nominal walk %.1f min" % (chosen["time_s"] / 60))
+            reasons.append("The walk takes %.1f min" % (chosen["time_s"] / 60))
         if chosen.get("band_m", 0) < 1 and any(r.get("band_m", 0) >= 1 for r in self.routes):
             reasons.append("Stays out of the rockfall runout band")
         elif chosen.get("band_m", 0) >= 1:
             reasons.append("Crosses %.0f m of the rockfall runout band" % chosen["band_m"])
-        reasons.append("O2 on arrival %.0f min of use (reserve %d min)" % (chosen["o2_min"], PARAMS["o2ReserveMin"]))
+        reasons.append("Oxygen left on arrival: %.0f min (the reserve is %d min)" % (chosen["o2_min"], PARAMS["o2ReserveMin"]))
         avoided = []
         for s_ in shelters:
             if not s_["open"]:
@@ -781,7 +781,7 @@ class Director:
                 continue
             parts = list(r["rule_reasons"])
             if r.get("mc_fail_rate") is not None:
-                parts.append("fails in %.1f%% of %s walkers (chosen %.1f%%)" % (
+                parts.append("fails in %.1f%% of simulated walks (%s; chosen route %.1f%%)" % (
                     100 * r["mc_fail_rate"], self.results.get(r["id"], {}).get("source", "local preview"), 100 * fr(chosen)))
             if r.get("band_m", 0) >= 1:
                 parts.append("crosses %.0f m of the rockfall runout band" % r["band_m"])

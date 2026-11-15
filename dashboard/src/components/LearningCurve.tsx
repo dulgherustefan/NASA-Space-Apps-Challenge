@@ -33,7 +33,7 @@ function Chips<T extends string>({ label, items, value, onChange, name }: { labe
       <span className="cap mr-1">{label}</span>
       {items.map((it) => (
         <button key={it} type="button" role="radio" aria-checked={it === value} onClick={() => onChange(it)}
-          className={cn('h-7 rounded-[4px] border px-2 text-[12px] transition-colors', it === value ? 'border-ink bg-panel3 font-bold text-ink' : 'border-rule2 text-ink2 hover:text-ink')}>
+          className={cn('h-7 rounded-[4px] border px-2 text-[12px] transition-colors', it === value ? 'border-ink bg-panel3 font-semibold text-ink' : 'border-rule2 text-ink2 hover:text-ink')}>
           {name(it)}
         </button>
       ))}

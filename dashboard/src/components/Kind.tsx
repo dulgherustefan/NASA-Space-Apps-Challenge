@@ -38,10 +38,10 @@ export function KindDetail({ kind, source, label }: { kind: Kind; source?: strin
   const info = KIND_INFO[kind]
   return (
     <div className="space-y-1.5">
-      {label && <div className="font-bold text-ink">{label}</div>}
+      {label && <div className="font-semibold text-ink">{label}</div>}
       <div className="flex items-center gap-1.5">
         <KindGlyph kind={kind} size={10} />
-        <span className="text-[12px] font-bold" style={{ color: info.color }}>{info.label}</span>
+        <span className="text-[12px] font-semibold" style={{ color: info.color }}>{info.label}</span>
       </div>
       <div className="text-ink2">{info.def}</div>
       <div className="border-t border-rule2 pt-1.5 text-ink2">

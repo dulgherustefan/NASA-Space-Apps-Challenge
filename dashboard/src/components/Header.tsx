@@ -1,13 +1,12 @@
 import { useState } from 'react'
-import { History, Moon, Play, RotateCcw, Settings2, Sun, Volume2, VolumeX } from 'lucide-react'
-import { store, useStore } from '@/lib/store'
+import { History, Play, RotateCcw, Settings2, Volume2, VolumeX } from 'lucide-react'
+import { useStore } from '@/lib/store'
 import { FALLBACK_PRODUCT } from '@/lib/config'
 import { sendCmd } from '@/lib/engine'
 import { useNow } from '@/lib/derive'
 import { dur, hm, lightTime } from '@/lib/format'
 import { hrefFor, usePage } from '@/lib/route'
 import { isMuted, setMuted } from '@/lib/alert'
-import { applyTheme, type Theme } from '@/lib/theme'
 import { cn } from '@/lib/utils'
 import { Button } from './ui/button'
 import { Menu } from './ui/menu'
@@ -16,10 +15,22 @@ import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip'
 
 function Mark() {
   return (
-    <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden>
-      <circle cx="11" cy="11" r="2.4" fill="var(--color-ink)" />
-      <path d="M4.2 11a6.8 6.8 0 0 1 13.6 0" fill="none" stroke="var(--color-ink)" strokeWidth="1.6" strokeLinecap="round" />
-      <path d="M1.4 11a9.6 9.6 0 0 1 19.2 0" fill="none" stroke="var(--color-ink3)" strokeWidth="1.6" strokeLinecap="round" />
+    <svg width="26" height="26" viewBox="0 0 24 24" aria-hidden>
+      <defs>
+        <linearGradient id="mark-far" gradientUnits="userSpaceOnUse" x1="-10.6" y1="0" x2="-6.4" y2="0">
+          <stop offset="0" stopColor="#efebe4" stopOpacity=".85" /><stop offset="1" stopColor="#efebe4" stopOpacity="0" />
+        </linearGradient>
+        <mask id="mark-rim"><circle cx="12.2" cy="11.7" r="7.2" fill="#fff" /><circle cx="11.3" cy="12.6" r="6.9" fill="#000" /></mask>
+      </defs>
+      <g transform="translate(10.7 13.4) rotate(29)" fill="none" strokeLinecap="round">
+        <path d="M-10.6 0A10.6 3.4 0 0 1 10.6 0" stroke="url(#mark-far)" strokeWidth="1.2" />
+      </g>
+      <circle cx="12.2" cy="11.7" r="7" fill="#3a2118" />
+      <circle cx="12.2" cy="11.7" r="7.2" fill="#ffd9bf" mask="url(#mark-rim)" />
+      <g transform="translate(10.7 13.4) rotate(29)" fill="none" strokeLinecap="round">
+        <path d="M-10.6 0A10.6 3.4 0 0 0 10.6 0" stroke="#efebe4" strokeWidth="1.2" />
+        <circle cx="10.6" cy="0" r="1.5" fill="#fff" />
+      </g>
     </svg>
   )
 }
@@ -38,13 +49,13 @@ function Clocks() {
         <div className="flex cursor-help items-baseline gap-4 whitespace-nowrap" tabIndex={0}>
           <span className="flex items-baseline gap-1.5">
             <span className="text-[12px] text-ink3"><span className="hidden lg:inline">Sol {clock?.sol ?? '-'} · </span>LMST</span>
-            <span className="num text-[15px] font-bold text-ink">{clock?.lmst ?? '--:--:--'}</span>
+            <span className="num text-[15px] font-semibold text-ink">{clock?.lmst ?? '--:--:--'}</span>
           </span>
           <span className="hidden items-baseline gap-1.5 md:flex">
             <span className="text-[12px] text-ink3">MET</span>
             <span className="num text-[15px] text-ink">{t === null ? '-:--' : dur(t)}</span>
           </span>
-          {dusk && <span className="hidden text-[12.5px] font-bold text-caution xl:inline">{daylight > 0 ? `${hm(daylight)} of daylight` : 'Sun down'}</span>}
+          {dusk && <span className="hidden text-[12.5px] font-semibold text-caution xl:inline">{daylight > 0 ? `${hm(daylight)} of daylight` : 'Sun down'}</span>}
         </div>
       </TooltipTrigger>
       <TooltipContent className="w-[300px]">
@@ -87,8 +98,8 @@ function Link() {
   return (
     <div className="flex items-center gap-1.5" role="status" aria-live="polite">
       <span className={cn('h-2 w-2 shrink-0 rounded-full bg-current', tone, state !== 'live' && 'pulse-dot')} />
-      <span className={cn('whitespace-nowrap text-[12.5px] max-[440px]:sr-only', state === 'live' ? 'text-ink2' : cn('font-bold', tone))}>{label}</span>
-      {short && <span aria-hidden className={cn('whitespace-nowrap text-[12.5px] font-bold min-[441px]:hidden', tone)}>{short}</span>}
+      <span className={cn('whitespace-nowrap text-[12.5px] max-[440px]:sr-only', state === 'live' ? 'text-ink2' : cn('font-semibold', tone))}>{label}</span>
+      {short && <span aria-hidden className={cn('whitespace-nowrap text-[12.5px] font-semibold min-[441px]:hidden', tone)}>{short}</span>}
     </div>
   )
 }
@@ -104,7 +115,7 @@ function Nav() {
       {items.map((it) => (
         <li key={it.label} className="flex">
           <a href={it.href} aria-current={it.on ? 'page' : undefined}
-            className={cn('relative flex items-center whitespace-nowrap text-[13.5px] transition-colors duration-150', it.on ? 'font-bold text-ink' : 'text-ink3 hover:text-ink')}>
+            className={cn('relative flex items-center whitespace-nowrap text-[13.5px] transition-colors duration-150', it.on ? 'font-semibold text-ink' : 'text-ink3 hover:text-ink')}>
             {it.label}
             <span className={cn('absolute inset-x-0 bottom-0 h-[2px]', it.on ? 'bg-ink' : 'bg-transparent')} />
           </a>
@@ -124,18 +135,9 @@ function Settings({ close }: { close: () => void }) {
   const speed = useStore((s) => s.snapshot?.clock.speed)
   const off = useStore((s) => s.conn !== 'online')
   const replay = useStore((s) => s.mode === 'replay')
-  const theme = useStore((s) => s.theme)
   const [muted, setM] = useState(isMuted)
-  const setTheme = (t: Theme) => { applyTheme(t); store.set({ theme: t }) }
   return (
     <div className="space-y-3">
-      <div>
-        <div className="cap mb-1.5">Display</div>
-        <ToggleGroup type="single" value={theme} onValueChange={(v) => v && setTheme(v as Theme)} aria-label="Display" className="w-full">
-          <ToggleGroupItem value="day" className="h-8 flex-1 gap-1.5 text-[12.5px]"><Sun size={14} />Day</ToggleGroupItem>
-          <ToggleGroupItem value="night" className="h-8 flex-1 gap-1.5 text-[12.5px]"><Moon size={14} />Night</ToggleGroupItem>
-        </ToggleGroup>
-      </div>
       <Button size="md" variant="quiet" className="w-full justify-start" aria-pressed={!muted} onClick={() => { setMuted(!muted); setM(!muted) }}>
         {muted ? <VolumeX size={14} /> : <Volume2 size={14} />}Alert sound {muted ? 'off' : 'on'}
       </Button>
@@ -179,7 +181,7 @@ export function Header() {
     <header className="flex h-[48px] min-w-0 shrink-0 items-center gap-3 border-b border-rule bg-panel px-3 sm:gap-4 sm:px-4 lg:gap-6">
       <a href={hrefFor('console')} className="flex shrink-0 items-center gap-2.5">
         <Mark />
-        <span className="text-[16px] font-bold text-ink">{product}</span>
+        <span className="text-[16px] font-semibold text-ink">{product}</span>
         <span className="hidden max-w-[170px] truncate text-[13px] text-ink3 lg:inline">{site ?? 'No site loaded'}</span>
       </a>
       <nav className="h-full" aria-label="Pages"><Nav /></nav>

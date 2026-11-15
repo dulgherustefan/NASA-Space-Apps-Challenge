@@ -36,9 +36,9 @@ export function ParametersPage() {
     <PageShell wide title="Parameters" lede="Every value the engine uses, with where it comes from. The table is read from runtime/params.json, so it always matches the running engine."
       aside={<Button variant="quiet" onClick={() => void loadParams()}><RefreshCw size={12} />Reload</Button>}>
       <div className="mb-5 flex flex-wrap items-center gap-2">
-        <button onClick={() => setFilter('all')} className={cn('h-7 rounded-[3px] border px-2.5 text-[12px]', filter === 'all' ? 'border-ink bg-panel3 font-bold text-ink' : 'border-rule2 text-ink2 hover:text-ink')}>All <span className="num text-ink3">{params.items.length}</span></button>
+        <button onClick={() => setFilter('all')} className={cn('h-7 rounded-[3px] border px-2.5 text-[12px]', filter === 'all' ? 'border-ink bg-panel3 font-semibold text-ink' : 'border-rule2 text-ink2 hover:text-ink')}>All <span className="num text-ink3">{params.items.length}</span></button>
         {KINDS.map((k) => (
-          <button key={k} onClick={() => setFilter(filter === k ? 'all' : k)} aria-pressed={filter === k} className={cn('flex h-7 items-center gap-1.5 rounded-[3px] border px-2 text-[12px]', filter === k ? 'border-ink bg-panel3 font-bold' : 'border-rule2 hover:bg-panel2')}>
+          <button key={k} onClick={() => setFilter(filter === k ? 'all' : k)} aria-pressed={filter === k} className={cn('flex h-7 items-center gap-1.5 rounded-[3px] border px-2 text-[12px]', filter === k ? 'border-ink bg-panel3 font-semibold' : 'border-rule2 hover:bg-panel2')}>
             <KindBadge kind={k} className="border-0 p-0" /> <span className="num text-ink3">{counts[k] ?? 0}</span>
           </button>
         ))}
@@ -51,7 +51,7 @@ export function ParametersPage() {
 
       {groups.map(([g, items]) => (
         <section key={g} className="mb-8">
-          <h2 className="mb-2 text-[13px] font-bold text-ink2">{g}</h2>
+          <h2 className="mb-2 text-[13px] font-semibold text-ink2">{g}</h2>
           <div className="overflow-x-auto"><table className="w-full min-w-[760px] table-fixed border-collapse text-left text-[13px]">
             <colgroup><col style={{ width: '27%' }} /><col style={{ width: '13%' }} /><col style={{ width: '12%' }} /><col style={{ width: '48%' }} /></colgroup>
             <thead>

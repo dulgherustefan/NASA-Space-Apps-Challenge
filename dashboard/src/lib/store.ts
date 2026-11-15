@@ -1,8 +1,8 @@
 import { useSyncExternalStore } from 'react'
+import { plainLabel } from './format'
 import type {
   Assessment, CrewState, Decision, EngineMsg, Hello, Incident, IncidentKind, ParamDef, Phase, PlanMsg, PovItem, RouteSummary, RoutesFile, RoutesMsg, Snapshot, Stress, TrajFile,
 } from './types'
-import { readTheme, type Theme } from './theme'
 
 export type Conn = 'connecting' | 'online' | 'offline'
 
@@ -77,7 +77,6 @@ export interface State {
   detail: DetailId | null
   /** place picked on the map */
   selectedPlace: string | null
-  theme: Theme
   /** set while a recorded run is loaded */
   replay: ReplayState | null
   /** "Plan a walk" is on: a click on the map asks the engine for a route to that point */
@@ -96,7 +95,7 @@ const initial = (): State => ({
   routesFile: null, routesV: 0, trajFile: null, trajV: 0, overlayV: 0,
   params: { status: 'idle', items: [] }, training: { status: 'idle' }, pov: {},
   overlay: { layer: 'hazard', opacity: 0.42, userSet: false }, contours: true, selectedRoute: null, showReplays: true,
-  routeChangedAt: {}, trails: {}, alertAt: 0, alertId: null, detail: null, selectedPlace: null, theme: readTheme(), replay: null,
+  routeChangedAt: {}, trails: {}, alertAt: 0, alertId: null, detail: null, selectedPlace: null, replay: null,
   planMode: false, planFrom: null, planPending: null, planFail: null,
 })
 
@@ -148,7 +147,7 @@ export function applyMessage(msg: EngineMsg) {
       logN = 0
       lastSensorWall = 0
       const keepConn = state.conn
-      state = { ...initial(), mode: state.mode, conn: keepConn, hello: msg, lastMsgAt: now, params: state.params, training: state.training, pov: state.pov, overlay: { ...state.overlay, userSet: false }, contours: state.contours, theme: state.theme, replay: state.replay }
+      state = { ...initial(), mode: state.mode, conn: keepConn, hello: msg, lastMsgAt: now, params: state.params, training: state.training, pov: state.pov, overlay: { ...state.overlay, userSet: false }, contours: state.contours, replay: state.replay }
       state.log = pushLog({ t: msg.t, type: 'hello', title: `Connected to ${msg.product} ${msg.version}`, detail: msg.site.name, source: 'engine', raw: msg })
       listeners.forEach((l) => l())
       return
@@ -224,7 +223,7 @@ export function applyMessage(msg: EngineMsg) {
         routeChangedAt: changed,
         // the candidates open by themselves while the choice is still being made
         detail: first && !b.decision && state.detail === null ? 'routes' : state.detail,
-        log: first ? pushLog({ t: msg.t, type: 'routes', title: `${msg.routes.length} candidate routes`, detail: msg.routes.map((r) => `${r.id}: ${r.label ?? r.shelter} ${r.length_m} m, ${Math.round(r.time_s / 60)} min`).join('; '), incident_id: msg.incident_id, raw: msg }) : state.log,
+        log: first ? pushLog({ t: msg.t, type: 'routes', title: `${msg.routes.length} candidate routes`, detail: msg.routes.map((r) => `${r.id}: ${plainLabel(r.label ?? r.shelter)} ${r.length_m} m, ${Math.round(r.time_s / 60)} min`).join('; '), incident_id: msg.incident_id, raw: msg }) : state.log,
       })
       return
     }

@@ -1,10 +1,9 @@
-import { useState, type ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { ArrowUp, Check, CircleCheck, Play, Route, ShieldAlert, TriangleAlert, X } from 'lucide-react'
 import { focusBundle, store, useStore, type IncidentBundle } from '@/lib/store'
-import { fileUrl } from '@/lib/config'
 import { bearingText, deadlineOf, lineTo, progressOn, walkView, type Deadline, type Progress } from '@/lib/derive'
 import { acknowledge, closePlan, notStarted, sendCmd } from '@/lib/engine'
-import { dur, hm, lightTime, missionT, num, pct, pct1, splitLabel } from '@/lib/format'
+import { dur, hm, lightTime, missionT, num, pct, pct1, plainLabel, splitLabel } from '@/lib/format'
 import type { Decision, RouteSummary } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { Fig, GroupKind } from '../Kind'
@@ -13,11 +12,25 @@ import { Button } from '../ui/button'
 import { Conditions } from './Conditions'
 import { CREW_STATUS, Crew, MODEL_SRC, crewBad, crewName, limiting } from './Crew'
 import { Routes } from './Routes'
+import { PlaceView } from './PlaceView'
 import { Hazard, Places, isCover } from './Situation'
 import { INCIDENT_ICON, PHASE_META, PhaseSteps, Row, alertClass } from './parts'
 
 const PLAN_SRC = 'Path planner on the HiRISE elevation model (5 m grid) with the walk model. A model result, not a measurement.'
-const H2 = 'text-balance text-[24px] font-bold leading-[1.15] text-ink'
+const H2 = 'text-balance text-[25px] font-semibold leading-[1.15] tracking-[-0.015em] text-ink'
+
+/** A titled group inside the panel: a rule, a heading, then the content. */
+function Group({ title, note, children }: { title: string; note?: ReactNode; children: ReactNode }) {
+  return (
+    <section className="mt-5 border-t border-rule pt-4">
+      <div className="mb-2.5 flex items-baseline justify-between gap-3">
+        <h3 className="sec">{title}</h3>
+        {note && <span className="text-right text-[12px] text-ink3">{note}</span>}
+      </div>
+      {children}
+    </section>
+  )
+}
 
 /** A new incident stays announced until someone acknowledges it. The class is written out; colour is the second cue. */
 function AlertBand() {
@@ -28,9 +41,9 @@ function AlertBand() {
   return (
     <div role="alert" className={cn('anim-slide flex items-center gap-2.5 px-4 py-2.5', warning ? 'bg-hazard text-on-hazard' : 'bg-advisory text-on-advisory')}>
       <Icon size={17} strokeWidth={2.2} className="shrink-0" />
-      <span className={cn('shrink-0 text-[12.5px] font-bold tracking-[.06em]', warning && 'alert-flash')}>{warning ? 'WARNING' : 'ADVISORY'}</span>
-      <span className="min-w-0 flex-1 truncate text-[14px] font-bold">{inc.title}</span>
-      <button type="button" onClick={acknowledge} className="flex h-8 shrink-0 items-center gap-1.5 rounded-[6px] border border-current px-2.5 text-[12.5px] font-bold transition-opacity duration-150 hover:opacity-80">
+      <span className={cn('shrink-0 text-[12.5px] font-semibold tracking-[.06em]', warning && 'alert-flash')}>{warning ? 'WARNING' : 'ADVISORY'}</span>
+      <span className="min-w-0 flex-1 truncate text-[14px] font-semibold">{inc.title}</span>
+      <button type="button" onClick={acknowledge} className="flex h-8 shrink-0 items-center gap-1.5 rounded-[6px] border border-current px-2.5 text-[12.5px] font-semibold transition-opacity duration-150 hover:opacity-80">
         {warning ? 'Acknowledge' : 'Dismiss'}<kbd className="font-sans text-[11.5px] font-normal opacity-80">A</kbd>
       </button>
     </div>
@@ -43,7 +56,7 @@ function IncidentHead({ b }: { b: IncidentBundle }) {
     <div className="flex items-center justify-between gap-3 text-[13px]">
       <div className="flex min-w-0 items-center gap-2">
         <Icon size={16} strokeWidth={1.8} className="shrink-0 text-ink2" />
-        <span className="truncate font-bold text-ink">{b.incident.title}</span>
+        <span className="truncate font-semibold text-ink">{b.incident.title}</span>
         <span className="num hidden shrink-0 text-[12px] text-ink3 sm:inline">{missionT(b.incident.t)}</span>
       </div>
       {b.incident.detection ? (
@@ -63,19 +76,19 @@ function IncidentHead({ b }: { b: IncidentBundle }) {
 function Readout({ label, children, tone }: { label: string; children: ReactNode; tone?: 'hazard' }) {
   return (
     <div className="min-w-0">
-      <div className={cn('cap truncate', tone === 'hazard' && 'font-bold text-hazard')}>{label}</div>
+      <div className={cn('cap truncate', tone === 'hazard' && 'font-semibold text-hazard')}>{label}</div>
       <div className="mt-0.5 flex min-h-[32px] items-baseline gap-1.5 whitespace-nowrap">{children}</div>
     </div>
   )
 }
-const BIG = 'text-[26px] font-bold leading-none'
+const BIG = 'text-[26px] font-semibold leading-none tracking-[-0.02em]'
 
 /** Distance left on the route and where to turn: the arrow points along the route about 40 m ahead. */
 function ToGo({ p }: { p: Progress | null }) {
   if (!p) return <Readout label="To go"><span className={cn('num text-ink3', BIG)}>-</span></Readout>
   return (
     <Readout label={p.off_m > 25 ? `${num(Math.round(p.off_m))} m off the route` : `To go · ${bearingText(p.bearing)}`} tone={p.off_m > 25 ? 'hazard' : undefined}>
-      <ArrowUp size={22} strokeWidth={2.6} className="shrink-0 self-center text-accent transition-transform duration-500" style={{ transform: `rotate(${p.bearing}deg)` }} aria-hidden />
+      <ArrowUp size={22} strokeWidth={2.6} className="shrink-0 self-center text-safe transition-transform duration-500" style={{ transform: `rotate(${p.bearing}deg)` }} aria-hidden />
       <Fig value={num(Math.round(p.left_m / 5) * 5)} unit="m" kind="model" source={PLAN_SRC + ' Distance left along the chosen route from the crew position.'} label="Distance left on the route" valueClassName={BIG} />
     </Readout>
   )
@@ -102,20 +115,17 @@ type StepState = 'done' | 'now' | 'next'
 /** What to do, in order. The engine knows the walk, so the steps tick by themselves. */
 function Steps({ items }: { items: { text: ReactNode; state: StepState }[] }) {
   return (
-    <div className="mt-5">
-      <ol className="space-y-1.5">
+      <ol className="space-y-2">
         {items.map((it, i) => (
           <li key={i} className="flex items-start gap-2.5 text-[13.5px] leading-snug" aria-current={it.state === 'now' ? 'step' : undefined}>
-            <span className={cn('num mt-[1px] flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full text-[11.5px] font-bold',
+            <span className={cn('num mt-[1px] flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full text-[11.5px] font-semibold',
               it.state === 'done' ? 'bg-panel3 text-ink2' : it.state === 'now' ? 'bg-solid text-on-solid' : 'border border-rule2 text-ink3')}>
               {it.state === 'done' ? <Check size={11} strokeWidth={3} /> : i + 1}
             </span>
-            <span className={cn(it.state === 'now' ? 'font-bold text-ink' : it.state === 'done' ? 'text-ink3' : 'text-ink2')}>{it.text}</span>
+            <span className={cn(it.state === 'now' ? 'font-semibold text-ink' : it.state === 'done' ? 'text-ink3' : 'text-ink2')}>{it.text}</span>
           </li>
         ))}
       </ol>
-      <p className="mt-2 text-[12px] text-ink3">Illustrative steps, not a flight procedure.</p>
-    </div>
   )
 }
 
@@ -126,10 +136,13 @@ function Decided({ b, d, route }: { b: IncidentBundle; d: Decision; route?: Rout
   const walk = walkView(b, snap, routesFile)
   const deadline = deadlineOf(b)
   const { name, variant } = splitLabel(route?.label ?? d.shelter ?? 'shelter')
+  // A science walk goes out to a target and comes back: the engine lists the target first, then the start.
   const sortie = b.incident.kind === 'science'
-  const lead = sortie
-    ? { ready: 'Sortie to', walking: 'On sortie to', arrived: 'Sortie complete:', stopped: 'Stopped on sortie to', none: 'Sortie to' }[walk.phase]
-    : { ready: 'Go to', walking: 'On the way to', arrived: 'Arrived at', stopped: 'Stopped on the way to', none: 'Go to' }[walk.phase]
+  const [goal, home] = sortie ? b.assessment?.shelters ?? [] : []
+  const target = sortie ? goal?.name ?? name.replace(/ and back$/i, '') : name
+  const headline = sortie
+    ? { ready: `Walk to ${target} and back`, walking: `Walking to ${target} and back`, arrived: `Back from ${target}`, stopped: `Stopped on the way to ${target}`, none: `Walk to ${target} and back` }[walk.phase]
+    : { ready: `Go to ${name}`, walking: `On the way to ${name}`, arrived: `Arrived at ${name}`, stopped: `Stopped on the way to ${name}`, none: `Go to ${name}` }[walk.phase]
   const late = route?.rule_ok === false
   const bad = walk.phase === 'stopped' || late
   const arrived = walk.phase === 'arrived'
@@ -138,16 +151,18 @@ function Decided({ b, d, route }: { b: IncidentBundle; d: Decision; route?: Rout
   const rule = deadline.rule_min ? `${num(deadline.rule_min)} min` : 'rule'
   const moving = walk.phase === 'walking' || arrived
   const frac = walk.progress?.frac ?? 0
+  const viewId = sortie ? goal?.id ?? 'B' : d.shelter
   return (
     <div key={`${b.id}:${d.route_id}`} className="anim-rise">
-      <h2 className={cn(H2, 'mt-5', bad && 'text-hazard')}>{lead} {name}</h2>
+      <h2 className={cn(H2, 'mt-5', bad && !arrived && 'text-hazard')}>{headline}</h2>
       <p className="mt-1 text-[12.5px] text-ink3">Route {d.route_id}{variant && `, ${variant}`} · {d.auto === false ? 'chosen by the operator' : 'chosen automatically'}</p>
 
       {arrived ? (
         <div className="mt-4 flex items-start gap-2.5 rounded-[8px] bg-panel2 px-3 py-2.5">
           <CircleCheck size={18} className="mt-[1px] shrink-0 text-safe" />
           <div className="min-w-0 text-[13.5px] leading-snug">
-            <div className="font-bold text-ink">{sortie ? 'Crew back at the start' : `Crew under cover at ${name}`}</div>
+            <div className="font-semibold text-ink">{sortie ? `Crew back at ${home?.name ?? 'the start'}` : `Crew under cover at ${name}`}</div>
+            {late && route?.rule_reasons?.length ? <p className="mt-0.5 text-ink2">Route {route.rule_reasons.join('; ')}.</p> : null}
             {b.incident.kind === 'sep' && <p className="mt-0.5 text-ink2">Stay under cover while the dose rate in the open is above the alert threshold. <span className="text-ink3">Exit cue: an assumption of this display.</span></p>}
           </div>
         </div>
@@ -175,24 +190,29 @@ function Decided({ b, d, route }: { b: IncidentBundle; d: Decision; route?: Rout
         </>
       )}
 
-      <div className="mt-5 grid grid-cols-3 gap-3">
-        <Meter label="Oxygen" frac={d.margins.o2} source={MODEL_SRC} hint="usable oxygen left on arrival" />
-        <Meter label="Heat margin" frac={d.margins.heat} source={MODEL_SRC} hint="room left before the heat-storage limit on arrival" />
-        <div className="min-w-0">
-          <div className="cap">Dose</div>
-          <Fig value={d.dose_msv ?? route?.dose ?? null} unit="mSv" digits={2} kind="model" source={MODEL_SRC} label="Dose on this walk" valueClassName="text-[15px] font-bold" />
-        </div>
-      </div>
-      <p className="mt-1.5 text-[12px] leading-snug text-ink3">On arrival, from the walk model.{d.margins.dose > 0.005 ? ` Dose is ${Math.round(d.margins.dose * 100)}% lower than staying in the open.` : ''}</p>
-
       {!arrived && (
+        <Group title="What to do" note="illustrative, not a flight procedure">
         <Steps items={[
           { text: sortie ? 'Dismiss the advisory' : 'Acknowledge the alert', state: acked ? 'done' : 'now' },
           { text: <>Turn to route {d.route_id}{walk.progress ? <>, bearing <span className="num">{bearingText(walk.progress.bearing)}</span></> : null}</>, state: moving ? 'done' : acked ? 'now' : 'next' },
-          { text: <>{sortie ? 'Walk the sortie and return' : `Walk to ${name}`}{moving ? <> · <span className="num">{pct(frac)}</span> done</> : null}</>, state: moving ? 'now' : 'next' },
+          { text: <>{sortie ? `Walk to ${target} and back` : `Walk to ${name}`}{moving ? <> · <span className="num">{pct(frac)}</span> done</> : null}</>, state: moving ? 'now' : 'next' },
           ...(sortie ? [] : [{ text: 'Enter cover and report in', state: 'next' as StepState }]),
         ]} />
+        </Group>
       )}
+
+      <Group title="On arrival" note="from the walk model">
+        <div className="grid grid-cols-3 gap-3">
+          <Meter label="Oxygen" frac={d.margins.o2} source={MODEL_SRC} hint="usable oxygen left on arrival" />
+          <Meter label="Heat margin" frac={d.margins.heat} source={MODEL_SRC} hint="room left before the heat-storage limit on arrival" />
+          <div className="min-w-0">
+            <div className="cap">Dose</div>
+            <Fig value={d.dose_msv ?? route?.dose ?? null} unit="mSv" digits={2} kind="model" source={MODEL_SRC} label="Dose on this walk" valueClassName="text-[15px] font-semibold" />
+          </div>
+        </div>
+        {d.margins.dose > 0.005 && <p className="mt-2 text-[12.5px] leading-snug text-ink2">Dose is {Math.round(d.margins.dose * 100)}% lower than staying in the open.</p>}
+        {viewId && <PlaceView key={viewId} placeId={viewId} name={target} className="mt-3.5 max-[899px]:max-w-[460px]" />}
+      </Group>
     </div>
   )
 }
@@ -213,7 +233,7 @@ function PlanStatus() {
     return (
       <div role="alert" className="mb-4 flex items-start gap-2.5 rounded-[8px] border border-hazard px-3 py-2.5 text-[13px]">
         <TriangleAlert size={15} className="mt-[2px] shrink-0 text-hazard" />
-        <div className="min-w-0 flex-1 leading-snug"><span className="font-bold text-ink">No plan. </span><span className="text-ink2">{fail.reason ?? 'The engine refused the request'}.</span></div>
+        <div className="min-w-0 flex-1 leading-snug"><span className="font-semibold text-ink">No plan. </span><span className="text-ink2">{fail.reason ?? 'The engine refused the request'}.</span></div>
         <button type="button" aria-label="Dismiss" className="shrink-0 text-ink3 hover:text-ink" onClick={() => store.set({ planFail: null })}><X size={15} /></button>
       </div>
     )
@@ -238,7 +258,7 @@ function PlannedWalk({ b }: { b: IncidentBundle }) {
       <div className="flex items-center justify-between gap-3 text-[13px]">
         <div className="flex min-w-0 items-center gap-2">
           <Route size={16} strokeWidth={1.8} className="shrink-0 text-ink2" />
-          <span className="font-bold text-ink">Plan</span>
+          <span className="font-semibold text-ink">Plan</span>
           <span className="truncate text-[12px] text-ink3">before the walk, no incident</span>
         </div>
         <Button variant="outline" size="sm" className="shrink-0" onClick={closePlan}>Close plan</Button>
@@ -257,27 +277,30 @@ function PlannedWalk({ b }: { b: IncidentBundle }) {
 
       {route && (
         <>
-          <div className="mt-5 grid grid-cols-3 gap-3">
+          <Group title="On arrival" note="from the walk model">
+          <div className="grid grid-cols-3 gap-3">
             <Meter label="Oxygen" frac={route.o2_margin} source={PLAN_SRC} hint="usable oxygen left on arrival" />
             <Meter label="Heat margin" frac={route.heat_margin} source={PLAN_SRC} hint="room left before the heat-storage limit on arrival" />
             <div className="min-w-0">
               <div className="cap">Dose</div>
-              <Fig value={route.dose} unit="mSv" digits={2} kind="model" source={PLAN_SRC} label="Dose on this walk" valueClassName="text-[15px] font-bold" />
+              <Fig value={route.dose} unit="mSv" digits={2} kind="model" source={PLAN_SRC} label="Dose on this walk" valueClassName="text-[15px] font-semibold" />
             </div>
           </div>
-          <p className="mt-1.5 text-[12px] leading-snug text-ink3">On arrival, from the walk model.</p>
-          <ul className="mt-4 space-y-1.5 text-[13px] leading-snug text-ink">
+          </Group>
+          <Group title="On the way">
+          <ul className="space-y-1.5 text-[13px] leading-snug text-ink">
             <li><span className="text-ink2">Climbs </span><span className="num">{num(route.ascent_m)} m</span><span className="text-ink2">, steepest slope </span><span className="num">{num(route.max_slope, 1)}°</span></li>
             {st && st.mc_fail_rate !== null && st.mc_fail_rate !== undefined && (
               <li>
                 <span className="text-ink2">Fails in </span>
                 <Fig value={pct1(st.mc_fail_rate)} kind="model" source={`Monte Carlo, ${st.n ? st.n.toLocaleString('en-US') : 'a small number of'} walks, local preview: a small run by the engine just now`} label="Failure rate of the planned route" />
-                <span className="text-ink2"> of {st.n ? st.n.toLocaleString('en-US') : ''} local preview walks{st.mc_ci ? ` (${pct1(st.mc_ci[0])} to ${pct1(st.mc_ci[1])})` : ''}</span>
+                <span className="text-ink2"> of {st.n ? st.n.toLocaleString('en-US') : ''} simulated walks, a quick local run{st.mc_ci ? ` (${pct1(st.mc_ci[0])} to ${pct1(st.mc_ci[1])})` : ''}</span>
               </li>
             )}
             {route.nolos_m !== undefined && route.nolos_m >= 1 && <li><span className="num">{num(route.nolos_m)} m</span><span className="text-ink2"> without radio line of sight to the habitat or the rover</span></li>}
-            {route.band_m !== undefined && route.band_m >= 1 && <li className="font-bold text-caution">Crosses {num(route.band_m)} m of the rockfall runout band</li>}
+            {route.band_m !== undefined && route.band_m >= 1 && <li className="font-semibold text-caution">Crosses {num(route.band_m)} m of the rockfall runout band</li>}
           </ul>
+          </Group>
         </>
       )}
       <p className="mt-4 text-[12px] leading-snug text-ink3">{plan.note ?? 'A plan only: the crew is not told to walk it. Model-based, not crew-tested.'}</p>
@@ -353,59 +376,63 @@ function Standby() {
       <h2 className={cn(H2, 'flex items-center gap-2.5')}>
         <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-safe" aria-hidden />{fresh ? 'Ready' : 'Standing by'}
       </h2>
-      <p className="mt-1.5 text-[13.5px] leading-snug text-ink2">No incident at {hello.site.name}. If one is detected, the route to cover shows here.</p>
+      <p className="mt-1.5 text-[13.5px] leading-snug text-ink2">No incident at {hello.site.name}. If one is detected, the route to cover shows here. Click a place on the map to see how far it is.</p>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        {live && <Button variant={planMode ? 'default' : 'outline'} size="lg" disabled={conn !== 'online'} aria-pressed={planMode} onClick={() => store.set((s) => ({ planMode: !s.planMode, selectedPlace: null }))}><Route size={15} />{planMode ? 'Click the map' : 'Plan a walk'}</Button>}
+        {fresh && <Button variant={live ? 'outline' : 'default'} size="lg" disabled={conn !== 'online'} onClick={() => sendCmd({ cmd: live ? 'demo' : 'resume' })}><Play size={14} fill="currentColor" />Play demo scenario</Button>}
+      </div>
 
       {!!crew?.length && (
-        <ul className="mt-4 border-y border-rule">
+        <Group title="Crew outside">
+        <ul className="-my-1">
           {crew.map((c) => {
             const lim = limiting(c)
             const sev = severity(lim.frac)
             return (
               <li key={c.id} className="border-b border-rule last:border-b-0">
                 <button type="button" onClick={() => store.set({ detail: 'crew' })} className="card-hover -mx-2 flex min-h-[44px] w-[calc(100%+16px)] items-center gap-3 rounded-[4px] px-2 text-left">
-                  <span className="text-[14px] font-bold text-ink">{crewName(c)}</span>
-                  <span className={cn('text-[12.5px]', crewBad(c) ? 'font-bold text-hazard' : 'text-ink3')}>{CREW_STATUS[c.status] ?? `status ${c.status}`}</span>
+                  <span className="text-[14px] font-semibold text-ink">{crewName(c)}</span>
+                  <span className={cn('text-[12.5px]', crewBad(c) ? 'font-semibold text-hazard' : 'text-ink3')}>{CREW_STATUS[c.status] ?? `status ${c.status}`}</span>
                   <span className="ml-auto text-[12.5px] text-ink3">{lim.label}</span>
-                  <span className={cn('num text-[14px] font-bold', sev.name === 'critical' ? 'text-hazard' : sev.name === 'low' ? 'text-caution' : 'text-ink')}>{pct(lim.frac)}</span>
+                  <span className={cn('num text-[14px] font-semibold', sev.name === 'critical' ? 'text-hazard' : sev.name === 'low' ? 'text-caution' : 'text-ink')}>{pct(lim.frac)}</span>
                 </button>
               </li>
             )
           })}
         </ul>
+        </Group>
       )}
 
       {cover && (
-        <button type="button" onClick={() => store.set({ selectedPlace: cover.p.id })} className="card-hover -mx-2 mt-1 flex min-h-[52px] w-[calc(100%+16px)] items-center gap-3 rounded-[4px] px-2 text-left">
-          <span className="min-w-0 flex-1">
-            <span className="cap block">Nearest cover</span>
-            <span className="block truncate text-[14px] font-bold text-ink">{cover.p.name}</span>
-          </span>
+        <Group title="Nearest cover" note="click to show it on the map">
+        <button type="button" onClick={() => store.set({ selectedPlace: cover.p.id })} className="card-hover -mx-2 -my-1 flex min-h-[48px] w-[calc(100%+16px)] items-center gap-3 rounded-[6px] px-2 text-left">
+          <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-safe" aria-hidden />
+          <span className="min-w-0 flex-1 truncate text-[14px] font-semibold text-ink">{cover.p.name}</span>
           <span className="shrink-0 text-right">
-            <span className="num block text-[14px] font-bold text-ink">{num(Math.round(cover.dist_m / 10) * 10)} m</span>
+            <span className="num block text-[14px] font-semibold text-ink">{num(Math.round(cover.dist_m / 10) * 10)} m</span>
             <span className="num block text-[12px] text-ink3">{bearingText(cover.bearing)} · straight line</span>
           </span>
         </button>
+        </Group>
       )}
 
-      <dl className="mt-3 divide-y divide-rule border-y border-rule">
+      <Group title="Watching" note="what would start a response">
+      <dl className="-my-[7px] divide-y divide-rule">
         <Watch label="Dose rate in the open" note={threshold !== null ? <>alert at <span className="num">{num(threshold, 1)}</span> µGy/h</> : undefined}>
-          <Fig value={rate} unit="µGy/h" digits={1} kind="scenario" source={`Dose rate produced by the engine for this scenario, not an instrument reading.${threshold !== null ? ` Alert threshold: ${pctUp!.value}% above the background of ${gcr!.value} µGy/h (${pctUp!.source ?? 'Loewe et al. 2025'}, simplified).` : ''}`} label="Dose rate in the open" valueClassName="text-[15px] font-bold" />
+          <Fig value={rate} unit="µGy/h" digits={1} kind="scenario" source={`Dose rate produced by the engine for this scenario, not an instrument reading.${threshold !== null ? ` Alert threshold: ${pctUp!.value}% above the background of ${gcr!.value} µGy/h (${pctUp!.source ?? 'Loewe et al. 2025'}, simplified).` : ''}`} label="Dose rate in the open" valueClassName="text-[15px] font-semibold" />
         </Watch>
         <Watch label="Ground motion">
-          <Fig value={sensors?.seismic} unit="m/s²" digits={3} kind="scenario" source="Ground motion produced by the engine for this scenario, not an instrument reading." label="Ground motion" valueClassName="text-[15px] font-bold" />
+          <Fig value={sensors?.seismic} unit="m/s²" digits={3} kind="scenario" source="Ground motion produced by the engine for this scenario, not an instrument reading." label="Ground motion" valueClassName="text-[15px] font-semibold" />
         </Watch>
         <Watch label="Daylight left">
-          <Fig value={daylight === undefined ? null : daylight > 0 ? hm(daylight, true) : 'Sun down'} kind="model" source={`${sunSrc ?? 'Sun position'}. Flat horizon: the canyon wall can shade the ground earlier.`} label="Daylight left" valueClassName={cn('text-[15px] font-bold', daylight !== undefined && daylight < 3600 && 'text-caution')} />
+          <Fig value={daylight === undefined ? null : daylight > 0 ? hm(daylight, true) : 'Sun down'} kind="model" source={`${sunSrc ?? 'Sun position'}. Flat horizon: the canyon wall can shade the ground earlier.`} label="Daylight left" valueClassName={cn('text-[15px] font-semibold', daylight !== undefined && daylight < 3600 && 'text-caution')} />
         </Watch>
         <Watch label="Answer from Earth" note="there and back, so the crew decides locally">
-          <Fig value={light === undefined ? null : lightTime(light * 2)} kind="model" source="Twice the one-way light time to Earth, from JPL Horizons distances." label="Round trip to Earth" valueClassName="text-[15px] font-bold" />
+          <Fig value={light === undefined ? null : lightTime(light * 2)} kind="model" source="Twice the one-way light time to Earth, from JPL Horizons distances." label="Round trip to Earth" valueClassName="text-[15px] font-semibold" />
         </Watch>
       </dl>
-
-      <div className="mt-4 flex flex-wrap gap-2">
-        {live && <Button variant={planMode ? 'default' : 'outline'} size="lg" disabled={conn !== 'online'} aria-pressed={planMode} onClick={() => store.set((s) => ({ planMode: !s.planMode, selectedPlace: null }))}><Route size={15} />{planMode ? 'Click the map' : 'Plan a walk'}</Button>}
-        {fresh && <Button variant={live ? 'outline' : 'default'} size="lg" disabled={conn !== 'online'} onClick={() => sendCmd({ cmd: live ? 'demo' : 'resume' })}><Play size={14} fill="currentColor" />Play demo scenario</Button>}
-      </div>
+      </Group>
     </div>
   )
 }
@@ -441,25 +468,15 @@ function Why({ d }: { d: Decision }) {
       {d.avoided.map((a, i) => (
         <li key={`a${i}`} className="flex gap-2">
           <ShieldAlert size={14} className="mt-[2px] shrink-0 text-hazard" strokeWidth={1.8} />
-          <div className="min-w-0 text-[13px] leading-snug"><span className="text-ink2">Avoids: </span><span className="text-ink">{a.label}</span>{a.detail && <span className="text-ink3"> · {a.detail}</span>}</div>
+          <div className="min-w-0 text-[13px] leading-snug"><span className="text-ink2">Avoids: </span><span className="text-ink">{plainLabel(a.label)}</span>{a.detail && <span className="text-ink3"> · {a.detail}</span>}</div>
         </li>
       ))}
     </ul>
   )
 }
 
-/** What the destination looks like from the approach: a render of the terrain model, labelled as such. */
-function ArrivalView({ placeId, name }: { placeId: string; name: string }) {
-  const item = useStore((s) => s.pov[placeId])
-  const [failed, setFailed] = useState(false)
-  const path = item ? (item.file.includes('/') ? item.file : `data/site/pov/${item.file}`) : ''
-  if (!item || failed || !fileUrl(path)) return <p className="px-4 pb-4 pt-1 text-[13px] text-ink3">No rendered view for this destination.</p>
-  return (
-    <figure className="px-4 pb-4 pt-1">
-      <img src={fileUrl(path)} alt={`Rendered view of ${name} from the approach`} loading="lazy" onError={() => setFailed(true)} className="aspect-[21/9] w-full rounded-[6px] object-cover" />
-      <figcaption className="mt-1.5 text-[12px] leading-snug text-ink3">{item.caption ?? 'Rendered from the HiRISE elevation model. Colour is approximate; ground detail and rocks are set dressing.'}</figcaption>
-    </figure>
-  )
+function DetailHead({ children }: { children: ReactNode }) {
+  return <h3 className="sec border-t border-rule bg-panel2 px-4 py-2">{children}</h3>
 }
 
 /** Everything behind the state above, one group open at a time. */
@@ -467,25 +484,26 @@ export function Details() {
   const b = useStore(focusBundle)
   const crew = useStore((s) => s.snapshot?.crew)
   const daylight = useStore((s) => s.snapshot?.env?.daylight_s)
-  const hasPov = useStore((s) => Object.keys(s.pov).length > 0)
   const nPlaces = useStore((s) => s.hello?.places?.length ?? 0)
   const d = b?.decision
-  const route = b?.routes?.find((r) => r.id === d?.route_id)
   const crewAlert = !!crew?.some(crewBad)
   const worst = crew?.length ? crew.map(limiting).sort((x, y) => x.frac - y.frac)[0] : null
   const shelters = b?.assessment?.shelters
-  const sortie = b?.incident.kind === 'science'
-  const viewId = d ? (sortie ? 'B' : d.shelter) : undefined
   const a = b?.assessment
   return (
     <div className="border-b border-rule">
-      {d && <Row id="why" title="Why this route" meta={`${d.reasons.length + d.avoided.length} points`}><Why d={d} /></Row>}
-      {b && <Row id="routes" title={b.plan ? 'Planned routes' : 'Routes compared'} meta={b.routes ? `${b.routes.length}` : 'planning'}><Routes /></Row>}
+      {b && (
+        <>
+          <DetailHead>{b.plan ? 'About this plan' : 'About this incident'}</DetailHead>
+          {d && <Row id="why" title="Why this route" meta={`${d.reasons.length + d.avoided.length} points`}><Why d={d} /></Row>}
+          <Row id="routes" title={b.plan ? 'Planned routes' : 'Routes compared'} meta={b.routes ? `${b.routes.length}` : 'planning'}><Routes /></Row>
+          <Row id="hazard" title={b.plan ? 'Plan assumptions' : 'Detection and hazard'} meta={b.plan ? undefined : a ? `${a.changes.length} changes` : 'assessing'}><Hazard /></Row>
+        </>
+      )}
+      <DetailHead>Crew and site</DetailHead>
       <Row id="crew" title="Crew and suits" flag={crewAlert} meta={worst ? `lowest: ${worst.label.toLowerCase()} ${pct(worst.frac)}` : undefined}><Crew /></Row>
-      {b && <Row id="hazard" title={b.plan ? 'Plan assumptions' : 'Detection and hazard'} meta={b.plan ? undefined : a ? `${a.changes.length} changes` : 'assessing'}><Hazard /></Row>}
       <Row id="places" title="Cover and places" meta={shelters?.length ? `${shelters.filter((s) => s.open).length} of ${shelters.length} open` : nPlaces ? `${nPlaces}` : undefined}><Places /></Row>
       <Row id="conditions" title="Conditions" meta={daylight === undefined ? undefined : daylight > 0 ? `${hm(daylight, true)} of daylight` : 'Sun down'}><Conditions /></Row>
-      {d && viewId && hasPov && <Row id="view" title="View on arrival" meta="render"><ArrivalView placeId={viewId} name={splitLabel(route?.label ?? d.shelter ?? 'shelter').name} /></Row>}
     </div>
   )
 }

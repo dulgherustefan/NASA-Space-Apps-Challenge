@@ -4,7 +4,6 @@ import { store, useStore } from '@/lib/store'
 import { ENGINE_URL, FALLBACK_PRODUCT } from '@/lib/config'
 import { acknowledge, retryNow, startEngine, togglePlay } from '@/lib/engine'
 import { usePage } from '@/lib/route'
-import { applyTheme, readTheme } from '@/lib/theme'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { Button } from '@/components/ui/button'
 import { Header } from '@/components/Header'
@@ -26,7 +25,7 @@ function OfflineBanner() {
     <div role="alert" className="anim-rise pointer-events-auto fixed bottom-16 left-4 z-50 flex w-[min(680px,calc(100vw-32px))] items-start gap-3 rounded-[8px] border border-hazard bg-panel px-4 py-3 shadow-float">
       <WifiOff size={16} className="mt-[2px] shrink-0 text-hazard" />
       <div className="min-w-0 flex-1 text-[13px] leading-snug">
-        <div className="font-bold text-ink">{replay ? 'Recorded run not found' : hadData ? 'Connection to the engine lost' : 'Engine not running'}</div>
+        <div className="font-semibold text-ink">{replay ? 'Recorded run not found' : hadData ? 'Connection to the engine lost' : 'Engine not running'}</div>
         {replay ? (
           <div className="mt-0.5 text-ink2">This build has no recording to play. Make one with <span className="text-ink">python tools/record_demo.py</span> and build again.</div>
         ) : (
@@ -70,7 +69,7 @@ function useShortcuts(active: boolean) {
 export default function App() {
   const page = usePage()
   const product = useStore((s) => s.hello?.product)
-  useEffect(() => { applyTheme(readTheme()); startEngine() }, [])
+  useEffect(() => { startEngine() }, [])
   useEffect(() => { document.title = product ?? FALLBACK_PRODUCT }, [product])
   useShortcuts(page === 'console')
   return (

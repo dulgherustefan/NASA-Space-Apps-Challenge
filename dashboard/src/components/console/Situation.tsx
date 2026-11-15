@@ -49,7 +49,7 @@ function Detected({ d }: { d: Detection }) {
 function Block({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="border-t border-rule pt-3 first:border-t-0 first:pt-0">
-      <h4 className="mb-1.5 text-[13px] font-bold text-ink">{title}</h4>
+      <h4 className="mb-1.5 text-[13px] font-semibold text-ink">{title}</h4>
       {children}
     </div>
   )

@@ -17,7 +17,7 @@ function PlayButton() {
   const label = fresh ? 'Play demo' : running ? 'Pause' : 'Resume'
   return (
     <button type="button" onClick={togglePlay} disabled={off} aria-label={`${label} (Space)`}
-      className={cn('flex h-9 shrink-0 items-center gap-1.5 rounded-[6px] px-3 text-[13px] font-bold transition-colors duration-150 disabled:opacity-40',
+      className={cn('flex h-9 shrink-0 items-center gap-1.5 rounded-[6px] px-3 text-[13px] font-semibold transition-colors duration-150 disabled:opacity-40',
         'border border-rule2 text-ink hover:bg-panel3')}>
       {running ? <Pause size={14} fill="currentColor" /> : <Play size={14} fill="currentColor" />}{label}
     </button>
@@ -92,6 +92,7 @@ function Program() {
   if (!scenario?.length) return <span className="text-[12.5px] text-ink3">No scripted incidents</span>
   return (
     <ol className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto" aria-label="Scripted incidents">
+      <li className="mr-1 hidden shrink-0 text-[12px] text-ink3 xl:block" aria-hidden>Scenario</li>
       {scenario.map((it, i) => {
         const Icon = INCIDENT_ICON[it.kind]
         const fired = order.includes(it.id)
@@ -104,7 +105,7 @@ function Program() {
                 <button type="button" disabled={!fired} aria-pressed={on}
                   onClick={() => store.set({ focusId: it.id === liveId ? null : it.id, selectedRoute: null })}
                   className={cn('flex h-8 min-w-0 items-center gap-1.5 rounded-[6px] border px-2 text-[12.5px] transition-colors duration-150',
-                    on ? 'border-accent bg-accent-dim font-bold text-ink' : fired ? 'border-rule2 text-ink hover:bg-panel3' : 'border-transparent text-ink3')}>
+                    on ? 'border-accent bg-accent-dim font-semibold text-ink' : fired ? 'border-rule2 text-ink hover:bg-panel3' : 'border-transparent text-ink3')}>
                   <Icon size={13} strokeWidth={2} className="shrink-0" />
                   <span className="hidden truncate lg:inline">{it.title}</span>
                 </button>
