@@ -165,8 +165,8 @@ export function applyMessage(msg: EngineMsg) {
       store.set({
         incidents: { ...state.incidents, [msg.id]: b }, order, focusId: null, selectedRoute: null,
         overlay: { ...state.overlay, userSet: false },
-        // a late client receives old incidents again: only an incident that is live now raises the alert
-        alertAt: Math.abs((state.snapshot?.t ?? msg.t) - msg.t) < 30 ? now : state.alertAt,
+        // a late client receives old incidents again, before its first snapshot: only an incident that is live now raises the alert
+        alertAt: state.snapshot && Math.abs(state.snapshot.t - msg.t) < 30 ? now : state.alertAt,
         log: pushLog({ t: msg.t, type: 'incident', title: msg.title, detail: msg.summary, source: msg.source, incident_id: msg.id, raw: msg }),
       })
       return
