@@ -124,7 +124,7 @@ def main():
         i, j = (int(v) for v in src[rng.integers(0, len(src))])
         track = [(i, j)]
         for _ in range(500):
-            best, bz = None, za[i, j]
+            best = None
             for di in (-1, 0, 1):
                 for dj in (-1, 0, 1):
                     a, b = i + di, j + dj

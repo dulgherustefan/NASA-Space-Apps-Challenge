@@ -115,17 +115,17 @@ type StepState = 'done' | 'now' | 'next'
 /** What to do, in order. The engine knows the walk, so the steps tick by themselves. */
 function Steps({ items }: { items: { text: ReactNode; state: StepState }[] }) {
   return (
-      <ol className="space-y-2">
-        {items.map((it, i) => (
-          <li key={i} className="flex items-start gap-2.5 text-[13.5px] leading-snug" aria-current={it.state === 'now' ? 'step' : undefined}>
-            <span className={cn('num mt-[1px] flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full text-[11.5px] font-semibold',
-              it.state === 'done' ? 'bg-panel3 text-ink2' : it.state === 'now' ? 'bg-solid text-on-solid' : 'border border-rule2 text-ink3')}>
-              {it.state === 'done' ? <Check size={11} strokeWidth={3} /> : i + 1}
-            </span>
-            <span className={cn(it.state === 'now' ? 'font-semibold text-ink' : it.state === 'done' ? 'text-ink3' : 'text-ink2')}>{it.text}</span>
-          </li>
-        ))}
-      </ol>
+    <ol className="space-y-2">
+      {items.map((it, i) => (
+        <li key={i} className="flex items-start gap-2.5 text-[13.5px] leading-snug" aria-current={it.state === 'now' ? 'step' : undefined}>
+          <span className={cn('num mt-[1px] flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full text-[11.5px] font-semibold',
+            it.state === 'done' ? 'bg-panel3 text-ink2' : it.state === 'now' ? 'bg-solid text-on-solid' : 'border border-rule2 text-ink3')}>
+            {it.state === 'done' ? <Check size={11} strokeWidth={3} /> : i + 1}
+          </span>
+          <span className={cn(it.state === 'now' ? 'font-semibold text-ink' : it.state === 'done' ? 'text-ink3' : 'text-ink2')}>{it.text}</span>
+        </li>
+      ))}
+    </ol>
   )
 }
 
@@ -192,12 +192,12 @@ function Decided({ b, d, route }: { b: IncidentBundle; d: Decision; route?: Rout
 
       {!arrived && (
         <Group title="What to do" note="illustrative, not a flight procedure">
-        <Steps items={[
-          { text: sortie ? 'Dismiss the advisory' : 'Acknowledge the alert', state: acked ? 'done' : 'now' },
-          { text: <>Turn to route {d.route_id}{walk.progress ? <>, bearing <span className="num">{bearingText(walk.progress.bearing)}</span></> : null}</>, state: moving ? 'done' : acked ? 'now' : 'next' },
-          { text: <>{sortie ? `Walk to ${target} and back` : `Walk to ${name}`}{moving ? <> · <span className="num">{pct(frac)}</span> done</> : null}</>, state: moving ? 'now' : 'next' },
-          ...(sortie ? [] : [{ text: 'Enter cover and report in', state: 'next' as StepState }]),
-        ]} />
+          <Steps items={[
+            { text: sortie ? 'Dismiss the advisory' : 'Acknowledge the alert', state: acked ? 'done' : 'now' },
+            { text: <>Turn to route {d.route_id}{walk.progress ? <>, bearing <span className="num">{bearingText(walk.progress.bearing)}</span></> : null}</>, state: moving ? 'done' : acked ? 'now' : 'next' },
+            { text: <>{sortie ? `Walk to ${target} and back` : `Walk to ${name}`}{moving ? <> · <span className="num">{pct(frac)}</span> done</> : null}</>, state: moving ? 'now' : 'next' },
+            ...(sortie ? [] : [{ text: 'Enter cover and report in', state: 'next' as StepState }]),
+          ]} />
         </Group>
       )}
 
@@ -278,28 +278,28 @@ function PlannedWalk({ b }: { b: IncidentBundle }) {
       {route && (
         <>
           <Group title="On arrival" note="from the walk model">
-          <div className="grid grid-cols-3 gap-3">
-            <Meter label="Oxygen" frac={route.o2_margin} source={PLAN_SRC} hint="usable oxygen left on arrival" />
-            <Meter label="Heat margin" frac={route.heat_margin} source={PLAN_SRC} hint="room left before the heat-storage limit on arrival" />
-            <div className="min-w-0">
-              <div className="cap">Dose</div>
-              <Fig value={route.dose} unit="mSv" digits={2} kind="model" source={PLAN_SRC} label="Dose on this walk" valueClassName="text-[15px] font-semibold" />
+            <div className="grid grid-cols-3 gap-3">
+              <Meter label="Oxygen" frac={route.o2_margin} source={PLAN_SRC} hint="usable oxygen left on arrival" />
+              <Meter label="Heat margin" frac={route.heat_margin} source={PLAN_SRC} hint="room left before the heat-storage limit on arrival" />
+              <div className="min-w-0">
+                <div className="cap">Dose</div>
+                <Fig value={route.dose} unit="mSv" digits={2} kind="model" source={PLAN_SRC} label="Dose on this walk" valueClassName="text-[15px] font-semibold" />
+              </div>
             </div>
-          </div>
           </Group>
           <Group title="On the way">
-          <ul className="space-y-1.5 text-[13px] leading-snug text-ink">
-            <li><span className="text-ink2">Climbs </span><span className="num">{num(route.ascent_m)} m</span><span className="text-ink2">, steepest slope </span><span className="num">{num(route.max_slope, 1)}°</span></li>
-            {st && st.mc_fail_rate !== null && st.mc_fail_rate !== undefined && (
-              <li>
-                <span className="text-ink2">Fails in </span>
-                <Fig value={pct1(st.mc_fail_rate)} kind="model" source={`Monte Carlo, ${st.n ? st.n.toLocaleString('en-US') : 'a small number of'} walks, local preview: a small run by the engine just now`} label="Failure rate of the planned route" />
-                <span className="text-ink2"> of {st.n ? st.n.toLocaleString('en-US') : ''} simulated walks, a quick local run{st.mc_ci ? ` (${pct1(st.mc_ci[0])} to ${pct1(st.mc_ci[1])})` : ''}</span>
-              </li>
-            )}
-            {route.nolos_m !== undefined && route.nolos_m >= 1 && <li><span className="num">{num(route.nolos_m)} m</span><span className="text-ink2"> without radio line of sight to the habitat or the rover</span></li>}
-            {route.band_m !== undefined && route.band_m >= 1 && <li className="font-semibold text-caution">Crosses {num(route.band_m)} m of the rockfall runout band</li>}
-          </ul>
+            <ul className="space-y-1.5 text-[13px] leading-snug text-ink">
+              <li><span className="text-ink2">Climbs </span><span className="num">{num(route.ascent_m)} m</span><span className="text-ink2">, steepest slope </span><span className="num">{num(route.max_slope, 1)}°</span></li>
+              {st && st.mc_fail_rate !== null && st.mc_fail_rate !== undefined && (
+                <li>
+                  <span className="text-ink2">Fails in </span>
+                  <Fig value={pct1(st.mc_fail_rate)} kind="model" source={`Monte Carlo, ${st.n ? st.n.toLocaleString('en-US') : 'a small number of'} walks, local preview: a small run by the engine just now`} label="Failure rate of the planned route" />
+                  <span className="text-ink2"> of {st.n ? st.n.toLocaleString('en-US') : ''} simulated walks, a quick local run{st.mc_ci ? ` (${pct1(st.mc_ci[0])} to ${pct1(st.mc_ci[1])})` : ''}</span>
+                </li>
+              )}
+              {route.nolos_m !== undefined && route.nolos_m >= 1 && <li><span className="num">{num(route.nolos_m)} m</span><span className="text-ink2"> without radio line of sight to the habitat or the rover</span></li>}
+              {route.band_m !== undefined && route.band_m >= 1 && <li className="font-semibold text-caution">Crosses {num(route.band_m)} m of the rockfall runout band</li>}
+            </ul>
           </Group>
         </>
       )}
@@ -385,53 +385,53 @@ function Standby() {
 
       {!!crew?.length && (
         <Group title="Crew outside">
-        <ul className="-my-1">
-          {crew.map((c) => {
-            const lim = limiting(c)
-            const sev = severity(lim.frac)
-            return (
-              <li key={c.id} className="border-b border-rule last:border-b-0">
-                <button type="button" onClick={() => store.set({ detail: 'crew' })} className="card-hover -mx-2 flex min-h-[44px] w-[calc(100%+16px)] items-center gap-3 rounded-[4px] px-2 text-left">
-                  <span className="text-[14px] font-semibold text-ink">{crewName(c)}</span>
-                  <span className={cn('text-[12.5px]', crewBad(c) ? 'font-semibold text-hazard' : 'text-ink3')}>{CREW_STATUS[c.status] ?? `status ${c.status}`}</span>
-                  <span className="ml-auto text-[12.5px] text-ink3">{lim.label}</span>
-                  <span className={cn('num text-[14px] font-semibold', sev.name === 'critical' ? 'text-hazard' : sev.name === 'low' ? 'text-caution' : 'text-ink')}>{pct(lim.frac)}</span>
-                </button>
-              </li>
-            )
-          })}
-        </ul>
+          <ul className="-my-1">
+            {crew.map((c) => {
+              const lim = limiting(c)
+              const sev = severity(lim.frac)
+              return (
+                <li key={c.id} className="border-b border-rule last:border-b-0">
+                  <button type="button" onClick={() => store.set({ detail: 'crew' })} className="card-hover -mx-2 flex min-h-[44px] w-[calc(100%+16px)] items-center gap-3 rounded-[4px] px-2 text-left">
+                    <span className="text-[14px] font-semibold text-ink">{crewName(c)}</span>
+                    <span className={cn('text-[12.5px]', crewBad(c) ? 'font-semibold text-hazard' : 'text-ink3')}>{CREW_STATUS[c.status] ?? `status ${c.status}`}</span>
+                    <span className="ml-auto text-[12.5px] text-ink3">{lim.label}</span>
+                    <span className={cn('num text-[14px] font-semibold', sev.name === 'critical' ? 'text-hazard' : sev.name === 'low' ? 'text-caution' : 'text-ink')}>{pct(lim.frac)}</span>
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
         </Group>
       )}
 
       {cover && (
         <Group title="Nearest cover" note="click to show it on the map">
-        <button type="button" onClick={() => store.set({ selectedPlace: cover.p.id })} className="card-hover -mx-2 -my-1 flex min-h-[48px] w-[calc(100%+16px)] items-center gap-3 rounded-[6px] px-2 text-left">
-          <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-safe" aria-hidden />
-          <span className="min-w-0 flex-1 truncate text-[14px] font-semibold text-ink">{cover.p.name}</span>
-          <span className="shrink-0 text-right">
-            <span className="num block text-[14px] font-semibold text-ink">{num(Math.round(cover.dist_m / 10) * 10)} m</span>
-            <span className="num block text-[12px] text-ink3">{bearingText(cover.bearing)} · straight line</span>
-          </span>
-        </button>
+          <button type="button" onClick={() => store.set({ selectedPlace: cover.p.id })} className="card-hover -mx-2 -my-1 flex min-h-[48px] w-[calc(100%+16px)] items-center gap-3 rounded-[6px] px-2 text-left">
+            <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-safe" aria-hidden />
+            <span className="min-w-0 flex-1 truncate text-[14px] font-semibold text-ink">{cover.p.name}</span>
+            <span className="shrink-0 text-right">
+              <span className="num block text-[14px] font-semibold text-ink">{num(Math.round(cover.dist_m / 10) * 10)} m</span>
+              <span className="num block text-[12px] text-ink3">{bearingText(cover.bearing)} · straight line</span>
+            </span>
+          </button>
         </Group>
       )}
 
       <Group title="Watching" note="what would start a response">
-      <dl className="-my-[7px] divide-y divide-rule">
-        <Watch label="Dose rate in the open" note={threshold !== null ? <>alert at <span className="num">{num(threshold, 1)}</span> µGy/h</> : undefined}>
-          <Fig value={rate} unit="µGy/h" digits={1} kind="scenario" source={`Dose rate produced by the engine for this scenario, not an instrument reading.${threshold !== null ? ` Alert threshold: ${pctUp!.value}% above the background of ${gcr!.value} µGy/h (${pctUp!.source ?? 'Loewe et al. 2025'}, simplified).` : ''}`} label="Dose rate in the open" valueClassName="text-[15px] font-semibold" />
-        </Watch>
-        <Watch label="Ground motion">
-          <Fig value={sensors?.seismic} unit="m/s²" digits={3} kind="scenario" source="Ground motion produced by the engine for this scenario, not an instrument reading." label="Ground motion" valueClassName="text-[15px] font-semibold" />
-        </Watch>
-        <Watch label="Daylight left">
-          <Fig value={daylight === undefined ? null : daylight > 0 ? hm(daylight, true) : 'Sun down'} kind="model" source={`${sunSrc ?? 'Sun position'}. Flat horizon: the canyon wall can shade the ground earlier.`} label="Daylight left" valueClassName={cn('text-[15px] font-semibold', daylight !== undefined && daylight < 3600 && 'text-caution')} />
-        </Watch>
-        <Watch label="Answer from Earth" note="there and back, so the crew decides locally">
-          <Fig value={light === undefined ? null : lightTime(light * 2)} kind="model" source="Twice the one-way light time to Earth, from JPL Horizons distances." label="Round trip to Earth" valueClassName="text-[15px] font-semibold" />
-        </Watch>
-      </dl>
+        <dl className="-my-[7px] divide-y divide-rule">
+          <Watch label="Dose rate in the open" note={threshold !== null ? <>alert at <span className="num">{num(threshold, 1)}</span> µGy/h</> : undefined}>
+            <Fig value={rate} unit="µGy/h" digits={1} kind="scenario" source={`Dose rate produced by the engine for this scenario, not an instrument reading.${threshold !== null ? ` Alert threshold: ${pctUp!.value}% above the background of ${gcr!.value} µGy/h (${pctUp!.source ?? 'Loewe et al. 2025'}, simplified).` : ''}`} label="Dose rate in the open" valueClassName="text-[15px] font-semibold" />
+          </Watch>
+          <Watch label="Ground motion">
+            <Fig value={sensors?.seismic} unit="m/s²" digits={3} kind="scenario" source="Ground motion produced by the engine for this scenario, not an instrument reading." label="Ground motion" valueClassName="text-[15px] font-semibold" />
+          </Watch>
+          <Watch label="Daylight left">
+            <Fig value={daylight === undefined ? null : daylight > 0 ? hm(daylight, true) : 'Sun down'} kind="model" source={`${sunSrc ?? 'Sun position'}. Flat horizon: the canyon wall can shade the ground earlier.`} label="Daylight left" valueClassName={cn('text-[15px] font-semibold', daylight !== undefined && daylight < 3600 && 'text-caution')} />
+          </Watch>
+          <Watch label="Answer from Earth" note="there and back, so the crew decides locally">
+            <Fig value={light === undefined ? null : lightTime(light * 2)} kind="model" source="Twice the one-way light time to Earth, from JPL Horizons distances." label="Round trip to Earth" valueClassName="text-[15px] font-semibold" />
+          </Watch>
+        </dl>
       </Group>
     </div>
   )

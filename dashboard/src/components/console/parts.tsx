@@ -73,18 +73,6 @@ export function Row({ id, title, meta, flag, children }: { id: DetailId; title: 
   )
 }
 
-export function Section({ title, aside, children, className }: { title: string; aside?: ReactNode; children: ReactNode; className?: string }) {
-  return (
-    <section className={cn('border-t border-rule px-4 pb-4 pt-4 first:border-t-0', className)}>
-      <div className="mb-2 flex items-baseline justify-between gap-3">
-        <h4 className="text-[13px] font-semibold text-ink">{title}</h4>
-        {aside && <div className="text-[12.5px] text-ink3">{aside}</div>}
-      </div>
-      {children}
-    </section>
-  )
-}
-
 export function Empty({ children }: { children: ReactNode }) {
   return <p className="text-[13px] leading-snug text-ink3">{children}</p>
 }

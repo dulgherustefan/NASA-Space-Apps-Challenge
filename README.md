@@ -178,7 +178,7 @@ Event log with JSON export). **Play demo** under the map plays the three inciden
 settings menu holds the alert sound and the exercise controls (reset, clock speed, single
 incidents).
 
-**Plan a walk**, in the same menu, is for before a walk: a click on the map returns the walking route from the crew to
+**Plan a walk**, a button on the map and in the standby panel (key P), is for before a walk: a click on the map returns the walking route from the crew to
 that point (Shift and click sets another start). It uses the same planner, hazard layers and walk model as the incident
 routes, and its stress test is the engine's small Monte Carlo run, labelled "local preview". It involves no incident and
 the crew is not sent anywhere. It needs the live engine, so it is off in the recorded run. The command and its answer are

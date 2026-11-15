@@ -19,7 +19,6 @@
   /* one warm accent: the primary action, the active step, the current selection */
   --color-accent: #e3b472;
   --color-accent-dim: #e3b4721f;
-  --color-on-accent: #1c1407;
   /* surface and ink of a filled control */
   --color-solid: #e3b472;
   --color-on-solid: #1c1407;

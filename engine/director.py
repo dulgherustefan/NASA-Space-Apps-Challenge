@@ -20,7 +20,7 @@ from .climate import load_weather
 from .clock import MissionClock, parse_utc
 from .hazards import LABELS, overlay_file, write_png
 from .params import PARAMS, SIM, cite
-from .walk import TR, make_params, sep_rate
+from .walk import TR, sep_rate
 
 log = logging.getLogger("engine.director")
 
@@ -637,7 +637,7 @@ class Director:
         if seen is not None:
             for r in routes:
                 r["nolos_m"] = round(maplayers.metres_without_sight(self.site, seen, r["points"]), 0)
-        rfile = R.write_routes_json(iid, routes)
+        R.write_routes_json(iid, routes)
         self.osc.reload("routes")
         for r in routes:
             self._route_osc(r["id"], "candidate")

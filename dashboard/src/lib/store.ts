@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react'
 import { plainLabel } from './format'
 import type {
-  Assessment, CrewState, Decision, EngineMsg, Hello, Incident, IncidentKind, ParamDef, Phase, PlanMsg, PovItem, RouteSummary, RoutesFile, RoutesMsg, Snapshot, Stress, TrajFile,
+  Assessment, Decision, EngineMsg, Hello, Incident, IncidentKind, ParamDef, Phase, PlanMsg, PovItem, RouteSummary, RoutesFile, RoutesMsg, Snapshot, Stress, TrajFile,
 } from './types'
 
 export type Conn = 'connecting' | 'online' | 'offline'
@@ -35,7 +35,7 @@ export interface LogEntry {
 export interface SensorPoint { t: number; dose_rate: number; seismic: number; tau: number }
 
 /** One group of supporting detail under the response; only one is open at a time. */
-export type DetailId = 'why' | 'routes' | 'crew' | 'hazard' | 'conditions' | 'places' | 'view'
+export type DetailId = 'why' | 'routes' | 'crew' | 'hazard' | 'conditions' | 'places'
 /** Position in a recorded run, in seconds of the recording. */
 export interface ReplayState { pos: number; dur: number; playing: boolean; marks: { at: number; id: string; title: string; kind: IncidentKind }[] }
 
@@ -279,7 +279,4 @@ export function setConn(conn: Conn, attempts = 0) {
 export function setRoutesFile(f: RoutesFile | null) { store.set((s) => ({ routesFile: f, routesV: s.routesV + 1 })) }
 export function setTrajFile(f: TrajFile | null) { store.set((s) => ({ trajFile: f, trajV: s.trajV + 1 })) }
 
-export function crewById(s: State, id: number): CrewState | undefined {
-  return s.snapshot?.crew.find((c) => c.id === id)
-}
 export type { RoutesMsg }

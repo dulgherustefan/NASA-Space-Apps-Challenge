@@ -234,7 +234,6 @@ def suit_landmarks(pos, faces, comp_v):
     ncomp = comp_v.max() + 1
     cen = np.array([P[comp_v == c].mean(0) for c in range(ncomp)])
     lo = np.array([P[comp_v == c].min(0) for c in range(ncomp)])
-    hi = np.array([P[comp_v == c].max(0) for c in range(ncomp)])
     cnt = np.bincount(comp_v, minlength=ncomp)
     L = {}
     for side, sg in (("l", 1.0), ("r", -1.0)):

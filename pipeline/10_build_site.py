@@ -16,7 +16,7 @@ by cos(LAT0)).
 
 Everything derived here is a MODEL of the hazard, not a measurement; the app labels it as such.
 """
-import gzip, json, math, os, sys, time
+import gzip, json, math, os, time
 import numpy as np
 import rasterio
 from rasterio.warp import reproject, Resampling
