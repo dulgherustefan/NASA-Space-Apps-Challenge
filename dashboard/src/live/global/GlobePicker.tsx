@@ -120,7 +120,7 @@ export default function GlobePicker(props: {
           if (pw > 6) ctx.strokeRect(x - pw / 2, y - ph / 2, pw, ph)
         }
       }
-      layer(fp.ctx, 'rgba(255,154,46,0.22)', 'rgba(255,154,46,0.6)', 1.5)
+      layer(fp.ctx, 'rgba(255,154,46,0.07)', 'rgba(255,154,46,0.35)', 1)
       layer(fp.hirise, 'rgba(79,209,176,0.85)', 'rgba(79,209,176,1)', 3)
     }
     // suggested sites (small rings) and bundled sites (filled)

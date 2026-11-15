@@ -70,8 +70,8 @@ browser, so it works with no server and keeps working after the event. On top of
   (rockfall band, steep slope, no radio). Voice prompts are 23 recorded lines (ElevenLabs) on one audio channel, so two prompts never overlap;
   anything without a recorded line shows as a caption only. If the walker leaves the corridor the browser plans a new route. A camera on the rover's mast shows the crew
   on the same terrain. Colours follow NASA-STD-3001 Vol. 2 (red, yellow) and always come with a word or a shape.
-- **Anywhere on Mars** (`live.html`). The global map shows every HiRISE elevation model (1,262, EVA-grade) and every
-  CTX elevation model (route-planning grade) listed in the USGS Astrogeology STAC catalogue (index files in
+- **Anywhere on Mars** (`live.html`). The global map shows every HiRISE elevation model (1,216, EVA-grade) and every
+  CTX elevation model (44,612, route-planning grade) listed in the USGS Astrogeology STAC catalogue (index files in
   `dashboard/public/stac/`). Click any point: the browser searches the USGS Astrogeology STAC
   catalogue for a HiRISE or CTX elevation model covering a 4 km box there, reads only that window of the cloud-optimised
   GeoTIFF (HTTP range requests), resamples it to the 5 m planner grid, derives slope, rockfall reach and blocked sky,
