@@ -1,86 +1,118 @@
-import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip as RTooltip, XAxis, YAxis } from 'recharts'
+import { useState } from 'react'
+import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip as RTooltip, XAxis, YAxis } from 'recharts'
 import { RefreshCw } from 'lucide-react'
 import { useStore } from '@/lib/store'
 import { loadTraining } from '@/lib/engine'
 import { Button } from './ui/button'
 import { num } from '@/lib/format'
+import { cn } from '@/lib/utils'
 
-type Row = Record<string, number>
-const X_KEYS = ['timesteps', 'total_timesteps', 'global_step', 'step', 'steps', 'update', 'iteration', 'iter', 'epoch', 'episode', 'generation']
-const Y_PREF = ['best_log_p', 'mean_log_p', 'robustness_nats', 'robustness', 'mean_reward', 'ep_rew_mean', 'reward', 'return', 'log_p', 'best', 'mean', 'loss']
-
-/** Reads whatever table the training run wrote: array of records, or a record of arrays. */
-export function parseTraining(d: unknown): { xKey: string; rows: Row[]; ys: string[] } | null {
-  let recs: Row[] | null = null
-  const isRecArr = (v: unknown): v is Record<string, unknown>[] => Array.isArray(v) && v.length > 1 && typeof v[0] === 'object' && v[0] !== null && !Array.isArray(v[0])
-  if (isRecArr(d)) recs = d as Row[]
-  else if (d && typeof d === 'object') {
-    const o = d as Record<string, unknown>
-    const arr = Object.values(o).find(isRecArr)
-    if (arr) recs = arr as Row[]
-    else {
-      const cols = Object.entries(o).filter(([, v]) => Array.isArray(v) && v.length > 1 && v.every((x) => typeof x === 'number')) as [string, number[]][]
-      if (cols.length) {
-        const n = Math.min(...cols.map(([, v]) => v.length))
-        recs = Array.from({ length: n }, (_, i) => Object.fromEntries(cols.map(([k, v]) => [k, v[i]])))
-      }
-    }
-  }
-  if (!recs || recs.length < 2) return null
-  const numericKeys = Object.keys(recs[0]).filter((k) => typeof recs![0][k] === 'number')
-  const xKey = X_KEYS.find((k) => numericKeys.includes(k)) ?? '__i'
-  const rows = recs.map((r, i) => ({ ...r, __i: i + 1 }) as Row)
-  const rest = numericKeys.filter((k) => k !== xKey)
-  const ys = [...Y_PREF.filter((k) => rest.includes(k)), ...rest.filter((k) => !Y_PREF.includes(k))].slice(0, 2)
-  if (!ys.length) return null
-  return { xKey, rows, ys }
+// data/ast/ast_training.json: scenarios[scenario][route][configuration][method] = [{ seed, curve: [[steps, logLikelihood], ...] }]
+interface Run { seed: number; curve: [number, number][] }
+type Methods = Record<string, Run[]>
+interface TrainingFile {
+  axes?: { x?: string; y?: string }
+  note?: string
+  scenarios: Record<string, Record<string, Record<string, Methods>>>
 }
-const human = (k: string) => k.replace(/_/g, ' ').replace(/\blog p\b/, 'log p')
-const COLORS = ['var(--color-data)', 'var(--color-accent)']
 
-export function LearningCurve() {
-  const t = useStore((s) => s.training)
-  const parsed = t.status === 'ready' ? parseTraining(t.data) : null
+const METHOD_NAME: Record<string, string> = { mc: 'Monte Carlo', random: 'Random search', cem: 'Cross-entropy', ppo: 'PPO adversary', 'ppo-ast': 'PPO adversary' }
+const METHOD_COLOR: Record<string, string> = { mc: 'var(--color-ink3)', random: 'var(--color-data)', cem: 'var(--color-accent)', ppo: 'var(--color-safe)', 'ppo-ast': 'var(--color-safe)' }
+const CONFIG_NAME: Record<string, string> = { falls_terminal: 'A fall ends the walk', falls_penalty: 'A fall costs time and energy' }
+
+function isTraining(d: unknown): d is TrainingFile {
+  return !!d && typeof d === 'object' && typeof (d as TrainingFile).scenarios === 'object' && (d as TrainingFile).scenarios !== null
+}
+const hasCurves = (m: Methods | undefined) => !!m && Object.values(m).some((runs) => Array.isArray(runs) && runs.some((r) => Array.isArray(r.curve) && r.curve.length > 0))
+const compact = (v: number) => (Math.abs(v) >= 1e6 ? `${(v / 1e6).toFixed(v >= 1e7 ? 0 : 1)}M` : Math.abs(v) >= 1e3 ? `${Math.round(v / 1e3)}k` : String(v))
+
+function Chips<T extends string>({ label, items, value, onChange, name }: { label: string; items: T[]; value: T; onChange: (v: T) => void; name: (v: T) => string }) {
+  if (items.length < 2) return null
+  return (
+    <div className="flex flex-wrap items-center gap-1.5" role="radiogroup" aria-label={label}>
+      <span className="cap mr-1">{label}</span>
+      {items.map((it) => (
+        <button key={it} type="button" role="radio" aria-checked={it === value} onClick={() => onChange(it)}
+          className={cn('h-7 rounded-[4px] border px-2 text-[12px] transition-colors', it === value ? 'border-accent/60 bg-accent-dim text-accent' : 'border-rule2 text-ink2 hover:text-ink')}>
+          {name(it)}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function Curves({ file }: { file: TrainingFile }) {
+  const scenarios = Object.keys(file.scenarios)
+  const [scenario, setScenario] = useState(scenarios[0])
+  const routes = Object.keys(file.scenarios[scenario] ?? {})
+  const [route, setRoute] = useState(routes[0])
+  const byConfig = file.scenarios[scenario]?.[routes.includes(route) ? route : routes[0]] ?? {}
+  const configs = Object.keys(byConfig).filter((c) => hasCurves(byConfig[c]))
+  const [config, setConfig] = useState(configs[0])
+  const methods = byConfig[configs.includes(config) ? config : configs[0]] ?? {}
+  const series = Object.entries(methods).flatMap(([m, runs]) => (runs ?? []).filter((r) => r.curve?.length).map((r) => ({
+    key: `${m}:${r.seed}`, method: m, seed: r.seed, data: r.curve.map(([x, y]) => ({ x, y })),
+  })))
+  const shown = [...new Set(series.map((s) => s.method))]
   return (
     <div>
-      {t.status === 'ready' && parsed ? (
+      <div className="mb-3 flex flex-wrap gap-x-5 gap-y-2">
+        <Chips label="Scenario" items={scenarios} value={scenario} onChange={(v) => { setScenario(v); setRoute(Object.keys(file.scenarios[v] ?? {})[0]) }} name={(v) => v} />
+        <Chips label="Route" items={routes} value={routes.includes(route) ? route : routes[0]} onChange={setRoute} name={(v) => v} />
+        <Chips label="Falls" items={configs} value={configs.includes(config) ? config : configs[0]} onChange={setConfig} name={(v) => CONFIG_NAME[v] ?? v} />
+      </div>
+      {series.length === 0 ? <p className="text-[13px] text-ink3">No curve stored for this route.</p> : (
         <>
-          <div className="h-[132px]">
+          <div className="h-[220px]">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={parsed.rows} margin={{ top: 6, right: 8, bottom: 0, left: -6 }}>
+              <LineChart margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
                 <CartesianGrid vertical={false} stroke="var(--color-rule)" />
-                <XAxis dataKey={parsed.xKey} type="number" domain={['dataMin', 'dataMax']} tick={{ fontSize: 9, fill: 'var(--color-ink3)', fontFamily: 'var(--font-mono)' }} tickLine={false} axisLine={{ stroke: 'var(--color-rule2)' }} tickFormatter={(v) => num(v)} minTickGap={36} padding={{ left: 0, right: 14 }} />
-                <YAxis tick={{ fontSize: 9, fill: 'var(--color-ink3)', fontFamily: 'var(--font-mono)' }} tickLine={false} axisLine={false} width={34} tickCount={4} tickFormatter={(v) => num(v)} />
-                <RTooltip
-                  isAnimationActive={false}
-                  cursor={{ stroke: 'var(--color-ink3)' }}
-                  contentStyle={{ background: 'var(--color-panel3)', border: '1px solid var(--color-rule2)', borderRadius: 3, fontSize: 11, padding: '4px 8px' }}
-                  labelStyle={{ color: 'var(--color-ink3)', fontFamily: 'var(--font-mono)', fontSize: 10 }}
-                  labelFormatter={(v) => `${human(parsed.xKey === '__i' ? 'row' : parsed.xKey)} ${num(Number(v))}`}
-                  formatter={(v, n) => [num(Number(v), 2), human(String(n))]}
-                />
-                <Legend iconType="plainline" wrapperStyle={{ fontSize: 10.5, color: 'var(--color-ink2)', paddingTop: 2 }} formatter={(v) => <span style={{ color: 'var(--color-ink2)' }}>{human(String(v))}</span>} />
-                {parsed.ys.map((y, i) => (
-                  <Line key={y} dataKey={y} stroke={COLORS[i]} strokeWidth={2} strokeLinecap="round" dot={false} activeDot={{ r: 4, stroke: 'var(--color-panel)', strokeWidth: 2 }} isAnimationActive={false} />
+                <XAxis dataKey="x" type="number" scale="log" domain={['dataMin', 'dataMax']} allowDuplicatedCategory={false} tick={{ fontSize: 11, fill: 'var(--color-ink3)', fontFamily: 'var(--font-mono)' }} tickLine={false} axisLine={{ stroke: 'var(--color-rule2)' }} tickFormatter={compact} minTickGap={40} />
+                <YAxis type="number" domain={['auto', 'auto']} tick={{ fontSize: 11, fill: 'var(--color-ink3)', fontFamily: 'var(--font-mono)' }} tickLine={false} axisLine={false} width={40} tickCount={5} tickFormatter={(v) => num(Number(v), 1)} />
+                <RTooltip isAnimationActive={false} cursor={{ stroke: 'var(--color-ink3)' }}
+                  contentStyle={{ background: 'var(--color-panel3)', border: '1px solid var(--color-rule2)', borderRadius: 4, fontSize: 12, padding: '6px 10px' }}
+                  labelStyle={{ color: 'var(--color-ink3)', fontFamily: 'var(--font-mono)', fontSize: 11 }}
+                  labelFormatter={(v) => `${compact(Number(v))} simulator steps`}
+                  formatter={(v, n) => [`${num(Number(v), 1)} nats`, String(n)]} />
+                {series.map((s) => (
+                  <Line key={s.key} data={s.data} dataKey="y" name={`${METHOD_NAME[s.method] ?? s.method}, seed ${s.seed}`} type="stepAfter" stroke={METHOD_COLOR[s.method] ?? 'var(--color-ink2)'} strokeWidth={2} strokeLinecap="round"
+                    dot={s.data.length < 12 ? { r: 2.5, strokeWidth: 0, fill: METHOD_COLOR[s.method] ?? 'var(--color-ink2)' } : false} activeDot={{ r: 4, stroke: 'var(--color-panel)', strokeWidth: 2 }} isAnimationActive={false} />
                 ))}
               </LineChart>
             </ResponsiveContainer>
           </div>
-          <p className="mt-1 text-[11px] leading-snug text-ink3">Training run on the offline machine ({parsed.rows.length} rows from data/ast/ast_training.json). Model output.</p>
-        </>
-      ) : (
-        <div className="flex items-start justify-between gap-3 rounded-[3px] border border-dashed border-rule2 px-3 py-2.5">
-          <div className="min-w-0">
-            <div className="text-[12px] text-ink2">{t.status === 'loading' ? 'Checking for the training curve' : t.status === 'ready' ? 'Training file has no table to plot' : t.status === 'idle' ? 'Waiting for the engine' : 'Not available yet'}</div>
-            <div className="mt-0.5 text-[11px] leading-snug text-ink3">
-              {t.status === 'ready'
-                ? 'data/ast/ast_training.json has no list of records or numeric columns.'
-                : 'Shown once the offline stress-test run delivers data/ast/ast_training.json. Until then, results are labelled with their source, for example "local preview".'}
-            </div>
+          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-ink2">
+            {shown.map((m) => (
+              <span key={m} className="flex items-center gap-1.5">
+                <svg width="18" height="6" aria-hidden><line x1="0" y1="3" x2="18" y2="3" stroke={METHOD_COLOR[m] ?? 'var(--color-ink2)'} strokeWidth="2.4" /></svg>
+                {METHOD_NAME[m] ?? m}{methods[m].length > 1 ? `, ${methods[m].length} seeds` : ''}
+              </span>
+            ))}
           </div>
-          <Button variant="quiet" size="sm" className="shrink-0" disabled={t.status === 'loading'} onClick={() => void loadTraining()}><RefreshCw size={12} />Check</Button>
-        </div>
+          <p className="mt-2 text-[12px] leading-snug text-ink3">
+            Across: {file.axes?.x ?? 'simulator steps used by the search'} (log scale). Up: {file.axes?.y ?? 'log-likelihood of the most likely failure found so far, in nats'}.
+            Every method gets the same budget of simulator steps. Model output from data/ast/ast_training.json.
+          </p>
+        </>
       )}
+    </div>
+  )
+}
+
+export function LearningCurve() {
+  const t = useStore((s) => s.training)
+  if (t.status === 'ready' && isTraining(t.data)) return <Curves file={t.data} />
+  return (
+    <div className="flex items-start justify-between gap-3 rounded-[4px] border border-dashed border-rule2 px-3 py-2.5">
+      <div className="min-w-0">
+        <div className="text-[13px] text-ink2">{t.status === 'loading' ? 'Checking for the training curve' : t.status === 'ready' ? 'Training file has no curves to plot' : t.status === 'idle' ? 'Waiting for the engine' : 'Not available yet'}</div>
+        <div className="mt-0.5 text-[12px] leading-snug text-ink3">
+          {t.status === 'ready'
+            ? 'data/ast/ast_training.json does not hold per-method curves.'
+            : 'Shown once the offline stress-test run delivers data/ast/ast_training.json. Until then, results are labelled with their source, for example "local preview".'}
+        </div>
+      </div>
+      <Button variant="quiet" size="sm" className="shrink-0" disabled={t.status === 'loading'} onClick={() => void loadTraining()}><RefreshCw size={12} />Check</Button>
     </div>
   )
 }
