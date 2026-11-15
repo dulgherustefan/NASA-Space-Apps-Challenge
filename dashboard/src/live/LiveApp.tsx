@@ -20,7 +20,13 @@ const lazyMod = (k: string) => lazy(async () => (mods[k] ? await mods[k]() : { d
 const Overview3D = lazyMod('./scene/Overview3D.tsx')
 const HelmetView = lazyMod('./hud/HelmetView.tsx')
 const GlobePicker = lazyMod('./global/GlobePicker.tsx')
-const HAS = { d3: !!mods['./scene/Overview3D.tsx'], hud: !!mods['./hud/HelmetView.tsx'], anywhere: !!mods['./global/GlobePicker.tsx'] && !!anywhere['./global/loadAnywhere.ts'] }
+// VITE_FEATURES (optional, build time) limits the public build to modules that passed QA, e.g. "3d,hud"
+const FEAT = (import.meta.env.VITE_FEATURES as string | undefined)?.split(',') ?? ['3d', 'hud', 'anywhere']
+const HAS = {
+  d3: !!mods['./scene/Overview3D.tsx'] && FEAT.includes('3d'),
+  hud: !!mods['./hud/HelmetView.tsx'] && FEAT.includes('hud'),
+  anywhere: !!mods['./global/GlobePicker.tsx'] && !!anywhere['./global/loadAnywhere.ts'] && FEAT.includes('anywhere'),
+}
 
 const mins = (s: number) => (isFinite(s) ? `${Math.round(s / 60)} min` : '—')
 const pct = (v: number) => `${(100 * v).toFixed(v < 0.1 ? 1 : 0)}%`
@@ -137,7 +143,7 @@ export default function LiveApp() {
         <div className="w-full max-w-sm text-center">
           <div className="mb-3 flex items-center justify-center gap-2"><Mark /><span className="text-[20px] font-semibold">Solway</span><span className="rounded bg-accent/15 px-1.5 text-[12px] font-semibold text-accent">LIVE</span></div>
           {s.phase === 'error'
-            ? <><p className="text-hazard">{s.error}</p><a className="mt-3 inline-block text-accent underline" href="./index.html">Open the recorded run instead</a></>
+            ? <><p className="text-hazard">{s.error}</p><a className="mt-3 inline-block text-accent underline" href="./replay.html">Open the recorded run instead</a></>
             : <>
                 <div className="h-1.5 overflow-hidden rounded bg-panel3"><div className="h-full bg-accent transition-all" style={{ width: `${Math.round(s.progress.frac * 100)}%` }} /></div>
                 <p className="cap mt-2">{s.progress.label} · real HiRISE terrain, ~11 MB once</p>
@@ -159,7 +165,7 @@ export default function LiveApp() {
         <div className="ml-auto flex items-center gap-2">
           <button className="tap hidden items-center gap-1.5 rounded px-2 text-[13px] text-ink2 hover:text-ink sm:flex" onClick={() => startTour()} data-testid="tour"><Sparkles size={15} />Start tour</button>
           {HAS.anywhere && <button className="tap flex items-center gap-1.5 rounded px-2 text-[13px] text-ink2 hover:text-ink" onClick={() => setPickerOpen(true)} data-testid="anywhere"><Globe2 size={15} /><span className="hidden sm:inline">Anywhere on Mars</span></button>}
-          <a className="tap hidden items-center rounded px-2 text-[13px] text-ink3 hover:text-ink lg:flex" href="./index.html" title="The recorded run shown at the pitch">Recorded run</a>
+          <a className="tap hidden items-center rounded px-2 text-[13px] text-ink3 hover:text-ink lg:flex" href="./replay.html" title="The recorded run shown at the pitch">Recorded run</a>
         </div>
       </header>
 
@@ -225,9 +231,9 @@ export default function LiveApp() {
               <li><span className="text-ink2">Not done:</span> no crew has tested this; the helmet view is a simulation, not AR hardware.</li>
             </ul>
             <div className="mt-2 flex gap-3 text-[12px]">
-              <a className="text-accent hover:underline" href="./index.html#/method">Method</a>
-              <a className="text-accent hover:underline" href="./index.html#/sources">Sources</a>
-              <a className="text-accent hover:underline" href="./index.html#/parameters">Parameters</a>
+              <a className="text-accent hover:underline" href="./replay.html#/method">Method</a>
+              <a className="text-accent hover:underline" href="./replay.html#/sources">Sources</a>
+              <a className="text-accent hover:underline" href="./replay.html#/parameters">Parameters</a>
             </div>
           </Section>
         </aside>

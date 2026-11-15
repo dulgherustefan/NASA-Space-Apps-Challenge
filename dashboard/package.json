@@ -13,7 +13,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "build": "tsc --noEmit -p tsconfig.json && vite build",
     "build:web": "tsc --noEmit -p tsconfig.json && vite build --mode replay --outDir dist-web",
-    "build:live": "node scripts/copy-site.mjs && tsc --noEmit -p tsconfig.json && vite build --mode live --outDir dist-live",
+    "build:live": "node scripts/copy-site.mjs && tsc --noEmit -p tsconfig.json && vite build --mode live --outDir dist-live && node scripts/finish-live.mjs",
     "preview": "vite preview",
     "start": "electron .",
     "dist": "npm run build && electron-builder",
