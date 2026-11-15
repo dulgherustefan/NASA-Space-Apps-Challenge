@@ -9,9 +9,11 @@ Positions come from unreal_import/scene_layout.json (tools/make_scene_layout.py)
 Terrain material (M_Terrain), one instance per tier:
   base colour   orthoimage through UV0 (0..1 across the tier), or a flat colour for the far tier
   detail        tiling ground textures by world position at three scales (pebbly soil 3 m, cracked ground 14 m, sand 90 m):
-                contrast and part of the hue changes on top of the orthoimage, with normals, occlusion and roughness,
-                each faded out with distance
+                contrast and part of the hue changes on top of the orthoimage, with normals (all three), occlusion and
+                roughness, each faded out with distance
   slope tint    darker, rockier on steep faces
+  displacement  Nanite tessellation lifts the two close layers by their height maps (a few centimetres of real relief
+                next to the camera: stones and cracks get an outline and cast shadows)
   Overlay       RGBA texture over UV0 with OverlayOpacity (hazard, slope, dose ... layers sent by the engine)
   Overlay2      a second slot of the same kind, so two layers can show at once
   Routes        texture over UV0 with RoutesOpacity (route lines drawn at run time; anything not black is a line)
@@ -43,6 +45,7 @@ TIERS = {
 }
 FLAT_COLOUR = (0.240, 0.113, 0.055)      # linear; mean of the tinted region orthoimage
 DETAIL_ORIGIN = (365000.0, 860000.0)     # cm; centre of the core box, keeps tiling UVs small
+DISPLACEMENT_CM = 10.0                   # full range of the tessellation displacement (the surface moves by half of it each way)
 GROUND_MEAN = {                          # mean linear colour of each tiling ground texture (2k albedo maps)
     "red_laterite_soil_stones": (0.1329, 0.0503, 0.0284),
     "sandy_gravel_02": (0.3263, 0.1755, 0.0879),
@@ -115,11 +118,18 @@ class Graph:
 def build_material():
     mat = get_or_create("M_Terrain", TERRAIN, unreal.Material, unreal.MaterialFactoryNew())
     MEL.delete_all_material_expressions(mat)
-    for name, value in (("two_sided", False), ("used_with_nanite", True)):
+    for name, value in (("two_sided", False), ("used_with_nanite", True), ("enable_tessellation", True)):
         try:
             mat.set_editor_property(name, value)
         except Exception as ex:
             report["props_failed"].append(f"Material.{name}: {repr(ex)[:120]}")
+    try:                                      # displacement = (value - centre) * magnitude, in centimetres
+        scaling = mat.get_editor_property("displacement_scaling")
+        scaling.set_editor_property("magnitude", DISPLACEMENT_CM)
+        scaling.set_editor_property("center", 0.5)
+        mat.set_editor_property("displacement_scaling", scaling)
+    except Exception as ex:
+        report["props_failed"].append(f"Material.displacement_scaling: {repr(ex)[:120]}")
     g = Graph(mat)
     tex = lambda p: unreal.load_asset(p)
     ST = unreal.MaterialSamplerType
@@ -166,7 +176,7 @@ def build_material():
 
     near, uv_near, keep_near = detail("DetailNear", "red_laterite_soil_stones", 320.0, 14000.0, 300, 0.9, 0.6)
     close, uv_close, keep_close = detail("DetailClose", "dry_ground_rocks", 1400.0, 70000.0, 1100, 0.5, 0.4)
-    mid, _, _ = detail("DetailMid", "sandy_gravel_02", 9000.0, 300000.0, 1900, 0.5, 0.0)
+    mid, uv_mid, keep_mid = detail("DetailMid", "sandy_gravel_02", 9000.0, 300000.0, 1900, 0.5, 0.0)
     base = g.mul(base, near, -1250, -300)
     base = g.mul(base, close, -1150, -300)
     base = g.mul(base, mid, -1050, -300)
@@ -228,17 +238,51 @@ def build_material():
 
     nxy = g.binary(ME.MaterialExpressionAdd, bump("red_laterite_soil_stones", uv_near, keep_near, "BumpNear", 1.5, 3200),
                    bump("dry_ground_rocks", uv_close, keep_close, "BumpClose", 1.1, 3600), -50, 3400)
+    # the wide layer roughens slopes seen from hundreds of metres, where the elevation data is smooth
+    nxy = g.binary(ME.MaterialExpressionAdd, nxy, bump("sandy_gravel_02", uv_mid, keep_mid, "BumpMid", 0.8, 5200), 0, 3500)
     normal = g.unary(ME.MaterialExpressionNormalize, g.binary(ME.MaterialExpressionAppendVector, nxy, one, 100, 3400), 250, 3400)
+
+    # ---- displacement: the height maps of the two close layers around 0.5, faded out with distance from the camera
+    def height(name, uv, weight_name, weight, y):
+        t = tex(f"{TERRAIN}/Ground/T_{name}_H")
+        if t is None:
+            report["material"].setdefault("height_missing", []).append(name)
+            return None
+        smp = g.node(ME.MaterialExpressionTextureSample, -700, y, texture=t, sampler_type=ST.SAMPLERTYPE_LINEAR_GRAYSCALE,
+                     sampler_source=WRAP)
+        g.link(uv, "", smp, "UVs")
+        centred = g.unary(ME.MaterialExpressionAdd, smp, -450, y, src_out="R", const_b=-0.5)
+        return g.mul(centred, g.scalar(weight_name, weight, -700, y + 250), -250, y)
+
+    heights = [h for h in (height("red_laterite_soil_stones", uv_near, "DisplaceNear", 0.25, 4000),
+                           height("dry_ground_rocks", uv_close, "DisplaceClose", 0.60, 4400)) if h is not None]
+    displacement = None
+    if heights:
+        total = heights[0] if len(heights) == 1 else g.binary(ME.MaterialExpressionAdd, heights[0], heights[1], -50, 4200)
+        cam = g.node(ME.MaterialExpressionCameraPositionWS, -450, 4800)
+        dist = g.binary(ME.MaterialExpressionDistance, wp, cam, -250, 4800)
+        far = g.binary(ME.MaterialExpressionDivide, dist, g.scalar("DisplaceFade", 40000.0, -450, 4950), -50, 4800)
+        near_cam = g.unary(ME.MaterialExpressionOneMinus, g.unary(ME.MaterialExpressionSaturate, far, 100, 4800), 250, 4800)
+        displacement = g.unary(ME.MaterialExpressionAdd, g.mul(total, near_cam, 250, 4200), 400, 4200, const_b=0.5)
 
     rough = g.lerp(g.scalar("Roughness", 0.93, 0, 200), arm, g.mul(keep_near, g.scalar("DetailRough", 0.7, -200, 350), 0, 350), 250, 200,
                    b_out="G")
     spec = g.scalar("Specular", 0.2, 250, 300)
     MP = unreal.MaterialProperty
-    g.out(base, "", MP.MP_BASE_COLOR)
-    g.out(emissive, "", MP.MP_EMISSIVE_COLOR)
-    g.out(normal, "", MP.MP_NORMAL)
-    g.out(rough, "", MP.MP_ROUGHNESS)
-    g.out(spec, "", MP.MP_SPECULAR)
+    pins = (("BaseColor", base, MP.MP_BASE_COLOR), ("EmissiveColor", emissive, MP.MP_EMISSIVE_COLOR), ("Normal", normal, MP.MP_NORMAL),
+            ("Roughness", rough, MP.MP_ROUGHNESS), ("Specular", spec, MP.MP_SPECULAR))
+    if displacement is not None:
+        # the displacement pin is not in the scripting enum, so the outputs go through a material attributes node
+        mat.set_editor_property("use_material_attributes", True)
+        attrs = g.node(ME.MaterialExpressionMakeMaterialAttributes, 700, 300)
+        for pin, src, _prop in pins + (("Displacement", displacement, None),):
+            g.link(src, "", attrs, pin)
+        g.out(attrs, "", MP.MP_MATERIAL_ATTRIBUTES)
+    else:
+        mat.set_editor_property("use_material_attributes", False)
+        for _pin, src, prop in pins:
+            g.out(src, "", prop)
+    report["material"]["displacement"] = displacement is not None
 
     MEL.recompile_material(mat)
     EAL.save_loaded_asset(mat, only_if_is_dirty=False)

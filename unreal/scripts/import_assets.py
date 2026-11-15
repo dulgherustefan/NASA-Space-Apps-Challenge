@@ -84,6 +84,8 @@ def main():
         texture(os.path.join(d, f"{mat}_diff_2k.jpg"), dest, f"T_{mat}_D", srgb=True)
         texture(os.path.join(d, f"{mat}_nor_gl_2k.jpg"), dest, f"T_{mat}_N", srgb=False, compression=TC.TC_NORMALMAP, flip_green=True)
         texture(os.path.join(d, f"{mat}_arm_2k.jpg"), dest, f"T_{mat}_ARM", srgb=False, compression=TC.TC_MASKS)
+        if mat != "sandy_gravel_02":                 # height, for the displacement of the two close layers
+            texture(os.path.join(d, f"{mat}_disp_2k.jpg"), dest, f"T_{mat}_H", srgb=False, compression=TC.TC_GRAYSCALE)
 
     # ---- props
     model(os.path.join(SRC, "polypizza_astronauts", "quaternius_astronaut_3hC2i0CTuO.glb"), "/Game/Props/Astronaut")

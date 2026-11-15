@@ -12,6 +12,7 @@ Environment (set before running, optional):
   SOLWAY_PLAY=1          start Play In Editor right away
   SOLWAY_EDITOR_WORLD=1  also drive the editor world when Play is not running (for look checks; do not save the level after)
   SOLWAY_OSC_PORT        UDP port, default 9000
+  SOLWAY_SCREEN_PERCENT  render resolution of the Play window in percent of its size, default 100 (lower it on a 4K screen)
 
 What it does, per docs/CONTRACT.md section 3:
   /crew      moves the crew (actors tagged crew:<id>); heights come from the 2.5 m render grid so feet stay on the mesh
@@ -51,6 +52,7 @@ LAYOUT = os.path.join(ROOT, "unreal_import", "scene_layout.json")
 STATE_FILE = os.path.join(unreal.Paths.project_saved_dir(), "director_state.json")
 PORT = int(os.environ.get("SOLWAY_OSC_PORT", "9000"))
 EDITOR_WORLD = os.environ.get("SOLWAY_EDITOR_WORLD") == "1"
+SCREEN_PERCENT = float(os.environ.get("SOLWAY_SCREEN_PERCENT", "100"))
 
 GS = unreal.GameplayStatics
 ML = unreal.MathLibrary
@@ -75,6 +77,8 @@ STRIDE_M = 1.20                # ground covered by one cycle of the walk clip (u
 MAX_CADENCE = 1.7              # walk cycles per second at most: at high mission speed the feet slide rather than blur
 ROUTE_OPACITY = {"follow": 0.0, "shelter": 0.3}      # next to the crew the ground markers carry the route, the line steps back
 FOLLOW_GROUP_CM = 1500.0       # the follow shot holds every crew member this close to the lead
+FOLLOW_FAST = (3.0, 28.0)      # crew speed in the scene, m/s: from walking pace to time-lapse the follow shot pulls back and up
+SHELTER_SHOT = {"prop": (-2300.0, 3100.0, 1150.0), "ground": (-5200.0, 7200.0, 2700.0)}   # camera offset from the end of the route, cm
 CRUMB_STEP = 3.5               # metres between the ground markers of the chosen route
 CRUMB_SIZE = 0.42              # metres across
 
@@ -255,6 +259,8 @@ class Director:
         self.cam_now = None
         self.cam_from = None
         self.follow = None
+        self.follow_heading = None
+        self.follow_t = None
         self.round_joints = True
         self.bound = False
         self.rng = random.Random(20261115)
@@ -461,6 +467,7 @@ class Director:
         if game:
             try:
                 unreal.SystemLibrary.execute_console_command(w, "DisableAllScreenMessages")
+                unreal.SystemLibrary.execute_console_command(w, f"r.ScreenPercentage {SCREEN_PERCENT:g}")
             except Exception as e:
                 self._err("console", e)
         # dust sprites: a pool of camera-facing planes, parked under the terrain until used
@@ -626,6 +633,8 @@ class Director:
             was = (p[0], p[1])
             p[0], p[1], p[2] = lerp(p[0], tx, k), lerp(p[1], ty, k), lerp(p[2], tz, k)
             moved_m = math.hypot(p[0] - was[0], p[1] - was[1]) / 100.0
+            if dt > 0.0:                                          # speed in the scene: walking pace times mission speed
+                c["speed"] = lerp(c.get("speed", 0.0), moved_m / dt, 1.0 - math.exp(-dt / 0.5))
             c["heading"] = lerp_angle(c["heading"], m["heading"], 1.0 - math.exp(-dt / 0.25))
             status = m["status"] if now - m["t"] < 2.0 else 1
             walking = status == 0 and m["pace"] > 0.02
@@ -917,6 +926,10 @@ class Director:
         self.cue = name
         self.cue_t0 = now
         self.cue_blend = max(1.2, min(3.0, duration * 0.5))
+        if name == "follow":                                      # start from where the crew is now, not where the last follow shot ended
+            self.follow = None
+            self.follow_heading = None
+            self.follow_t = None
 
     def _look(self, loc, target, fov):
         r = ML.find_look_at_rotation(unreal.Vector(*loc), unreal.Vector(*target))
@@ -941,13 +954,22 @@ class Director:
             if lead is not None:
                 near = [c["pos"] for c in self.crew.values() if c["pos"] is not None and math.dist(c["pos"], lead["pos"]) < FOLLOW_GROUP_CM]
                 p = [sum(q[i] for q in near) / len(near) for i in range(3)]      # the middle of the group, so nobody walks out of frame
+                dt = min(0.25, max(0.0, now - (self.follow_t or now)))
+                self.follow_t = now
+                # at high mission speed the crew crosses the map in seconds: the shot pulls back and up, keeps up with them
+                # and stops swinging with every turn of the route
+                fast = smooth((lead.get("speed", 0.0) - FOLLOW_FAST[0]) / (FOLLOW_FAST[1] - FOLLOW_FAST[0]))
+                if self.follow_heading is None:
+                    self.follow_heading = lead["heading"]
+                self.follow_heading = lerp_angle(self.follow_heading, lead["heading"], 1.0 - math.exp(-dt / lerp(1.0, 3.5, fast)))
                 # behind and to the side, drifting slowly around the walkers
-                a = math.radians(lead["heading"] + 180.0 + 32.0 + 22.0 * math.sin(2.0 * math.pi * tau / 48.0))
-                dist = 1050.0 + 180.0 * math.sin(2.0 * math.pi * tau / 31.0)
-                want = [p[0] + math.sin(a) * dist, p[1] - math.cos(a) * dist, p[2] + 340.0 + 70.0 * math.sin(2.0 * math.pi * tau / 37.0)]
+                a = math.radians(self.follow_heading + 180.0 + 32.0 + 22.0 * math.sin(2.0 * math.pi * tau / 48.0))
+                dist = (1050.0 + 180.0 * math.sin(2.0 * math.pi * tau / 31.0)) * (1.0 + 1.3 * fast)
+                up = (340.0 + 70.0 * math.sin(2.0 * math.pi * tau / 37.0)) * (1.0 + 1.9 * fast)
+                want = [p[0] + math.sin(a) * dist, p[1] - math.cos(a) * dist, p[2] + up]
                 if self.follow is None or math.dist(self.follow, want) > 20000.0:
                     self.follow = want
-                k = 0.035
+                k = 1.0 - math.exp(-dt / lerp(0.47, 0.08, fast))
                 self.follow = [lerp(self.follow[i], want[i], k) for i in range(3)]
                 g = self.ground_cm(self.follow[0], self.follow[1])
                 loc = (self.follow[0], self.follow[1], max(self.follow[2], (g if g is not None else -1e9) + 190.0))
@@ -956,11 +978,15 @@ class Director:
         if name == "shelter":
             end = self.chosen_end()
             if end is not None:
-                loc = [end[0] - 9000.0, end[1] + 12000.0, end[2] + 4200.0]
+                # a route that ends at the rover or the habitat gets a close shot of it; a terrain shelter is shown from further back
+                props = [v["ue"] for k, v in self.layout.get("props", {}).items() if k in ("rover", "habitat")]
+                at_prop = any(math.hypot(end[0] - q[0], end[1] - q[1]) < 4000.0 for q in props)
+                off = SHELTER_SHOT["prop" if at_prop else "ground"]
+                loc = [end[0] + off[0], end[1] + off[1], end[2] + off[2]]
                 g = self.ground_cm(loc[0], loc[1])
                 if g is not None:
-                    loc[2] = max(loc[2], g + 1500.0)
-                return self._orbit(loc, (end[0], end[1], end[2] + 300.0), 45.0, tau, *ORBIT["shelter"])
+                    loc[2] = max(loc[2], g + (500.0 if at_prop else 1200.0))
+                return self._orbit(loc, (end[0], end[1], end[2] + 250.0), 45.0, tau, *ORBIT["shelter"])
         if name not in self.cams:
             name = "overview"
         pose = self.cams.get(name)

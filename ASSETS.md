@@ -103,7 +103,8 @@ part of Unreal Engine (Epic Games).
 | sandy_gravel_02 | `/Game/Terrain/Ground` | Dario Barresi (Poly Haven) | [polyhaven.com/a/sandy_gravel_02](https://polyhaven.com/a/sandy_gravel_02) | CC0 1.0 |
 | dry_ground_rocks | `/Game/Terrain/Ground` | Rob Tuytel (Poly Haven) | [polyhaven.com/a/dry_ground_rocks](https://polyhaven.com/a/dry_ground_rocks) | CC0 1.0 |
 
-Close-up ground detail is blended from these Earth textures. The terrain shape and the large-scale brightness are the NASA data above.
+Close-up ground detail is blended from these Earth textures. The terrain shape and the large-scale brightness are the NASA data above. The height maps of
+red_laterite_soil_stones and dry_ground_rocks also lift the surface by a few centimetres next to the camera (set dressing, not elevation data).
 
 ## Made in this repository
 
