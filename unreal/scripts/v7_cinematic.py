@@ -236,8 +236,9 @@ for k, parts in enumerate(members):
     q0 = (r_from[0] + side[0] * lat * 0.6 + d[0] * lag * 0.5, r_from[1] + side[1] * lat * 0.6 + d[1] * lag * 0.5)
     q1 = (q0[0] + (r_to[0] - r_from[0]), q0[1] + (r_to[1] - r_from[1]))
     rot_r = unreal.Rotator(roll=0.0, pitch=0.0, yaw=hd_rover - 90.0 - facing_of(a))
-    keys = [(0, ue(*p0), rot_w), (f0, ue(*p0), rot_w), (f1, ue(*p1), rot_w), (f1 + 30, ue(*p1), rot_turn), (f2 - 1, ue(*p1), rot_turn),
-            (f2, ue(*q0), rot_r), (f3, ue(*q1), rot_r)]
+    LIFT = 0.09
+    keys = [(0, ue(*p0, LIFT), rot_w), (f0, ue(*p0, LIFT), rot_w), (f1, ue(*p1, LIFT), rot_w), (f1 + 30, ue(*p1, LIFT), rot_turn), (f2 - 1, ue(*p1, LIFT), rot_turn),
+            (f2, ue(*q0, LIFT), rot_r), (f3, ue(*q1, LIFT), rot_r)]
     # shot 4 starts somewhere else: hold the keys constant across the cut
     sec = key_transform(b, keys, scale=HQ_SCALE if a.get_actor_label().startswith("HQ_") else 1.0)
     if ANIM.get("walk"):
@@ -251,47 +252,72 @@ for k, parts in enumerate(members):
 # ------------------------------------------------------------------------------------------------ AR route
 # the helmet display's route ribbon, drawn on the real terrain ahead of the crew: glowing dashes every 2.2 m
 PLANE = unreal.load_asset("/Engine/BasicShapes/Plane")
-AR_MAT = unreal.load_asset("/Game/Markers/MI_Beacon_shelter") or unreal.load_asset("/Game/Markers/MI_Marker_shelter")
+AR_MAT = None
+try:
+    _mp = "/Game/Cinematics/M_ARGlow2"
+    AR_MAT = unreal.load_asset(_mp)
+    if AR_MAT is None:
+        AR_MAT = tools.create_asset("M_ARGlow2", "/Game/Cinematics", unreal.Material, unreal.MaterialFactoryNew())
+        AR_MAT.set_editor_property("blend_mode", unreal.BlendMode.BLEND_ADDITIVE)
+        AR_MAT.set_editor_property("shading_model", unreal.MaterialShadingModel.MSM_UNLIT)
+        AR_MAT.set_editor_property("two_sided", True)
+        MEL = unreal.MaterialEditingLibrary
+        col = MEL.create_material_expression(AR_MAT, unreal.MaterialExpressionConstant3Vector, -500, 0)
+        col.set_editor_property("constant", unreal.LinearColor(0.06, 1.0, 0.45, 1.0))
+        mul = MEL.create_material_expression(AR_MAT, unreal.MaterialExpressionMultiply, -250, 0)
+        mul.set_editor_property("const_b", 2.4)
+        MEL.connect_material_expressions(col, "", mul, "A")
+        MEL.connect_material_property(mul, "", unreal.MaterialProperty.MP_EMISSIVE_COLOR)
+        MEL.recompile_material(AR_MAT)
+    log("AR glow material ready")
+except Exception as e:  # noqa: BLE001
+    log("AR glow material failed", e)
+    AR_MAT = unreal.load_asset("/Game/Markers/MI_Beacon_shelter")
 
 
-def ar_path(p_from, p_to, step=2.0, start_m=1.5):
+CONE = None   # floating arrows looked like blobs close to the camera; the ribbon alone reads better
+
+
+def ar_path(p_from, p_to, step=0.45, start_m=1.0, arrow_every=5.0):
     dx, dy = p_to[0] - p_from[0], p_to[1] - p_from[1]
     L = math.hypot(dx, dy)
     ux, uy = dx / L, dy / L
     yaw = math.degrees(math.atan2(uy, ux))
-    m, k = start_m, 0
+    eas = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
+    m, k, next_arrow = start_m, 0, start_m + 2.0
     while m < L:
-        for side_sign in (-1.0, 1.0):
-            # one arm of a ">" chevron: 0.55 m long, 6 cm wide, swept back 38 degrees
-            ang = math.radians(yaw + side_sign * 142.0)
-            ce = p_from[0] + ux * m + math.cos(ang) * 0.42
-            cs = p_from[1] + uy * m + math.sin(ang) * 0.42
-            loc = ue(ce, cs, 0.08)
-            a = unreal.get_editor_subsystem(unreal.EditorActorSubsystem).spawn_actor_from_class(unreal.StaticMeshActor, loc, unreal.Rotator(roll=0.0, pitch=0.0, yaw=yaw + side_sign * 142.0))
-            a.static_mesh_component.set_static_mesh(PLANE)
-            if AR_MAT:
-                a.static_mesh_component.set_material(0, AR_MAT)
-            a.static_mesh_component.set_cast_shadow(False)
-            a.set_actor_scale3d(unreal.Vector(0.95, 0.16, 1.0))
-            a.set_actor_label("AR_%03d" % k)
-            k += 1
-        # centre line between chevrons
-        cl = ue(p_from[0] + ux * (m + step / 2), p_from[1] + uy * (m + step / 2), 0.07)
-        a = unreal.get_editor_subsystem(unreal.EditorActorSubsystem).spawn_actor_from_class(unreal.StaticMeshActor, cl, unreal.Rotator(roll=0.0, pitch=0.0, yaw=yaw))
+        # ribbon piece: 0.5 m long, 0.22 m wide, tilted to the local slope so it hugs the ground
+        e0, s0 = p_from[0] + ux * m, p_from[1] + uy * m
+        e1, s1 = e0 + ux * step, s0 + uy * step
+        z0, z1 = H.z(e0, s0) or ZREF, H.z(e1, s1) or ZREF
+        pitch = math.degrees(math.atan2(z1 - z0, step))
+        loc = ue((e0 + e1) / 2, (s0 + s1) / 2, 0.05)
+        a = eas.spawn_actor_from_class(unreal.StaticMeshActor, loc, unreal.Rotator(roll=0.0, pitch=pitch, yaw=yaw))
         a.static_mesh_component.set_static_mesh(PLANE)
         if AR_MAT:
             a.static_mesh_component.set_material(0, AR_MAT)
         a.static_mesh_component.set_cast_shadow(False)
-        a.set_actor_scale3d(unreal.Vector(step * 0.8, 0.07, 1.0))
-        a.set_actor_label("AR_c%03d" % k)
+        a.set_actor_scale3d(unreal.Vector(step * 1.12, 0.22, 1.0))
+        a.set_actor_label("AR_r%04d" % k)
         k += 1
+        if m >= next_arrow and CONE:
+            # floating arrow 0.95 m above the route, pointing the way
+            al = ue(e0, s0, 0.95)
+            arw = eas.spawn_actor_from_class(unreal.StaticMeshActor, al, unreal.Rotator(roll=0.0, pitch=-90.0, yaw=yaw))
+            arw.static_mesh_component.set_static_mesh(CONE)
+            if AR_MAT:
+                arw.static_mesh_component.set_material(0, AR_MAT)
+            arw.static_mesh_component.set_cast_shadow(False)
+            arw.set_actor_scale3d(unreal.Vector(0.22, 0.22, 0.42))
+            arw.set_actor_label("AR_a%04d" % k)
+            next_arrow += arrow_every
         m += step
     return k
 
 
 try:
     n1 = ar_path(S, (S[0] + d[0] * 60.0, S[1] + d[1] * 60.0))
-    n2 = ar_path(r_from, r_to, step=1.6, start_m=0.5)
+    n2 = ar_path(r_from, r_to, start_m=0.3, arrow_every=3.0)
     log("AR dashes", n1, n2, "material", AR_MAT.get_name() if AR_MAT else None)
 except Exception as e:  # noqa: BLE001
     log("AR path failed", e)
@@ -399,7 +425,7 @@ def scatter(origin, ax, n, along, across, keep_out=1.6):
             break
         u = random.uniform(-6.0, along)
         v = random.uniform(-across, across)
-        if abs(v) < keep_out and u > -2.0:
+        if abs(v) < keep_out and u > -10.0:
             continue
         e = origin[0] + ax[0] * u + (-ax[1]) * v
         s_ = origin[1] + ax[1] * u + ax[0] * v
@@ -416,7 +442,7 @@ def scatter(origin, ax, n, along, across, keep_out=1.6):
 
 try:
     ux = (r_to[0] - r_from[0], r_to[1] - r_from[1]); ul = math.hypot(*ux); ux = (ux[0] / ul, ux[1] / ul)
-    log("rocks", scatter(S, d, 170, 45.0, 22.0), scatter(r_from, ux, 70, 16.0, 14.0, 1.4), "meshes", len(ROCKS))
+    log("rocks", scatter(S, d, 170, 45.0, 22.0, 4.5), scatter(r_from, ux, 70, 16.0, 14.0, 3.5), "meshes", len(ROCKS))
 except Exception as e:  # noqa: BLE001
     log("rocks failed", e)
 
