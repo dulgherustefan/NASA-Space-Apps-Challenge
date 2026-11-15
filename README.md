@@ -86,6 +86,18 @@ browser, so it works with no server and keeps working after the event. On top of
   Jezero, Gale and Melas load as EVA-grade in about 9–12 s (13–15 MB); a CTX site in about 5 s; a place with no DTM in about 2 s.
 - **Start tour.** A guided minute: the storm alert, the routes and the stress test, then the walk in the helmet display.
 
+![Storm drill: the crew placed by a click, routes to every open shelter planned and stress-tested in the browser](docs/img/live_drill.jpg)
+
+![Helmet display (simulated): the route ahead, the next turn, the 30-minute countdown, O₂, heat, dose and footing, and the rover mast camera](docs/img/live_hud.jpg)
+
+<img src="docs/img/live_hud_phone.jpg" alt="The helmet display at phone width" width="300">
+
+![3D map of the walk area on the HiRISE elevation model](docs/img/live_3d.jpg)
+
+![Anywhere on Mars: every HiRISE and CTX elevation model in the USGS STAC catalogue](docs/img/live_mars_map.jpg)
+
+![Jezero crater delta loaded live from a HiRISE DTM, with a planned route](docs/img/live_anywhere_jezero.jpg)
+
 How it is built: `dashboard/src/live/`. The engine is a TypeScript port of the planner and the walker model
 (`engine/`, `rl/SPEC.md`), running in a pool of Web Workers. Routes come from a goal-rooted Dijkstra cost-to-go field
 (slope, sand, rockfall band, keep-out zones), not from a neural network. The virtual crews pace and steer with the PPO
