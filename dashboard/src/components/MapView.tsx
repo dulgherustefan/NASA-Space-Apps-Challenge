@@ -12,6 +12,7 @@ interface Img { el: HTMLImageElement; ready: boolean; failed: boolean; at: numbe
 const imgCache = new Map<string, Img>()
 /** Cached image. A failed load is tried again after a few seconds, so the map recovers when the engine comes back. */
 function getImg(url: string, online: boolean): Img | null {
+  if (!url) return null
   let c = imgCache.get(url)
   if (c && c.failed && online && performance.now() - c.at > 5000) { imgCache.delete(url); c = undefined }
   if (!c) {

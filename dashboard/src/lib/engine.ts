@@ -10,8 +10,10 @@ let attempts = 0
 let started = false
 
 async function getJson<T>(path: string): Promise<T | null> {
+  const url = fileUrl(path, Date.now())
+  if (!url) return null
   try {
-    const r = await fetch(fileUrl(path, Date.now()), { cache: REPLAY ? 'default' : 'no-store' })
+    const r = await fetch(url, { cache: REPLAY ? 'default' : 'no-store' })
     if (!r.ok) return null
     return (await r.json()) as T
   } catch {

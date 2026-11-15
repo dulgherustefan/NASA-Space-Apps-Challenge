@@ -50,10 +50,10 @@ export function setReplayFiles(map: Record<string, string> | null) {
   else for (const [k, v] of Object.entries(map)) replayFiles.set(k, v)
 }
 
-/** URL of a repo file served by the engine, e.g. fileUrl('runtime/routes.json'). */
+/** URL of a repo file served by the engine, e.g. fileUrl('runtime/routes.json'). Empty in a recorded run while the file is not recorded yet. */
 export function fileUrl(repoPath: string, version?: number | string): string {
   const p = repoPath.replace(/^\/+/, '').replace(/^files\//, '')
-  if (REPLAY) return `${REPLAY_BASE}${replayFiles.get(p) ?? `not-recorded/${p}`}`
+  if (REPLAY) { const f = replayFiles.get(p); return f ? `${REPLAY_BASE}${f}` : '' }
   return `${HTTP_BASE}/files/${p}${version !== undefined ? `?v=${version}` : ''}`
 }
 

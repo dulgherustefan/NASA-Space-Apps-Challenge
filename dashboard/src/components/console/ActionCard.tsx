@@ -74,8 +74,8 @@ function Heading({ walk }: { walk: WalkView }) {
 function ArrivalView({ placeId, name }: { placeId: string | undefined; name: string }) {
   const item = useStore((s) => (placeId ? s.pov[placeId] : undefined))
   const [failed, setFailed] = useState(false)
-  if (!item || failed) return null
-  const path = item.file.includes('/') ? item.file : `data/site/pov/${item.file}`
+  const path = item ? (item.file.includes('/') ? item.file : `data/site/pov/${item.file}`) : ''
+  if (!item || failed || !fileUrl(path)) return null
   return (
     <figure className="mt-4 border-t border-rule pt-3.5">
       <div className="mb-2 text-[12.5px] text-ink2">View on arrival</div>
