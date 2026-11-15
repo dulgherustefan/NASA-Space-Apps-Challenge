@@ -80,6 +80,7 @@ STRIDE_M = 1.20                # ground covered by one cycle of the walk clip (u
 MAX_CADENCE = 1.7              # walk cycles per second at most: at high mission speed the feet slide rather than blur
 ROUTE_OPACITY = {"follow": 0.0, "shelter": 0.3}      # next to the crew the ground markers carry the route, the line steps back
 FOLLOW_GROUP_CM = 1500.0       # the follow shot holds every crew member this close to the lead
+FOLLOW_CUT_CM = 15000.0        # the follow shot cuts to the crew when the last camera was further away than this
 FOLLOW_FAST = (3.0, 28.0)      # crew speed in the scene, m/s: from walking pace to time-lapse the follow shot pulls back and up
 SHELTER_SHOT = {"prop": (-1900.0, 2600.0, 800.0), "ground": (-3600.0, 5000.0, 1200.0)}   # camera offset from the subject, cm
 CRUMB_STEP = 3.5               # metres between the ground markers of the chosen route
@@ -1066,6 +1067,8 @@ class Director:
             return
         src = self.cam_from or target
         u = smooth((now - self.cue_t0) / self.cue_blend)
+        if self.cue == "follow" and math.dist(src[:3], target[:3]) > FOLLOW_CUT_CM:
+            u = 1.0                                               # too far to fly to the crew in a second or two: cut
         pose = [lerp(src[0], target[0], u), lerp(src[1], target[1], u), lerp(src[2], target[2], u),
                 lerp_angle(src[3], target[3], u), lerp_angle(src[4], target[4], u), lerp(src[5], target[5], u)]
         g = self.ground_cm(pose[0], pose[1])
