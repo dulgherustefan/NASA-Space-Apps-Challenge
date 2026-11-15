@@ -52,7 +52,7 @@ export function ParametersPage() {
       {groups.map(([g, items]) => (
         <section key={g} className="mb-8">
           <h2 className="eyebrow mb-2 !text-ink2">{g}</h2>
-          <table className="w-full table-fixed border-collapse text-left text-[12.5px]">
+          <div className="overflow-x-auto"><table className="w-full min-w-[760px] table-fixed border-collapse text-left text-[13px]">
             <colgroup><col style={{ width: '27%' }} /><col style={{ width: '13%' }} /><col style={{ width: '12%' }} /><col style={{ width: '48%' }} /></colgroup>
             <thead>
               <tr className="border-y border-rule text-ink3"><th className="py-1.5 pr-3 font-mono text-[10px] font-medium uppercase tracking-wider">Parameter</th><th className="py-1.5 pr-3 font-mono text-[10px] font-medium uppercase tracking-wider">Value</th><th className="py-1.5 pr-3 font-mono text-[10px] font-medium uppercase tracking-wider">Kind</th><th className="py-1.5 font-mono text-[10px] font-medium uppercase tracking-wider">Source and note</th></tr>
@@ -71,7 +71,7 @@ export function ParametersPage() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         </section>
       ))}
       {params.status === 'ready' && groups.length === 0 && <Notice title="No parameter matches">Clear the search or the kind filter.</Notice>}

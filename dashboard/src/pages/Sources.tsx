@@ -47,7 +47,7 @@ const SOFTWARE: Row[] = [
 
 function Table({ rows, head }: { rows: Row[]; head: [string, string, string, string] }) {
   return (
-    <table className="w-full table-fixed border-collapse text-left text-[12.5px]">
+    <div className="overflow-x-auto"><table className="w-full min-w-[760px] table-fixed border-collapse text-left text-[13px]">
       <colgroup><col style={{ width: '36%' }} /><col style={{ width: '20%' }} /><col style={{ width: '19%' }} /><col style={{ width: '25%' }} /></colgroup>
       <thead><tr className="border-y border-rule text-ink3">{head.map((h) => <th key={h} className="py-1.5 pr-3 font-mono text-[10px] font-medium uppercase tracking-wider">{h}</th>)}</tr></thead>
       <tbody>
@@ -57,7 +57,7 @@ function Table({ rows, head }: { rows: Row[]; head: [string, string, string, str
           </tr>
         ))}
       </tbody>
-    </table>
+    </table></div>
   )
 }
 

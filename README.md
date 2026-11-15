@@ -11,8 +11,13 @@ It is not affiliated with or endorsed by NASA, and it is a planning aid only. No
 
 ![The Solway dashboard during the solar particle event scenario](docs/img/dashboard.png)
 
-The dashboard during the scripted solar particle event: the incident, what changed on the hazard map, the stress-tested
-routes and the chosen one. Every figure is labelled as measured, model, requirement, assumption or scenario.
+The dashboard during the scripted solar particle event. Right: where to go, the walking time against the 30-minute
+shelter rule, the heading, and what is left on arrival. Centre: the map with the chosen route. Left: the incident and
+what it changed. Every figure is labelled as measured, model, requirement, assumption or scenario.
+
+The same screen has three widths: both side panels on a habitat display, one panel on a laptop, and a single column
+with large targets on a tablet. A recorded run of the demo plays in a browser with no engine
+(`npm run build:web`, see below).
 
 ![The 3D view: two crew members walk the chosen route](docs/img/scene.jpg)
 
@@ -38,8 +43,13 @@ An incident goes through four phases.
 4. **Respond.** The engine marks one route as chosen, or the operator picks one. Among the routes that meet the
    incident's rule it prefers the highest robustness when that exists, otherwise the lowest failure rate. If none meets
    the rule it falls back to the fastest route or the lowest failure rate (`Director._choose`). The dashboard
-   shows time to shelter, oxygen, heat and dose margins on arrival, and the hazards avoided. Every number carries a kind
-   (`measured`, `model`, `requirement`, `assumption`, `scenario`) and a source.
+   shows the walking time against the time the rule allows, the heading and distance to go, oxygen, heat and dose on
+   arrival, and the hazards avoided. Every number carries a kind (`measured`, `model`, `requirement`, `assumption`,
+   `scenario`) and a source.
+
+Beside the response the dashboard keeps what a crew on foot checks during a walk: daylight left (computed from the Sun
+position at the site), the one-way light time to Earth, each crew member's oxygen, heat margin and dose, shelters open
+or closed, and a measured weather reference for the season (Curiosity REMS at Gale crater, labelled as an analogue).
 
 The demo plays three linked scenario incidents (`data/scenario/`):
 
@@ -70,7 +80,7 @@ layers, the routes and the stress-test results. The two windows display what the
 | Part | What it does | Technology | Port |
 |---|---|---|---|
 | Engine | Clock, scenario, hazards, route planning, stress tests; serves the dashboard and sends OSC | Python 3.12, numpy, numba, FastAPI, uvicorn, python-osc | 8765 (HTTP and WebSocket `/ws`), sends to UDP 9000 |
-| Dashboard | The product: four columns (Detect, Assess, Simulate, Respond), tactical map, method, parameters, decision log, sources | Electron, Vite, React 19, Tailwind 4, Recharts | dev server 5173 |
+| Dashboard | The product: map, response and situation on one screen in three widths, with method, parameters, decision log and sources pages | Electron, Vite, React 19, Tailwind 4, Recharts | dev server 5173 |
 | Simulation | Real terrain in 3D, crew, hazard overlays, routes, marsquake effects, cameras | Unreal Engine 5.8, project `unreal/MelasSim` | listens on UDP 9000 |
 | Adversary training (optional) | Trains the stress-test adversary offline on another machine and writes `data/ast/` | Python, PyTorch | none |
 
@@ -121,6 +131,7 @@ To run the built app, use `npm run build` and then `npm start`; Electron then st
 | `mock` | Mock engine on port 8766 for working on the dashboard without the real engine |
 | `typecheck` | TypeScript check |
 | `build` | Type check and production build into `dist/` |
+| `build:web` | Static build into `dist-web/` that plays the recorded run in `public/replay/`; needs no engine |
 | `preview` | Preview the production build |
 | `start` | Electron on the built files (starts the engine) |
 | `dist` | Build and package with electron-builder (unpacked directory per platform) |
@@ -129,7 +140,14 @@ To run the built app, use `npm run build` and then `npm start`; Electron then st
 Environment variables: `VITE_ENGINE_URL` (default `ws://127.0.0.1:8765/ws`), `SOLWAY_ROOT` (repository root for the engine),
 `SOLWAY_ENGINE=external` (do not start an engine from Electron).
 The dashboard has five pages: Console, Method, Parameters, Log (decision log with JSON export) and Sources.
-The **Run demo** button plays the three incidents.
+The **Run demo** button plays the three incidents. The button beside it opens the exercise controls: clock, single
+incidents, alert sound.
+
+**Without an engine.** `npm run build:web` makes a static site in `dist-web/` that plays a recorded run of the demo:
+the engine's own messages and files, saved by `python tools/record_demo.py` into `dashboard/public/replay/`. Any static
+host can serve it. Adding `?replay` to the address does the same in the development server. The header then says
+"Recorded run", and choosing another route is off because that needs a live engine. Record again after the scenario,
+the parameters or `data/ast/` change.
 
 ### Simulation window
 
@@ -150,9 +168,9 @@ engine serves its numbers with source `data/ast`. Otherwise the engine runs a sm
 | `dashboard/` | Electron and React dashboard, mock engine, screenshot scripts |
 | `unreal/` | Unreal project `MelasSim` and the editor scripts that build and drive the scene |
 | `rl/` | Route planner and walk environment used by the engine, the training task for the adversary (`TASK.md`, `SPEC.md`), earlier walking-policy trainer |
-| `tools/` | Scripts that turn `data/site/` into files for Unreal (heightmaps, meshes, scene layout, dust texture) |
+| `tools/` | Scripts that turn `data/site/` into files for Unreal (heightmaps, meshes, scene layout, dust texture), `record_demo.py` (recorded run for the dashboard), `make_weather_analogue.py` (season weather reference) |
 | `pipeline/` | `10_build_site.py`: builds the terrain and hazard grids in `data/site/` from the NASA and USGS rasters |
-| `data/site/` | Processed terrain, orthoimages and hazard layers, with `meta.json` |
+| `data/site/` | Processed terrain, orthoimages and hazard layers, with `meta.json`; `weather_analogue.json` |
 | `data/scenario/` | Scripted incidents and mission (`mission.json`, `sep-1.json`, `quake-1.json`, `sci-1.json`) |
 | `data/ast/` | Stress-test results from the offline run (empty in this checkout) |
 | `data/exploration_zones_2015.txt` | Text of the first announcement of the 2015 landing-site and exploration-zone workshop, kept as background |
@@ -178,7 +196,8 @@ All terrain comes from NASA Mars Reconnaissance Orbiter data distributed by USGS
 | HiRISE DTM, 1 m | `DTEEC_028857_1700_028923_1700_A01` (USGS STAC collection `mro_hirise_socet_dtms`) | Core box elevation. Slope, roughness, rockfall reach angle, blocked sky, pits and the walk model are derived from it. |
 | HiRISE orthoimage, 1 m, RED | `ESP_028857_1700_RED_C_01_ORTHO` | Greyscale base image of the map and the 3D terrain. |
 | CTX DTM | `D04_028857_1684_XN_11S069W` and `D04_028923_1684_XN_11S069W` (USGS STAC collection `mro_ctx_controlled_usgs_dtms`) | Regional strip (16 m cells) and far backdrop (80 m cells); also fills the region orthoimage where HiRISE has no data. |
-| JPL Horizons | Sun azimuth and elevation at the site, 06:00 to 12:00 UT on 15 Nov 2026; Earth to Mars distance for 15 and 16 Nov 2026 | Sun direction in the 3D scene and the Earth to Mars light time. Outside that window the engine uses the Mars24 algorithm (Allison and McEwen, 2000). |
+| JPL Horizons | Sun azimuth and elevation at the site, 06:00 to 12:00 UT on 15 Nov 2026; Earth to Mars distance for 15 and 16 Nov 2026 | Sun direction in the 3D scene, daylight left, and the Earth to Mars light time. Outside that window the engine uses the Mars24 algorithm (Allison and McEwen, 2000). |
+| MSL REMS | Curiosity REMS daily weather reports, the 71 sols at solar longitude 20 to 24 degrees (sols 391 to 4412) | Ground and air temperature range and UV index for the season. Measured at Gale crater (4.6°S), shown as an analogue, not as the demo site. |
 | MSL RAD, event of 20 May 2024 | Löwe et al. 2025, arXiv:2502.02469, Table 1 | Solar particle event: 53 min to peak, 57 min nowcast lead time, 1730.55 µGy recorded. The unshielded dose of 8100 µGy for an astronaut is credited to NASA/JPL (10 Jun 2024) in `sep-1.json`. |
 | MSL RAD background | Hassler et al. 2014, Science 343 | Background dose rate. |
 | InSight Mars Seismic Catalogue | MQS V14, doi 10.12686/a21 | The scenario marsquake is described as comparable to event S0976a. The quake itself is scripted. |
@@ -188,10 +207,13 @@ All terrain comes from NASA Mars Reconnaissance Orbiter data distributed by USGS
 
 Surface colour is not from a dataset: the orthoimage is greyscale and the colour is an approximate tint added in `pipeline/10_build_site.py`.
 
+Kinds of data combined: topographic (HiRISE and CTX elevation), optical (HiRISE orthoimage), radiation (MSL RAD),
+atmospheric (MSL REMS), seismic (InSight catalogue) and ephemeris (JPL Horizons).
+
 ## Modelled and real
 
 Real data: elevation from the HiRISE and CTX DTMs, the greyscale orthoimage, Sun position and light time from Horizons,
-and the published figures listed above.
+the REMS weather reports (from Gale crater, not from the demo site), and the published figures listed above.
 
 Derived from real data by our own models, not measured: slope, roughness, the rockfall runout band
 (an energy-line cone from every source cell steeper than 32°, reach angle 27.8°), blocked sky and dose shielding, closed

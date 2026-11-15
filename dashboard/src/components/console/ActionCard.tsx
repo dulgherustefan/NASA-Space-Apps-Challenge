@@ -174,7 +174,7 @@ function Planning({ b }: { b: IncidentBundle }) {
           <div className="h-full bg-accent transition-[width] duration-500" style={{ width: `${Math.max(0.05, frac) * 100}%` }} />
         </div>
       )}
-      <p className="mt-3 text-[12.5px] text-ink3">The route to shelter appears here as soon as the stress tests are in.</p>
+      <p className="mt-3 text-[12.5px] text-ink3">The route appears here as soon as the stress tests are in.</p>
     </div>
   )
 }
