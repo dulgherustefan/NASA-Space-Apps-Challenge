@@ -100,6 +100,10 @@ PARAM_DEFS = [
        "NASA/JPL, 2024", "https://www.jpl.nasa.gov/news/nasa-watches-mars-light-up-during-epic-solar-storm/", min=500, max=20000, step=100),
     _p("sepDecayH", "Solar storm: decay time", 6, "h", "assumption", "Radiation", "e-folding time after the peak.", "Team assumption",
        min=1, max=24, step=1),
+    _p("nowcastPct", "Solar storm: alert threshold above background", 25, "%", "requirement", "Radiation",
+       "The on-site rule raises the alert when the dose rate is this far above the background. Threshold of the published RAD "
+       "nowcast; the engine applies it to its modelled dose rate.",
+       "Loewe et al. 2025, arXiv:2502.02469", "https://arxiv.org/abs/2502.02469", min=10, max=200, step=5),
     _p("shieldK", "Terrain shielding per blocked sky", 0.63, "", "model", "Radiation",
        "RAD at Murray Buttes: 19% of sky blocked gives 12% less downward dose. Cliffs help a little.",
        "Guo et al. 2021 (RAD beside Murray Buttes)",

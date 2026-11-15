@@ -14,6 +14,7 @@ from . import PRODUCT, VERSION, rel
 from . import freeplan as FP
 from . import maplayers
 from . import routes as R
+from . import spaceweather as W
 from . import stress as S
 from .climate import load_weather
 from .clock import MissionClock, parse_utc
@@ -96,7 +97,8 @@ class Director:
         self.demo = False
         self.program = None
         self.done = False
-        self.sep_t0 = None
+        self.sep_t0 = None                   # mission time the storm started at the site
+        self.sep_alert_t = None              # mission time the on-site rule raised the alert
         self.quake_t0 = None
         self.inc_t0 = None                   # mission time the current incident was detected (its alert)
         self.routes = []
@@ -462,7 +464,23 @@ class Director:
             inc = self.sc.incidents[iid]
             trig = inc["trigger"]
             if iid == start_at:
-                pass                                           # operator trigger: fire now
+                if trig["type"] == "sensor":                   # operator trigger: the storm is already past the threshold
+                    self.sep_t0 = self.clock.t - (W.delay_s() or 0.0)
+            elif trig["type"] == "sensor":
+                # the storm starts at onset_s (scenario); the incident fires when the on-site rule trips
+                self.clock.hold_at = trig["onset_s"]
+                while self.clock.t < trig["onset_s"]:
+                    yield
+                self.sep_t0 = self.clock.t
+                d = W.delay_s()
+                if d is None:
+                    self.log("Solar storm below the alert threshold: no incident raised", "info", "scenario")
+                    self.sep_t0 = None
+                    self.clock.hold_at = None
+                    continue
+                self.clock.hold_at = self.sep_t0 + d           # stop on the crossing, not one fast tick later
+                while not W.tripped(self.sensors()["dose_rate_open"]) and self.clock.t < self.sep_t0 + d:
+                    yield
             elif trig["type"] == "time":
                 self.clock.hold_at = trig["at_s"]              # fire at at_s exactly, not one fast tick later
                 while self.clock.t < trig["at_s"]:
@@ -505,11 +523,13 @@ class Director:
             p = self.sc.place(inc["start"])
             start = (p["x"], p["y"])
             heat0, o2f = None, None
-        if inc.get("sep") == "onset":
-            sep0, deadline, dl_peak = react, rule - react, peak - react
-        elif inc.get("sep") == "continues" and self.sep_t0 is not None:
+        # the storm clock runs from its onset (sep_t0); the shelter rule is counted from the alert (sep_alert_t)
+        if inc.get("sep") in ("onset", "continues") and self.sep_t0 is not None:
             el = t - self.sep_t0
-            sep0, deadline, dl_peak = el + react, rule - el - react, peak - el - react
+            since_alert = t - (self.sep_alert_t if self.sep_alert_t is not None else self.sep_t0)
+            sep0, deadline, dl_peak = el + react, rule - since_alert - react, peak - el - react
+        elif inc.get("sep") == "onset":
+            sep0, deadline, dl_peak = react, rule - react, peak - react
         else:
             sep0, deadline, dl_peak = -1.0, math.inf, math.inf
         # a new EVA (science sortie) has no alert: the crew walks as soon as the route is chosen
@@ -554,15 +574,24 @@ class Director:
         elif self.walk:
             self._freeze_crew()
         self.inc_t0 = self.clock.t
+        detection = None
         if inc["kind"] == "sep":
-            self.sep_t0 = self.clock.t
+            if self.sep_t0 is None:
+                self.sep_t0 = self.clock.t
+            self.sep_alert_t = self.clock.t
+            reading = PARAMS["gcrRate"] + sep_rate(self.clock.t - self.sep_t0, PARAMS["sepPeakMin"], PARAMS["sepTotal"],
+                                                   PARAMS["sepDecayH"])
+            detection = W.detection(self.sep_t0, self.clock.t, reading, W.load_record())
+            self.log("On-site rule tripped: dose rate %.1f uGy/h, alert threshold %.1f uGy/h" % (reading, W.threshold()),
+                     "warn", "sensor")
         if inc["kind"] == "quake":
             self.quake_t0 = self.clock.t
         self._speed(dm["phase_speed"])
         self._phase("detect", 1.0)
         e, s = self.sc.incident_position(inc)
         self.emit(dict(type="incident", id=iid, kind=inc["kind"], title=inc["title"], summary=inc["summary"],
-                       source=inc["source"], scenario=True, e=e, s=s, params=self.sc.params_for(inc)))
+                       source=inc["source"], scenario=True, e=e, s=s, params=self.sc.params_for(inc),
+                       **(dict(detection=detection) if detection else {})))
         self.log("%s: %s" % (inc["title"], inc["summary"]), "warn" if inc["kind"] != "science" else "info", "scenario")
         self.osc.cue("wall" if inc["kind"] == "quake" else "overview", 4.0)
         yield from self._wait_wall(dm["hold_detect_s"])

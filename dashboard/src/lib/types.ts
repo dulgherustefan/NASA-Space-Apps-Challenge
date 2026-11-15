@@ -36,9 +36,15 @@ export interface Snapshot {
   crew: CrewState[]; sensors: Sensors; light_time_s?: number; walk?: WalkState; env?: Env
 }
 export interface Quantity { label: string; value: number | string; unit?: string; source?: string; kind: Kind }
+/** How a solar particle incident was raised: the on-site rule, and the Earth-side record of the same storm. */
+export interface Detection {
+  method: string; rule: string; source: string; onset_t: number; alert_t: number; delay_s: number
+  readings: Quantity[]; replay?: string
+  earth: (Quantity & { url?: string })[]; earth_summary?: string; earth_note?: string
+}
 export interface Incident {
   type: 'incident'; t: number; id: string; kind: IncidentKind; title: string; summary?: string; source?: string
-  scenario: boolean; e?: number | null; s?: number | null; params?: Quantity[]
+  scenario: boolean; e?: number | null; s?: number | null; params?: Quantity[]; detection?: Detection
 }
 export interface ShelterState { id: string; name: string; e: number; s: number; open: boolean; reason?: string; shield?: number }
 /** Time allowed from the first step, in seconds. null when the incident sets no deadline. */

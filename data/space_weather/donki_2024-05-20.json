@@ -1,0 +1,137 @@
+{
+ "note": "NASA CCMC DONKI records for the solar event of 20 May 2024, saved once. Values are unchanged; fields the engine does not use are dropped. Rebuild with tools/fetch_donki.py.",
+ "source": "NASA CCMC DONKI, https://ccmc.gsfc.nasa.gov/tools/DONKI/ (through https://api.nasa.gov/DONKI/)",
+ "retrieved_utc": "2026-11-15T06:00Z",
+ "cme": {
+  "activityID": "2024-05-20T05:36:00-CME-001",
+  "startTime": "2024-05-20T05:36Z",
+  "instruments": [
+   "SOHO: LASCO/C2",
+   "SOHO: LASCO/C3",
+   "STEREO A: SECCHI/COR2"
+  ],
+  "note": "Fast halo CME visible in SOHO LASCO C2/C3 and STEREO A COR2. The source is believed to be backsided, with moving field lines and EUV wave visible in SDO AIA 171/193 at 2024-05-20T05:22Z. A filament eruption and C6.7 flare peaking at 2024-05-20T05:54Z from Active Region 3683 (approx. S24W65) occurred around the same time, but was determined not be the source of this fast halo CME due to location and timing.",
+  "submissionTime": "2024-05-20T14:47Z",
+  "link": "https://ccmc.gsfc.nasa.gov/DONKI/view/CME/31034/-1",
+  "analyses": [
+   {
+    "time21_5": "2024-05-20T06:40Z",
+    "latitude": 2.0,
+    "longitude": 172.0,
+    "halfAngle": 45.0,
+    "speed": 2678.0,
+    "type": "R",
+    "featureCode": "SH",
+    "note": "Measurement of what was determined to likely be the SHOCK of this CME using backsided source and the best fit between SOHO LASCO C2/C3 and STEREO A COR2 in SWPC_CAT.",
+    "submissionTime": "2024-05-20T15:13Z",
+    "link": "https://ccmc.gsfc.nasa.gov/DONKI/view/CMEAnalysis/31035/-1",
+    "enlil": [
+     {
+      "modelCompletionTime": "2024-05-20T16:06Z",
+      "au": 2.0,
+      "link": "https://ccmc.gsfc.nasa.gov/DONKI/view/WSA-ENLIL/31040/-1",
+      "impactList": [
+       {
+        "location": "OSIRIS-APEX",
+        "arrivalTime": "2024-05-21T20:00Z",
+        "isGlancingBlow": true,
+        "isMinorImpact": false
+       },
+       {
+        "location": "Solar Orbiter",
+        "arrivalTime": "2024-05-21T00:18Z",
+        "isGlancingBlow": false,
+        "isMinorImpact": false
+       }
+      ]
+     },
+     {
+      "modelCompletionTime": "2024-05-20T16:23Z",
+      "au": 5.5,
+      "link": "https://ccmc.gsfc.nasa.gov/DONKI/view/WSA-ENLIL/31041/-1",
+      "impactList": [
+       {
+        "location": "Juno",
+        "arrivalTime": "2024-05-30T07:45Z",
+        "isGlancingBlow": false,
+        "isMinorImpact": false
+       },
+       {
+        "location": "OSIRIS-APEX",
+        "arrivalTime": "2024-05-21T20:00Z",
+        "isGlancingBlow": true,
+        "isMinorImpact": false
+       },
+       {
+        "location": "Solar Orbiter",
+        "arrivalTime": "2024-05-21T00:18Z",
+        "isGlancingBlow": false,
+        "isMinorImpact": false
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "time21_5": "2024-05-20T07:10Z",
+    "latitude": 0.0,
+    "longitude": 176.0,
+    "halfAngle": 43.0,
+    "speed": 1927.0,
+    "type": "O",
+    "featureCode": "LE",
+    "note": "Measurement of the bulk of this CME using best fit between SOHO LASCO C2/C3 and STEREO A COR2.",
+    "submissionTime": "2024-05-20T15:13Z",
+    "link": "https://ccmc.gsfc.nasa.gov/DONKI/view/CMEAnalysis/31036/-1",
+    "enlil": [
+     {
+      "modelCompletionTime": "2024-05-20T15:29Z",
+      "au": 2.0,
+      "link": "https://ccmc.gsfc.nasa.gov/DONKI/view/WSA-ENLIL/31037/-1",
+      "impactList": [
+       {
+        "location": "Solar Orbiter",
+        "arrivalTime": "2024-05-21T06:05Z",
+        "isGlancingBlow": false,
+        "isMinorImpact": false
+       }
+      ]
+     },
+     {
+      "modelCompletionTime": "2024-05-20T15:45Z",
+      "au": 5.5,
+      "link": "https://ccmc.gsfc.nasa.gov/DONKI/view/WSA-ENLIL/31038/-1",
+      "impactList": [
+       {
+        "location": "Juno",
+        "arrivalTime": "2024-05-31T19:50Z",
+        "isGlancingBlow": false,
+        "isMinorImpact": false
+       },
+       {
+        "location": "Solar Orbiter",
+        "arrivalTime": "2024-05-21T06:12Z",
+        "isGlancingBlow": false,
+        "isMinorImpact": false
+       }
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ "notifications": [
+  {
+   "messageID": "20240520-AL-001",
+   "messageType": "CME",
+   "messageIssueTime": "2024-05-20T15:52Z",
+   "messageURL": "https://ccmc.gsfc.nasa.gov/DONKI/view/Alert/31039/1",
+   "messageBody": "## Community Coordinated Modeling Center Database Of Notifications, Knowledge, Information ( CCMC DONKI )\n## Message Type: Space Weather Notification - CME (Juno, Solar Orbiter)\n##\n## Message Issue Date: 2024-05-20T15:52:54Z\n## Message ID: 20240520-AL-001\n##\n## Disclaimer: NOAA's Space Weather Prediction Center is the United States Government official source for space weather forecasts. This \"Experimental Research Information\" consists of preliminary NASA research products and should be interpreted and used accordingly.\n\n\n## Summary:\n\nO-type CME detected by STEREO A / SOHO. \n\nStart time of the event: 2024-05-20T05:36Z.\n\nEstimated speed: ~1927 km/s.\n\nEstimated opening half-angle: 43 deg.\n\nDirection (lon./lat.): 176/0 in Heliocentric Earth Equatorial coordinates.\n\nActivity ID: 2024-05-20T05:36:00-CME-001\n\nBased on preliminary analysis by the Moon to Mars Space Weather Analysis Office and heliospheric modeling carried out at NASA Community Coordinated Modeling Center, it is estimated that the CME may impact Juno and Solar Orbiter.  The leading edge of the CME will reach Juno at 2024-05-31T19:50Z and Solar Orbiter at 2024-05-21T06:05Z (plus minus 7 hours). \n\nLinks to the movies of the modeled event (includes CME: 2024-05-20T05:36:00-CME-001):\n\n(a) 2 AU outer boundary\nhttp://iswa.gsfc.nasa.gov/downloads/20240520_071000_2.0_anim.tim-den.gif\nhttp://iswa.gsfc.nasa.gov/downloads/20240520_071000_2.0_anim.tim-vel.gif\nhttp://iswa.gsfc.nasa.gov/downloads/20240520_071000_2.0_ENLIL_CONE_timeline.gif\nhttp://iswa.gsfc.nasa.gov/downloads/20240520_071000_2.0_ENLIL_CONE_SolO_timeline.gif\n\n(b) 5.5 AU outer boundary\nhttp://iswa.gsfc.nasa.gov/downloads/20240520_071000_5.5_anim.tim-den.gif\nhttp://iswa.gsfc.nasa.gov/downloads/20240520_071000_5.5_anim.tim-vel.gif\nhttp://iswa.gsfc.nasa.gov/downloads/20240520_071000_5.5_ENLIL_CONE_Juno_timeline.gif\n\n\n## Notes: \n\n\nSCORE CME typification system:\nS-type: CMEs with speeds less than 500 km/s\nC-type: Common 500-999 km/s\nO-type: Occasional 1000-1999 km/s\nR-type: Rare 2000-2999 km/s\nER-type: Extremely Rare >3000 km/s\n\n\nCommunity Coordinated Modeling Center Database Of Notifications, Knowledge, Information (CCMC DONKI) Disclaimer\n\nData and/or information stored within the CCMC DONKI is provided \"as is\" without any warranty of any kind, either expressed, implied, or statutory, including, but not limited to, any warranty that the data and/or information will conform to specifications, any implied warranties of merchantability, fitness for a particular purpose, or freedom from infringement, any warranty that the information will be error free, or any warranty that documentation, if provided, will conform to the data and/or information. In no event shall the United States Government, or its contractors or subcontractors, be liable for any damages, including, but not limited to, direct, indirect, special or consequential damages, arising out of, resulting from, or in any way connected with this information, whether or not based upon warranty, contract, tort, or otherwise, whether or not injury was sustained by persons or property or otherwise, and whether or not loss was sustained from, or arose out of the results of, or use of, the data and/or information. The United States Government disclaims all warranties and liabilities regarding third party data and/or information, if present in the data and/or information generated and/or compiled by CCMC DONKI, and distributes it \"as is\".\n\nUse of data and/or information stored within the CCMC DONKI does not, in any manner, constitute an endorsement by NASA of any test results, resulting designs, hardware, or other matters. Use of data and/or information stored within the CCMC DONKI does not, in any manner, constitute the grant of a license to RECIPIENT under any NASA copyright, patent, patent application or other intellectual property.\n\nThe terms of this disclaimer shall be construed, and the legal relations between the parties hereto shall be determined, in accordance with United States federal law.\n\nNOAA's Space Weather Prediction Center is the United States Government official source for space weather forecasts. This \"Experimental Research Information\" consists of preliminary NASA research products and should be interpreted and used accordingly."
+  }
+ ],
+ "window": {
+  "startDate": "2024-05-19",
+  "endDate": "2024-05-25"
+ },
+ "sep": []
+}

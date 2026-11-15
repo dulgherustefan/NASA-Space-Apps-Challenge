@@ -30,13 +30,18 @@ dust and sand pattern comes from the HiRISE colour strip, a broad hue variation 
 colours themselves are set to soil colours measured on the rover photographs below. This is an approximate colour, not a
 measurement of the site.
 
-## Weather reference and Sun position
+## Weather reference, Sun position and space weather
 
 | What | Product | Credit | Source | Licence |
 |---|---|---|---|---|
 | Ground and air temperature range, pressure and UV index for the season, shown as an analogue from Gale crater | Curiosity REMS daily weather reports, the 71 sols at Ls 20 to 24 (sols 391 to 4412) | NASA/JPL-Caltech/CAB (CSIC-INTA) | [mars.nasa.gov weather feed](https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json), fetched 15 Nov 2026 | NASA mission data, public |
 | Sun azimuth and elevation at the site, Earth to Mars distance | JPL Horizons, 15 and 16 Nov 2026 | NASA/JPL Solar System Dynamics | [ssd.jpl.nasa.gov/horizons](https://ssd.jpl.nasa.gov/horizons/) | Public |
 | Local time, season and Sun position outside the Horizons table; daylight left | Mars24 algorithm (Allison and McEwen 2000) | NASA Goddard Institute for Space Studies | [giss.nasa.gov/tools/mars24](https://www.giss.nasa.gov/tools/mars24/help/algorithm.html) | Published algorithm |
+
+| Earth-side record of the solar event of 20 May 2024: coronal mass ejection `2024-05-20T05:36:00-CME-001`, its analyses and WSA-ENLIL runs, the notifications sent for it, solar energetic particle records of 19 to 25 May 2024 | NASA CCMC DONKI (Space Weather Database Of Notifications, Knowledge, Information) | NASA Community Coordinated Modeling Center (CCMC), Moon to Mars Space Weather Analysis Office | [ccmc.gsfc.nasa.gov/tools/DONKI](https://ccmc.gsfc.nasa.gov/tools/DONKI/), through `api.nasa.gov/DONKI`, fetched 15 Nov 2026 | NASA data, public |
+
+`tools/fetch_donki.py` saves that record as `data/space_weather/donki_2024-05-20.json` (values unchanged, unused fields
+dropped). The engine reads the file and never calls the service.
 
 `tools/make_weather_analogue.py` turns the saved feed into `data/site/weather_analogue.json` (medians and 10th to 90th
 percentiles). The feed itself is not in git. The dust optical depth in `engine/params.py` (0.39) is a single value read

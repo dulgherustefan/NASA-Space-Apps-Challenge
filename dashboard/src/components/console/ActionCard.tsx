@@ -22,9 +22,15 @@ function IncidentLine({ b }: { b: IncidentBundle }) {
         <span className="truncate font-medium text-ink">{b.incident.title}</span>
         <span className="num hidden shrink-0 text-[12px] text-ink3 sm:inline">{missionT(b.incident.t)}</span>
       </div>
-      <GroupKind kind={b.incident.scenario ? 'scenario' : 'measured'} label={b.incident.scenario ? 'Scripted incident' : 'Observation'} source={b.incident.source}>
-        <span className="text-[12px] text-ink3">{b.incident.scenario ? 'scripted' : 'observed'}</span>
-      </GroupKind>
+      {b.incident.detection ? (
+        <GroupKind kind="scenario" label="Raised by the on-site dose-rate rule" source={`${b.incident.detection.rule}. ${b.incident.detection.replay ?? ''}`}>
+          <span className="text-[12px] text-ink3">on-site rule</span>
+        </GroupKind>
+      ) : (
+        <GroupKind kind={b.incident.scenario ? 'scenario' : 'measured'} label={b.incident.scenario ? 'Scripted incident' : 'Observation'} source={b.incident.source}>
+          <span className="text-[12px] text-ink3">{b.incident.scenario ? 'scripted' : 'observed'}</span>
+        </GroupKind>
+      )}
     </div>
   )
 }

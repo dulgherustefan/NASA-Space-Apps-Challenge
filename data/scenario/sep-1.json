@@ -6,7 +6,7 @@
   "summary": "Dose rate rising. Peak expected within 53 minutes.",
   "source": "Loewe et al. 2025, arXiv:2502.02469, Table 1 (MSL RAD, 20 May 2024)",
   "at_s": 60,
-  "trigger": {"type": "time", "at_s": 60},
+  "trigger": {"type": "sensor", "onset_s": 60, "note": "The storm starts at onset_s (scenario). The incident fires when the on-site dose-rate rule trips, a few seconds later."},
   "start": "S",
   "candidates": ["A", "C", "R", "H"],
   "pace": "storm",
@@ -20,6 +20,6 @@
     {"label": "Unshielded dose for an astronaut (model input)", "value": 8100, "unit": "uGy", "kind": "model", "source": "NASA/JPL estimate from Curiosity RAD data, 10 Jun 2024 (20 May 2024 event); not a measurement"},
     {"label": "Background dose rate", "value": 8.75, "unit": "uGy/h", "kind": "measured", "source": "Hassler et al. 2014, Science 343"},
     {"label": "Shelter rule", "value": 30, "unit": "min", "kind": "requirement", "source": "arXiv:2502.02469 (nowcast gives at least 30 min)"},
-    {"label": "Event timing at this site", "value": 60, "unit": "s mission time", "kind": "scenario", "source": "Scripted replay of the 20 May 2024 profile"}
+    {"label": "Storm onset at this site", "value": 60, "unit": "s mission time", "kind": "scenario", "source": "Scripted replay of the 20 May 2024 profile"}
   ]
 }

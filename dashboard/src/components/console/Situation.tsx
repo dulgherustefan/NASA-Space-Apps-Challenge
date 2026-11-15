@@ -1,5 +1,5 @@
 import { focusBundle, focusIncidentId, store, useStore } from '@/lib/store'
-import type { Quantity } from '@/lib/types'
+import type { Detection, Quantity } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { missionT } from '@/lib/format'
 import { Fig } from '../Kind'
@@ -62,6 +62,26 @@ function Incidents() {
   )
 }
 
+/** Why the alert fired: the on-site rule first, then what Earth-side monitoring recorded for the same storm. */
+function Detected({ d }: { d: Detection }) {
+  return (
+    <>
+      <p className="text-[13px] leading-snug text-ink">{d.rule}. Raised <span className="num">{d.delay_s.toFixed(1)} s</span> after the storm reached the site.</p>
+      <div className="mt-1.5"><Figures items={d.readings} first={3} /></div>
+      {d.earth.length > 0 && (
+        <div className="mt-3 border-t border-rule pt-3">
+          {d.earth_summary && <p className="text-[13px] leading-snug text-ink">{d.earth_summary}</p>}
+          <More label="Earth-side record of this storm (NASA CCMC DONKI)">
+            <Figures items={d.earth} first={d.earth.length} />
+            {d.earth_note && <p className="mt-1.5 text-[12px] leading-snug text-ink3">{d.earth_note}</p>}
+          </More>
+        </div>
+      )}
+      <p className="mt-2 text-[12px] leading-snug text-ink3">{d.replay} Rule: {d.source}.</p>
+    </>
+  )
+}
+
 function Shelters() {
   const bundle = useStore(focusBundle)
   const places = useStore((s) => s.hello?.places)
@@ -103,6 +123,11 @@ export function Situation() {
       {bundle?.plan && (
         <Section title="What the plan assumes">
           <Figures items={bundle.plan.conditions ?? []} first={5} />
+        </Section>
+      )}
+      {bundle?.incident.detection && (
+        <Section title="How it was detected" aside="on-site rule">
+          <Detected d={bundle.incident.detection} />
         </Section>
       )}
       {bundle && !bundle.plan && (

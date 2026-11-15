@@ -36,8 +36,13 @@ The terrain colour is approximate, and the dust is set dressing.
 
 An incident goes through four phases.
 
-1. **Detect.** A scripted incident fires on the mission clock, or after the crew has walked for a set time. It appears
-   with its source and a flag that says it is a scenario, not an observation.
+1. **Detect.** The solar storm is raised by an on-site rule: the alert fires when the dose rate at the crew is 25%
+   above the background, the threshold of the published RAD nowcast (Löwe et al. 2025), applied to the engine's modelled
+   dose rate. The storm itself is a scenario replay of the 20 May 2024 event. Next to the alert the dashboard shows what
+   Earth-side monitoring recorded for that storm (the saved NASA CCMC DONKI record): the first notification came 10.3 h
+   after the eruption was first seen and Mars was not among the predicted impacts. That record is context; it never
+   triggers anything. The other incidents fire on the mission clock or after the crew has walked for a set time. Every
+   incident appears with its source and a flag that says it is a scenario, not an observation.
 2. **Assess.** The engine updates the hazard layers over the 4 × 4 km core box (800 × 800 cells of 5 m): combined hazard,
    slope, rockfall runout band, loose-sand likelihood, blocked sky, dose rate in the open, and where virtual crews failed.
    Shelters that fall inside an active rockfall band are closed. The dashboard map adds elevation contours and a radio
@@ -65,7 +70,7 @@ The demo plays three linked scenario incidents (`data/scenario/`):
 
 | Id | Incident | What happens |
 |---|---|---|
-| `sep-1` | Solar particle event | Timing follows the 20 May 2024 event seen by the MSL RAD instrument. The crew walks to a shelter under a 30-minute rule. |
+| `sep-1` | Solar particle event | Timing follows the 20 May 2024 event seen by the MSL RAD instrument. The on-site dose-rate rule raises the alert a few seconds after the storm reaches the site. The crew walks to a shelter under a 30-minute rule. |
 | `quake-1` | Marsquake | The rockfall runout band below the wall becomes active, shelters inside it close, routes are planned again from where the crew is. |
 | `sci-1` | Fresh boulder | One sol later, no storm. A sortie from the rover to a fresh boulder and back, with the runout band as a hazard. A boulder that came down the wall brings rock from layers nobody can walk to, the reason Apollo 17 sampled the boulders at Station 6. |
 
@@ -202,10 +207,11 @@ disturbance distributions that are team assumptions.
 | `dashboard/` | Electron and React dashboard, mock engine, screenshot scripts |
 | `unreal/` | Unreal project `MelasSim` and the editor scripts that build and drive the scene |
 | `rl/` | Route planner and walk environment used by the engine, the training task for the adversary (`TASK.md`, `SPEC.md`), earlier walking-policy trainer |
-| `tools/` | Scripts that turn `data/site/` into files for Unreal (heightmaps, meshes, scene layout, dust texture), `record_demo.py` (recorded run for the dashboard), `make_weather_analogue.py` (season weather reference) |
+| `tools/` | Scripts that turn `data/site/` into files for Unreal (heightmaps, meshes, scene layout, dust texture), `record_demo.py` (recorded run for the dashboard), `make_weather_analogue.py` (season weather reference), `fetch_donki.py` (saves the DONKI record of the 20 May 2024 storm) |
 | `pipeline/` | `10_build_site.py`: builds the terrain and hazard grids in `data/site/` from the NASA and USGS rasters |
 | `data/site/` | Processed terrain, orthoimages and hazard layers, with `meta.json`; `weather_analogue.json` |
 | `data/scenario/` | Scripted incidents and mission (`mission.json`, `sep-1.json`, `quake-1.json`, `sci-1.json`) |
+| `data/space_weather/` | Saved NASA CCMC DONKI record of the 20 May 2024 solar event (`donki_2024-05-20.json`) |
 | `data/ast/` | Stress-test results from the offline run, with `REPORT.md` |
 | `data/exploration_zones_2015.txt` | Text of the first announcement of the 2015 landing-site and exploration-zone workshop, kept as background |
 | `runtime/` | Files the engine writes while running (routes, trajectories, overlays, parameters) |
@@ -234,6 +240,7 @@ All terrain comes from NASA Mars Reconnaissance Orbiter data distributed by USGS
 | MSL REMS | Curiosity REMS daily weather reports, the 71 sols at solar longitude 20 to 24 degrees (sols 391 to 4412) | Ground and air temperature range and UV index for the season. Measured at Gale crater (4.6°S), shown as an analogue, not as the demo site. |
 | MSL RAD, event of 20 May 2024 | Löwe et al. 2025, arXiv:2502.02469, Table 1 | Solar particle event: 53 min to peak, 57 min nowcast lead time, 1730.55 µGy recorded. The unshielded dose of 8100 µGy for an astronaut is credited to NASA/JPL (10 Jun 2024) in `sep-1.json`. |
 | MSL RAD background | Hassler et al. 2014, Science 343 | Background dose rate. |
+| NASA CCMC DONKI (Space Weather Database Of Notifications, Knowledge, Information) | Coronal mass ejection `2024-05-20T05:36:00-CME-001` with its analyses and WSA-ENLIL runs, the notifications sent for it, and the solar energetic particle records of 19 to 25 May 2024 | Earth-side record of the storm the scenario replays, shown next to the alert: when the eruption was first seen, when the first notification was issued, which targets the model runs predicted. Context only; the alert comes from the on-site rule. |
 | InSight Mars Seismic Catalogue | MQS V14, doi 10.12686/a21 | The scenario marsquake is described as comparable to event S0976a. The quake itself is scripted. |
 | Rockfall papers | Grindrod et al. 2021 (reach angle 27.8°); Vijayan et al. 2026 (rockfall after a marsquake at Cerberus Fossae) | Rockfall runout band and the post-quake rockfall rate. |
 | NASA technical reports | NTRS 20210000827 (exploration EVA testing and analogs), NTRS 20220004017 (HRP evidence report on EVA), NTRS 19730008098 (Apollo 16 time and motion study), NTRS 20160001058 (suit cooling without sweep gas) | Planning speed, slope limit, heat and oxygen limits, the suit cooling floor used in the disturbances. Each value and its source is listed in `engine/params.py` and on the Parameters page. |
@@ -267,6 +274,7 @@ the Earth rock scans and ground textures, and the positions of boulders in the r
 ## Limitations
 
 - One site and three scripted incidents. Planning for another place needs new terrain data and a new scenario.
+- The detection rule runs on the engine's modelled dose rate, not on a dosimeter. It is a simplified form of the published RAD nowcast (one threshold on the dose rate) and the storm profile is idealised, so the few seconds between storm onset and alert are a model figure.
 - Results are model-based. Fall rate, fall injury chance, suit mass, the sand penalty and the disturbance bounds are team assumptions.
 - The stress test is only as good as the walk model. Robustness is an upper bound from a finite search: a more likely failure that no search found may exist. If `data/ast/` is removed, failure rates come from a small local Monte Carlo and there is no robustness figure.
 - High-resolution elevation covers the 4 × 4 km core box. Beyond it the terrain is CTX with coarser cells. `data/site/meta.json` records a CTX offset of 10.9 m and a residual RMS of 38.6 m against the HiRISE DTM.

@@ -44,7 +44,7 @@ A client that connects late gets `hello`, then every `incident`, `assessment`, `
 |---|---|---|
 | `hello` | on connect | `product`, `version`, `site` (meta subset), `scenario` (incident list with planned times) |
 | `snapshot` | 10 Hz | `clock` {t, sol, lmst, speed, paused}, `phase` (`detect` \| `assess` \| `simulate` \| `respond` \| `idle`), `crew` [{id, e, s, z, heading, pace, o2, heat, dose, status}], `sensors` {dose_rate, seismic, tau} |
-| `incident` | when one fires | `id`, `kind` (`sep` \| `quake` \| `dust` \| `science`), `title`, `source` (citation), `scenario` (true if not an observation), `params` |
+| `incident` | when one fires | `id`, `kind` (`sep` \| `quake` \| `dust` \| `science`), `title`, `source` (citation), `scenario` (true if not an observation), `params`, and for a solar particle event `detection` (see below) |
 | `assessment` | after an incident | `incident_id`, `changes` [{label, value, unit, source, kind}], `overlays` [{layer, file}], `shelters` [{id, name, e, s, open, reason}] |
 | `routes` | after planning | `incident_id`, `file` (`runtime/routes.json`), `routes` [{id, shelter, length_m, time_s, ascent_m, max_slope, o2_margin, heat_margin, dose, robustness_nats, mc_fail_rate, status}] |
 | `stress` | per route, as results load | `route_id`, `robustness_nats`, `failures` [{class, e, s, t, log_p, events}], `heatmap` (file), `method` (`ppo-ast` \| `cem` \| `mc`) |
@@ -52,6 +52,14 @@ A client that connects late gets `hello`, then every `incident`, `assessment`, `
 | `log` | any time | `level`, `text`, `source` |
 
 `kind` on a number is one of `measured`, `model`, `requirement`, `assumption`, `scenario`. The dashboard shows it next to the value.
+
+`detection` says how a solar particle incident was raised. The storm starts at the scenario's `onset_s`; the incident
+fires when the on-site rule trips (dose rate in the open at least `nowcastPct` percent above the background), so its `t`
+is a few seconds later. Fields: `method`, `rule`, `source`, `onset_t`, `alert_t`, `delay_s`, `readings` (numbers with
+`kind` and `source`), `replay`, and the Earth-side record of the same storm from `data/space_weather/`: `earth` (rows
+with `kind`, `source`, `url`), `earth_summary`, `earth_note`. The Earth-side record is context and never triggers an
+incident; `earth` is empty when the file is missing. A scenario incident declares how it fires in `trigger.type`:
+`time`, `walk`, `sol` or `sensor`.
 
 Dashboard → engine (same socket): `{"cmd": "start" | "pause" | "resume" | "reset" | "speed" | "trigger" | "choose" | "cue", ...}`.
 
@@ -114,7 +122,7 @@ Positions are local metres. Fractions are 0..1. `kind` on any number: `measured`
            {"id":"R","name":"Rover","kind":"rover","e":3350,"s":9200,"z":-3305.0},
            {"id":"A","name":"Overhang A","kind":"shelter","e":4248,"s":8458,"z":-3290.0}],
  "scenario":[{"id":"sep-1","kind":"sep","title":"Solar particle event","at_s":60},
-             {"id":"quake-1","kind":"quake","title":"Marsquake","at_s":420},
+             {"id":"quake-1","kind":"quake","title":"Marsquake","at_s":485.5},
              {"id":"sci-1","kind":"science","title":"Fresh boulder","at_s":900}]}
 
 {"type":"snapshot","t":134.2,
@@ -125,30 +133,39 @@ Positions are local metres. Fractions are 0..1. `kind` on any number: `measured`
  "sensors":{"dose_rate":12.4,"seismic":0.02,"tau":0.6},
  "light_time_s":656.7}
 
-{"type":"incident","t":60,"id":"sep-1","kind":"sep","title":"Solar particle event",
+{"type":"incident","t":65.5,"id":"sep-1","kind":"sep","title":"Solar particle event",
  "summary":"Dose rate rising. Peak expected within 53 minutes.",
  "source":"Loewe et al. 2025, arXiv:2502.02469, Table 1 (MSL RAD, 20 May 2024)","scenario":true,
  "e":null,"s":null,
- "params":[{"label":"Time to peak","value":53,"unit":"min","kind":"measured","source":"arXiv:2502.02469"}]}
+ "params":[{"label":"Time to peak","value":53,"unit":"min","kind":"measured","source":"arXiv:2502.02469"}],
+ "detection":{"method":"On-site dose-rate rule","rule":"Alert when the dose rate is 25% above the background",
+              "source":"Simplified from the RAD nowcast of Loewe et al. 2025, arXiv:2502.02469",
+              "onset_t":60.0,"alert_t":65.5,"delay_s":5.5,
+              "readings":[{"label":"Alert threshold","value":10.94,"unit":"uGy/h","kind":"requirement","source":"..."}],
+              "replay":"Storm profile: replay of the 20 May 2024 event at Mars, idealised (scenario).",
+              "earth":[{"label":"First notification issued","value":"20 May 2024 15:52 UTC","unit":"","kind":"measured",
+                        "source":"NASA CCMC DONKI notification 20240520-AL-001","url":"..."}],
+              "earth_summary":"From Earth, the first notification came 10.3 h after the eruption was first seen and Mars was not among the predicted impacts.",
+              "earth_note":"..."}}
 
-{"type":"assessment","t":64,"incident_id":"sep-1",
+{"type":"assessment","t":69,"incident_id":"sep-1",
  "changes":[{"label":"Shelter rule","value":30,"unit":"min","kind":"requirement","source":"..."}],
  "overlays":[{"layer":"sky","file":"runtime/overlay_sky.png","label":"Open sky (unshielded)"}],
  "shelters":[{"id":"A","name":"Overhang A","e":4248,"s":8458,"open":true,"reason":""}]}
 
-{"type":"routes","t":68,"incident_id":"sep-1","file":"runtime/routes.json",
+{"type":"routes","t":73,"incident_id":"sep-1","file":"runtime/routes.json",
  "routes":[{"id":0,"shelter":"A","label":"Overhang A","length_m":912,"time_s":780,"ascent_m":35,"max_slope":18.2,
             "o2_margin":0.61,"heat_margin":0.44,"dose":0.8,
             "robustness_nats":null,"mc_fail_rate":null,"status":"candidate"}]}
 
-{"type":"stress","t":80,"incident_id":"sep-1","route_id":0,"method":"cem","source":"data/ast",
+{"type":"stress","t":85,"incident_id":"sep-1","route_id":0,"method":"cem","source":"data/ast",
  "robustness_nats":7.9,"mc_fail_rate":0.012,"mc_ci":[0.008,0.018],"n":20000,
  "failures":[{"class":"heat","e":4300,"s":8350,"t":410,"log_p":-8.1,
               "summary":"Cooling at 0.71 for 6 min on the 14 degree climb",
               "events":[{"t":300,"channel":"cooling","value":0.71,"log_p":-3.2}]}],
  "heatmap":"runtime/overlay_failures.png"}
 
-{"type":"decision","t":95,"incident_id":"sep-1","route_id":1,"shelter":"C","auto":true,
+{"type":"decision","t":100,"incident_id":"sep-1","route_id":1,"shelter":"C","auto":true,
  "reasons":["Highest robustness of the routes inside the 30-minute rule"],
  "avoided":[{"label":"Rockfall runout band","detail":"Route 0 crosses 140 m of it"}],
  "time_to_shelter_s":820,"margins":{"o2":0.58,"heat":0.40,"dose":0.9}}

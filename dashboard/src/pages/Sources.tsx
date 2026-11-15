@@ -10,7 +10,8 @@ const DATA: Row[] = [
   { name: 'Viking MDIM 2.1 colourised global mosaic, 232 m per pixel', credit: 'USGS Astrogeology Science Center / NASA Ames', terms: 'Public domain', use: 'Broad hue variation of the terrain colour in the 3D view.' },
 ]
 const INCIDENT_DATA: Row[] = [
-  { name: 'MSL RAD solar particle event of 20 May 2024 (Loewe et al. 2025, arXiv:2502.02469)', credit: 'NASA/JPL, Curiosity RAD team', terms: 'Published results', use: 'Time to peak, 30 minute shelter rule, unshielded dose.' },
+  { name: 'MSL RAD solar particle event of 20 May 2024 (Loewe et al. 2025, arXiv:2502.02469)', credit: 'NASA/JPL, Curiosity RAD team', terms: 'Published results', use: 'Time to peak, 30 minute shelter rule, unshielded dose, and the 25% alert threshold of the on-site rule.' },
+  { name: 'NASA CCMC DONKI (Space Weather Database Of Notifications, Knowledge, Information): coronal mass ejection 2024-05-20T05:36:00-CME-001, its notifications and model runs', credit: 'NASA Community Coordinated Modeling Center (CCMC), Moon to Mars Space Weather Analysis Office', terms: 'Public data', use: 'Earth-side record of the storm the scenario replays, shown next to the alert. Context only: the alert comes from the on-site dose-rate rule.' },
   { name: 'MSL RAD background dose (Hassler et al. 2014, Science 343)', credit: 'MSL RAD team', terms: 'Published results', use: 'Background dose rate from galactic cosmic rays.' },
   { name: 'Marsquake rockfall at Cerberus Fossae (Vijayan et al. 2026)', credit: 'Authors as cited', terms: 'Published results', use: 'Boulder count and rockfall rate after a marsquake. Observed at Cerberus Fossae, not at Melas Chasma.' },
   { name: 'InSight Mars Seismic Catalogue, MQS v14', credit: 'InSight Marsquake Service, ETH Zurich', terms: 'doi 10.12686/a21', use: 'Context for scenario marsquakes.' },

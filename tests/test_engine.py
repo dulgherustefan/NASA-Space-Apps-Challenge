@@ -193,21 +193,66 @@ def test_late_client_gets_every_incident_since_reset():
 
 
 def test_incidents_fire_at_scenario_time(demo_run, scen):
-    """at_s in the scenario files is when the incident really fires (demo pacing does not shift it)."""
-    _, msgs, _ = demo_run
-    for iid in ("sep-1", "quake-1"):
-        assert _incident_msg(msgs, iid)["t"] == pytest.approx(scen.incidents[iid]["at_s"], abs=0.1), iid
-    sep, quake = scen.incidents["sep-1"], scen.incidents["quake-1"]
+    """The storm starts at onset_s and its incident fires when the on-site rule trips; the quake follows the walk."""
+    from engine import spaceweather as W
     from engine.params import PARAMS
-    assert quake["at_s"] == pytest.approx(sep["at_s"] + PARAMS["reactS"] + quake["trigger"]["after_walk_s"])
+    _, msgs, _ = demo_run
+    sep, quake = scen.incidents["sep-1"], scen.incidents["quake-1"]
+    alert = sep["trigger"]["onset_s"] + W.delay_s()
+    assert _incident_msg(msgs, "sep-1")["t"] == pytest.approx(alert, abs=0.1)
+    assert _incident_msg(msgs, "quake-1")["t"] == pytest.approx(quake["at_s"], abs=0.1)
+    assert quake["at_s"] == pytest.approx(alert + PARAMS["reactS"] + quake["trigger"]["after_walk_s"], abs=0.1)
 
 
 def test_crew_starts_walking_react_after_alert(demo_run, scen):
     from engine.params import PARAMS
-    _, _, snaps = demo_run
+    _, msgs, snaps = demo_run
     walking = [s["t"] for s in snaps if s["incident_id"] == "sep-1" and s["crew"][0]["status"] == 0]
     assert walking
-    assert min(walking) >= scen.incidents["sep-1"]["at_s"] + PARAMS["reactS"] - 1e-6
+    assert min(walking) >= _incident_msg(msgs, "sep-1")["t"] + PARAMS["reactS"] - 1e-6
+
+
+def test_storm_alert_comes_from_the_on_site_rule(demo_run):
+    """The solar particle incident carries how it was detected: a threshold on the dose rate, crossed after onset."""
+    from engine import spaceweather as W
+    _, msgs, _ = demo_run
+    det = _incident_msg(msgs, "sep-1")["detection"]
+    assert det["alert_t"] > det["onset_t"] and det["delay_s"] == pytest.approx(W.delay_s(), abs=0.1)
+    r = {x["label"]: x for x in det["readings"]}
+    assert r["Dose rate at the alert"]["value"] >= r["Alert threshold"]["value"] - 0.01
+    assert r["Dose rate at the alert"]["kind"] == "model"          # a modelled sensor, never labelled measured
+    assert r["Alert threshold"]["value"] == pytest.approx(W.threshold(), abs=0.01)
+    assert "detection" not in _incident_msg(msgs, "quake-1")
+
+
+def test_earth_side_record_is_donki_as_saved():
+    """Rows shown as Earth-side evidence repeat the saved DONKI record and cite it."""
+    from engine import spaceweather as W
+    rec = W.load_record()
+    assert rec and rec["cme"]["activityID"] == "2024-05-20T05:36:00-CME-001"
+    rows = {x["label"]: x for x in W.earth_side(rec)}
+    assert rows["Speed of its shock front"]["value"] == max(a["speed"] for a in rec["cme"]["analyses"])
+    assert rows["Notification came after the first sighting by"]["value"] == pytest.approx(10.3, abs=0.05)
+    hit = {i["location"] for a in rec["cme"]["analyses"] for e in a["enlil"] for i in e["impactList"]}
+    assert rows["Mars in the predicted impacts"]["value"] == ("yes" if "Mars" in hit else "no")
+    assert rows["Particle event records in DONKI that week"]["value"] == len(rec["sep"])
+    for x in rows.values():
+        assert x["kind"] in ("measured", "model") and "DONKI" in x["source"] and x["url"].startswith("https://")
+
+
+def test_engine_runs_without_the_donki_record(tmp_path):
+    from engine import spaceweather as W
+    assert W.load_record(str(tmp_path / "missing.json")) is None
+    assert W.earth_side(None) == []
+    assert W.detection(60.0, 65.5, 11.0, None)["earth"] == []
+
+
+def test_weak_storm_never_trips_the_rule(monkeypatch):
+    from engine import spaceweather as W
+    from engine.params import PARAMS
+    assert 0 < W.delay_s() < 60
+    monkeypatch.setitem(PARAMS, "sepTotal", 1.0)
+    assert W.delay_s() is None
 
 
 def test_quake_recommended_route_is_not_all_late(demo_run):

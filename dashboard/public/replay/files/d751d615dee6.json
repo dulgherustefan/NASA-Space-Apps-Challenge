@@ -359,6 +359,20 @@
    "step": 1
   },
   {
+   "key": "nowcastPct",
+   "label": "Solar storm: alert threshold above background",
+   "value": 25,
+   "unit": "%",
+   "kind": "requirement",
+   "group": "Radiation",
+   "note": "The on-site rule raises the alert when the dose rate is this far above the background. Threshold of the published RAD nowcast; the engine applies it to its modelled dose rate.",
+   "source": "Loewe et al. 2025, arXiv:2502.02469",
+   "url": "https://arxiv.org/abs/2502.02469",
+   "min": 10,
+   "max": 200,
+   "step": 5
+  },
+  {
    "key": "shieldK",
    "label": "Terrain shielding per blocked sky",
    "value": 0.63,
