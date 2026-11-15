@@ -6,6 +6,10 @@ extravehicular walk. A message to Earth and back takes about 22 minutes in Novem
 distances) and up to about 44 minutes at the longest. The demo is set in north-east Melas Chasma (about 10.0°S, 290.04°E)
 on real HiRISE and CTX terrain.
 
+NASA's 2026 Civil Space Shortfalls list this as an open need (8.06): "Provide in-situ decision support tools to address
+identified EVA hazards and risks on the Martian surface"
+([list](https://www.nasa.gov/wp-content/uploads/2026/03/2026-civil-space-shortfalls.pdf)).
+
 It was made for the NASA Space Apps Challenge 2026, challenge "Interplanetary Survival Guide: Martian Map".
 It is not affiliated with or endorsed by NASA, and it is a planning aid only. Nothing here has been tested with a crew.
 
@@ -59,7 +63,7 @@ The demo plays three linked scenario incidents (`data/scenario/`):
 |---|---|---|
 | `sep-1` | Solar particle event | Timing follows the 20 May 2024 event seen by the MSL RAD instrument. The crew walks to a shelter under a 30-minute rule. |
 | `quake-1` | Marsquake | The rockfall runout band below the wall becomes active, shelters inside it close, routes are planned again from where the crew is. |
-| `sci-1` | Fresh boulder | One sol later, no storm. A sortie from the rover to a fresh boulder and back, with the runout band as a hazard. |
+| `sci-1` | Fresh boulder | One sol later, no storm. A sortie from the rover to a fresh boulder and back, with the runout band as a hazard. A boulder that came down the wall brings rock from layers nobody can walk to, the reason Apollo 17 sampled the boulders at Station 6. |
 
 ## Architecture
 

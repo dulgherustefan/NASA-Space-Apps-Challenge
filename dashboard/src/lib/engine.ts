@@ -1,7 +1,7 @@
 import { ENGINE_URL, REPLAY, fileUrl } from './config'
 import { replayCmd, startReplay } from './replay'
 import { applyMessage, setConn, setRoutesFile, setTrajFile, store } from './store'
-import type { EngineMsg, ParamDef, RoutesFile, TrajFile } from './types'
+import type { EngineMsg, ParamDef, PovItem, RoutesFile, TrajFile } from './types'
 import { chime } from './alert'
 
 let ws: WebSocket | null = null
@@ -35,6 +35,13 @@ export async function loadParams() {
   const items = (arr as ParamDef[]).filter((p) => p && typeof p === 'object' && 'label' in p)
   store.set({ params: { status: items.length ? 'ready' : 'error', items } })
 }
+export async function loadPov() {
+  const j = await getJson<Record<string, PovItem> | { views?: Record<string, PovItem> }>('data/site/pov/pov.json')
+  const views = j && typeof j === 'object' ? ((j as { views?: Record<string, PovItem> }).views ?? (j as Record<string, PovItem>)) : null
+  const ok: Record<string, PovItem> = {}
+  for (const [id, v] of Object.entries(views ?? {})) if (v && typeof v === 'object' && typeof v.file === 'string') ok[id] = v
+  store.set({ pov: ok })
+}
 export async function loadTraining() {
   store.set((s) => ({ training: s.training.status === 'ready' ? s.training : { status: 'loading' } }))
   const j = await getJson<unknown>('data/ast/ast_training.json')
@@ -48,6 +55,7 @@ function handle(msg: EngineMsg) {
     case 'hello':
       midLoaded = false
       void loadParams()
+      void loadPov()
       // Optional hint outside the contract: ast === false means the offline stress-test output has not
       // arrived, so there is no training file to ask for (saves a 404 on every connect).
       if ((msg as { ast?: unknown }).ast === false) store.set({ training: { status: 'missing' } })

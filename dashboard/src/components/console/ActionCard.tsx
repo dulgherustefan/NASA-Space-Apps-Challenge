@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { ArrowUp, Check, CircleCheck, ShieldAlert, TriangleAlert } from 'lucide-react'
 import { focusBundle, useStore, type IncidentBundle } from '@/lib/store'
+import { fileUrl } from '@/lib/config'
 import { compass, deadlineOf, walkView, type Deadline, type WalkView } from '@/lib/derive'
 import { dur, missionT, num, splitLabel } from '@/lib/format'
 import type { Decision, RouteSummary } from '@/lib/types'
@@ -69,6 +70,21 @@ function Heading({ walk }: { walk: WalkView }) {
   )
 }
 
+/** What the destination looks like from the approach: a render of the terrain model, labelled as such. */
+function ArrivalView({ placeId, name }: { placeId: string | undefined; name: string }) {
+  const item = useStore((s) => (placeId ? s.pov[placeId] : undefined))
+  const [failed, setFailed] = useState(false)
+  if (!item || failed) return null
+  const path = item.file.includes('/') ? item.file : `data/site/pov/${item.file}`
+  return (
+    <figure className="mt-4 border-t border-rule pt-3.5">
+      <div className="mb-2 text-[12.5px] text-ink2">View on arrival</div>
+      <img src={fileUrl(path)} alt={`Rendered view of ${name} from the approach`} loading="lazy" onError={() => setFailed(true)} className="aspect-video w-full rounded-[4px] border border-rule2 object-cover" />
+      <figcaption className="mt-1.5 text-[12px] leading-snug text-ink3">{item.caption ?? 'Rendered from the HiRISE elevation model. Colour is approximate; ground detail and rocks are set dressing.'}</figcaption>
+    </figure>
+  )
+}
+
 function Decided({ b, d, route, compact }: { b: IncidentBundle; d: Decision; route?: RouteSummary; compact?: boolean }) {
   const snap = useStore((s) => s.snapshot)
   const routesFile = useStore((s) => s.routesFile)
@@ -125,6 +141,8 @@ function Decided({ b, d, route, compact }: { b: IncidentBundle; d: Decision; rou
           </div>
         </div>
       </div>
+
+      {walk.phase !== 'arrived' && <ArrivalView placeId={sortie ? (b.incident.kind === 'science' ? 'B' : d.shelter) : d.shelter} name={name} />}
 
       {!compact && (
         <div className="mt-4 border-t border-rule pt-3.5">

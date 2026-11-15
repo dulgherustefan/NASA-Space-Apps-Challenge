@@ -81,6 +81,8 @@ export interface TrajRun {
   events?: { t: number; channel: string; value: number; log_p: number }[]
 }
 export interface TrajFile { dt: number; runs: TrajRun[] }
+/** data/site/pov/pov.json: a rendered view of each destination as the crew would see it on arrival. */
+export interface PovItem { file: string; e?: number; s?: number; z?: number; heading?: number; caption?: string }
 export interface ParamDef {
   key: string; label: string; value: number; unit: string; kind: string; group?: string; note?: string; source?: string; url?: string
   min?: number; max?: number

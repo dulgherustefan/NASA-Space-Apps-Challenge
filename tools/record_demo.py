@@ -57,6 +57,9 @@ class Files:
     def watched(self):
         paths = [os.path.join(RUNTIME, n) for n in sorted(os.listdir(RUNTIME)) if n.endswith((".json", ".png"))]
         paths.append(os.path.join(SITE_DIR, "core_ortho.webp"))
+        pov = os.path.join(SITE_DIR, "pov")
+        if os.path.isdir(pov):                       # arrival views, if the site has them
+            paths.extend(os.path.join(pov, n) for n in sorted(os.listdir(pov)) if n.endswith((".json", ".jpg", ".png", ".webp")))
         if os.path.isdir(AST_DIR):
             paths.append(os.path.join(AST_DIR, "ast_training.json"))
         return [p for p in paths if os.path.isfile(p)]
