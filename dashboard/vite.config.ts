@@ -17,7 +17,7 @@ function csp(engineUrl: string, live: boolean): Plugin {
       const ext = live ? ' https:' : ''
       const policy = [
         "default-src 'self'",
-        "script-src 'self'",
+        `script-src 'self'${live ? " 'wasm-unsafe-eval'" : ''}`,
         "style-src 'self' 'unsafe-inline'",
         `img-src 'self' data: blob: ${http} ${local.filter((x) => x.startsWith('http')).join(' ')}${ext}`,
         "worker-src 'self' blob:",
