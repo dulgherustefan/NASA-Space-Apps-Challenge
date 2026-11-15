@@ -181,6 +181,16 @@ const INCIDENTS = {
   'sep-1': {
     kind: 'sep', title: 'Solar particle event', scenario: true, source: SRC_SEP,
     summary: 'Dose rate rising. Peak expected within 53 minutes.',
+    // same shape as the engine's detection block (engine/spaceweather.py); the mock has no Earth-side record
+    detection: {
+      method: 'On-site dose-rate rule', rule: 'Alert when the dose rate is 25% above the background',
+      source: 'Simplified from the RAD nowcast of Loewe et al. 2025, arXiv:2502.02469', onset_t: 60, alert_t: 60, delay_s: 0,
+      readings: [
+        { label: 'Background dose rate', value: 8.75, unit: 'uGy/h', kind: 'measured', source: 'Hassler et al. 2014, Science 343' },
+        { label: 'Alert threshold', value: 10.94, unit: 'uGy/h', kind: 'requirement', source: 'Simplified from the RAD nowcast of Loewe et al. 2025, arXiv:2502.02469' },
+      ],
+      replay: 'Mock engine: the alert fires on the clock, not from a dose-rate model.', earth: [],
+    },
     params: [
       { label: 'Time to peak', value: 53, unit: 'min', kind: 'measured', source: 'arXiv:2502.02469' },
       { label: 'Unshielded total dose', value: 8100, unit: 'uGy', kind: 'measured', source: 'NASA/JPL, 2024 (MSL RAD, 20 May 2024)' },
@@ -373,7 +383,7 @@ function runStep(a, name) {
   switch (name) {
     case 'incident': {
       S.phase = 'detect'
-      emit({ type: 'incident', t: round(S.t, 1), id: a.id, kind: def.kind, title: def.title, summary: def.summary, source: def.source, scenario: def.scenario, e: null, s: null, params: def.params })
+      emit({ type: 'incident', t: round(S.t, 1), id: a.id, kind: def.kind, title: def.title, summary: def.summary, source: def.source, scenario: def.scenario, e: null, s: null, params: def.params, ...(def.detection ? { detection: def.detection } : {}) })
       logMsg(`Incident ${a.id}: ${def.title}`, 'warn')
       break
     }
@@ -541,6 +551,7 @@ function reset() {
   for (const c of clients) send(c, S.history[0])
 }
 
+let planN = 0
 function handleCmd(m) {
   switch (m.cmd) {
     case 'start': if (S.mode === 'idle') { S.mode = 'scenario'; logMsg('Scenario started') } break
@@ -552,6 +563,7 @@ function handleCmd(m) {
     case 'trigger': if (INCIDENTS[m.id]) startIncident(m.id); else logMsg(`Unknown incident ${m.id}`, 'warn'); break
     case 'choose': if (S.active || S.lastActive) choose(S.active ?? S.lastActive, Number(m.route_id), false); else logMsg('No routes to choose from', 'warn'); break
     case 'cue': logMsg(`Camera cue ${m.name}`); break
+    case 'plan': emit({ type: 'plan', t: round(S.t, 1), id: `plan-${++planN}`, ok: false, reason: 'The mock engine does not plan walks. Start the Python engine' }, false); break
     default: logMsg(`Unknown command ${m.cmd}`, 'warn')
   }
 }

@@ -150,25 +150,31 @@ function Decided({ b, d, route, compact }: { b: IncidentBundle; d: Decision; rou
             {d.reasons.slice(0, 2).map((r, i) => (
               <li key={i} className="flex gap-2 text-[13px] leading-snug text-ink"><Check size={14} className="mt-[2px] shrink-0 text-safe" />{r}</li>
             ))}
+            {d.avoided.slice(0, 1).map((a, i) => <Avoided key={`a${i}`} a={a} />)}
           </ul>
-          {(d.reasons.length > 2 || d.avoided.length > 0) && (
-            <More label={`Why this route, and what it avoids (${d.reasons.length - Math.min(2, d.reasons.length) + d.avoided.length})`}>
+          {(d.reasons.length > 2 || d.avoided.length > 1) && (
+            <More label={`More on why this route, and what it avoids (${Math.max(0, d.reasons.length - 2) + Math.max(0, d.avoided.length - 1)})`}>
               <ul className="mt-1.5 space-y-1.5">
                 {d.reasons.slice(2).map((r, i) => (
                   <li key={i} className="flex gap-2 text-[13px] leading-snug text-ink"><Check size={14} className="mt-[2px] shrink-0 text-safe" />{r}</li>
                 ))}
-                {d.avoided.map((a, i) => (
-                  <li key={`a${i}`} className="flex gap-2">
-                    <ShieldAlert size={14} className="mt-[2px] shrink-0 text-hazard" strokeWidth={1.8} />
-                    <div className="min-w-0 text-[13px] leading-snug"><span className="text-ink">{a.label}</span>{a.detail && <span className="text-ink3"> · {a.detail}</span>}</div>
-                  </li>
-                ))}
+                {d.avoided.slice(1).map((a, i) => <Avoided key={`a${i}`} a={a} />)}
               </ul>
             </More>
           )}
         </div>
       )}
     </div>
+  )
+}
+
+/** One hazard the chosen route stays out of. */
+function Avoided({ a }: { a: { label: string; detail?: string } }) {
+  return (
+    <li className="flex gap-2">
+      <ShieldAlert size={14} className="mt-[2px] shrink-0 text-hazard" strokeWidth={1.8} />
+      <div className="min-w-0 text-[13px] leading-snug"><span className="text-ink2">Avoids: </span><span className="text-ink">{a.label}</span>{a.detail && <span className="text-ink3"> · {a.detail}</span>}</div>
+    </li>
   )
 }
 

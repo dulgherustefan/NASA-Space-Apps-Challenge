@@ -17,15 +17,21 @@ It is not affiliated with or endorsed by NASA, and it is a planning aid only. No
 
 ![The Solway dashboard during the solar particle event scenario](docs/img/dashboard.png)
 
-The dashboard during the scripted solar particle event. Right: where to go, the walking time against the 30-minute
-shelter rule, the heading, and what is left on arrival. Centre: the map with the chosen route. Left: the incident and
-what it changed. Every figure is labelled as measured, model, requirement, assumption or scenario.
+The dashboard during the solar particle event scenario. One map and one panel. The panel leads with the decision:
+where to go, the walking time against the 30-minute shelter rule, the heading, what is left on arrival, and the hazard
+the chosen route avoids. Below it, three tabs: the routes, the crew, and the situation (how the incident was detected
+and what it changed). Every figure is labelled as measured, model, requirement, assumption or scenario.
+
+![Plan a walk: a click on the map returns the walking route from the crew to that point](docs/img/plan.png)
+
+Plan a walk, before going out: a click on the map returns the route from the crew to that point, with its walking time,
+what is left on arrival, the failure rate from a small local Monte Carlo run, and the metres without radio line of
+sight. No incident is involved and the crew is not sent anywhere.
 
 <img src="docs/img/dashboard_field.png" alt="The same screen on a tablet: one column" width="360">
 
-The same screen has three widths: both side panels on a habitat display, one panel on a laptop, and a single column
-with large targets on a tablet (above). A recorded run of the demo plays in a browser with no engine
-(`npm run build:web`, see below).
+On a tablet or a cuff display the same screen is one column with large targets: the decision first, then the map, then
+the tabs (above). A recorded run of the demo plays in a browser with no engine (`npm run build:web`, see below).
 
 ![The 3D view: two crew members walk the chosen route](docs/img/scene.jpg)
 
@@ -95,7 +101,7 @@ layers, the routes and the stress-test results. The two windows display what the
 | Part | What it does | Technology | Port |
 |---|---|---|---|
 | Engine | Clock, scenario, hazards, route planning, stress tests; serves the dashboard and sends OSC | Python 3.12, numpy, numba, FastAPI, uvicorn, python-osc | 8765 (HTTP and WebSocket `/ws`), sends to UDP 9000 |
-| Dashboard | The product: map, response and situation on one screen in three widths, with method, parameters, decision log and sources pages | Electron, Vite, React 19, Tailwind 4, Recharts | dev server 5173 |
+| Dashboard | The product: one map and one response panel, wide, laptop and single-column field layouts, with method, parameters, decision log and sources pages | Electron, Vite, React 19, Tailwind 4, Recharts | dev server 5173 |
 | Simulation | Real terrain in 3D, crew, hazard overlays, routes, marsquake effects, cameras | Unreal Engine 5.8, project `unreal/MelasSim` | listens on UDP 9000 |
 | Adversary training (optional) | Trains the stress-test adversary offline on another machine and writes `data/ast/` | Python, PyTorch | none |
 

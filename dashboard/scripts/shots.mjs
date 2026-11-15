@@ -72,6 +72,16 @@ await page.waitForSelector('[data-layout]', { timeout: 15000 })
 await wait(1500)
 await shot('01-idle')
 
+// 2b. a planned walk before the mission starts: the route from the crew to the rover (needs the Python engine)
+await send({ cmd: 'plan', to: { e: 3350, s: 9200 } })
+try {
+  await page.getByRole('button', { name: 'Close plan' }).waitFor({ timeout: 20000 })
+  await wait(1500)
+  await shot('02-plan')
+  await page.getByRole('button', { name: 'Close plan' }).click()
+  await wait(400)
+} catch { console.log('no plan answer (the mock engine does not plan)') }
+
 // 3. mission running, no incident
 await send({ cmd: 'start' })
 await wait(3500)
