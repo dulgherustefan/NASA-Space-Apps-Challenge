@@ -16,26 +16,32 @@ export interface Hello {
   scenario: ScenarioItem[]
 }
 export interface CrewState { id: number; name?: string; e: number; s: number; z: number; heading: number; pace: number; o2: number; heat: number; dose: number; status: number }
-export interface Sensors { dose_rate: number; seismic: number; tau: number }
+export interface Sensors { dose_rate: number; seismic: number; tau: number; dose_rate_open?: number }
+/** Sent while the crew walks a chosen route. */
+export interface WalkState { route_id: number; incident_id: string; elapsed_s: number; time_s: number }
 export interface Snapshot {
   type: 'snapshot'; t: number
-  clock: { t: number; sol: number; lmst: string; utc?: string; speed: number; paused: boolean }
+  clock: { t: number; sol: number; lmst: string; ltst?: string; utc?: string; speed: number; paused: boolean; sun_az?: number; sun_el?: number }
   phase: Phase; incident_id?: string | null
-  crew: CrewState[]; sensors: Sensors; light_time_s?: number
+  crew: CrewState[]; sensors: Sensors; light_time_s?: number; walk?: WalkState
 }
 export interface Quantity { label: string; value: number | string; unit?: string; source?: string; kind: Kind }
 export interface Incident {
   type: 'incident'; t: number; id: string; kind: IncidentKind; title: string; summary?: string; source?: string
   scenario: boolean; e?: number | null; s?: number | null; params?: Quantity[]
 }
-export interface ShelterState { id: string; name: string; e: number; s: number; open: boolean; reason?: string }
+export interface ShelterState { id: string; name: string; e: number; s: number; open: boolean; reason?: string; shield?: number }
+/** Time allowed from the first step, in seconds. null when the incident sets no deadline. */
+export interface Limits { shelter_s: number | null; peak_s: number | null }
 export interface Assessment {
   type: 'assessment'; t: number; incident_id: string; changes: Quantity[]
-  overlays?: { layer: string; file: string; label?: string }[]; shelters?: ShelterState[]
+  overlays?: { layer: string; file: string; label?: string }[]; shelters?: ShelterState[]; limits?: Limits
 }
 export interface RouteSummary {
   id: number; shelter: string; label?: string; length_m: number; time_s: number; ascent_m: number; max_slope: number
   o2_margin: number; heat_margin: number; dose: number; robustness_nats: number | null; mc_fail_rate: number | null; status: RouteStatus
+  /** Planner extras: metres inside the rockfall band, and whether the route meets the incident's rules. */
+  band_m?: number; rule_ok?: boolean; rule_reasons?: string[]
 }
 export interface RoutesMsg { type: 'routes'; t: number; incident_id: string; file?: string; routes: RouteSummary[] }
 export interface FailureEvent { t: number; channel: string; value: number; log_p: number }
@@ -49,6 +55,8 @@ export interface Decision {
   type: 'decision'; t: number; incident_id?: string; route_id: number; shelter?: string; auto?: boolean
   reasons: string[]; avoided: { label: string; detail?: string }[]; time_to_shelter_s: number
   margins: { o2: number; heat: number; dose: number }
+  /** Dose on the chosen walk in mSv, when the engine sends it. */
+  dose_msv?: number
 }
 export interface LogMsg { type: 'log'; t: number; level: string; text: string; source?: string }
 export type EngineMsg = Hello | Snapshot | Incident | Assessment | RoutesMsg | Stress | Decision | LogMsg

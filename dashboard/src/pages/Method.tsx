@@ -1,4 +1,5 @@
 import { KINDS, KIND_INFO, KindGlyph } from '@/components/Kind'
+import { LearningCurve } from '@/components/LearningCurve'
 import { PageShell, H2, P } from './PageShell'
 
 export function MethodPage() {
@@ -8,7 +9,7 @@ export function MethodPage() {
       <P>
         When something changes on the surface, the system works through four steps. It <b className="text-ink">detects</b> the incident, <b className="text-ink">assesses</b> what
         it changes on the terrain map, <b className="text-ink">simulates</b> crews walking the candidate routes, and then <b className="text-ink">responds</b> with the route it
-        recommends, the time to shelter, and the margins left on arrival. The four columns on the console follow that order.
+        recommends, the time to shelter, and the margins left on arrival. The console shows the four steps above the recommendation.
       </P>
 
       <H2>How routes are found</H2>
@@ -31,8 +32,9 @@ export function MethodPage() {
       </P>
       <P>
         A result marked <b className="text-ink">trained offline</b> comes from a training run stored in the repository. A result marked <b className="text-ink">local preview</b> is a small run done
-        by the engine just now. It is quicker and less reliable. The learning curve in the Simulate column shows how the offline search improved over training.
+        by the engine just now. It is quicker and less reliable. The curve below shows how the offline search improved over training.
       </P>
+      <div className="mb-3 max-w-[680px]"><LearningCurve /></div>
 
       <H2>Every number carries a kind</H2>
       <P>The small symbol after a number says what sort of number it is. Hover it to see the source.</P>

@@ -1,15 +1,14 @@
 import { useStore } from '@/lib/store'
-import { ENGINE_URL } from '@/lib/config'
+import { KINDS, KindBadge } from './Kind'
 import { missionT } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
 export function Footer() {
   const last = useStore((s) => s.log[s.log.length - 1])
-  const n = useStore((s) => s.log.length)
   return (
-    <footer className="flex h-[24px] shrink-0 items-center justify-between gap-4 border-t border-rule bg-panel px-4 text-[11px] text-ink3">
+    <footer className="flex h-[30px] shrink-0 items-center justify-between gap-4 border-t border-rule bg-panel px-4 text-[12px] text-ink3">
       <div className="flex min-w-0 items-center gap-2">
-        <span className="eyebrow">Last message</span>
+        <span className="hidden sm:inline">Last message</span>
         {last ? (
           <span key={last.n} className="anim-fade flex min-w-0 items-center gap-2">
             <span className="num shrink-0">{missionT(last.t)}</span>
@@ -17,9 +16,9 @@ export function Footer() {
           </span>
         ) : <span>none yet</span>}
       </div>
-      <div className="flex shrink-0 items-center gap-3">
-        <span className="num">{n} events logged</span>
-        <span className="num">{ENGINE_URL}</span>
+      <div className="hidden shrink-0 items-center gap-1.5 lg:flex" aria-label="Kinds of number">
+        <span className="mr-1">Every number is</span>
+        {KINDS.map((k) => <KindBadge key={k} kind={k} />)}
       </div>
     </footer>
   )

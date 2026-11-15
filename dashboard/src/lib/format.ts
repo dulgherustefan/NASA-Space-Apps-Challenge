@@ -30,6 +30,11 @@ export function num(x: number | string | null | undefined, d?: number): string {
   if (a >= 10) return x.toFixed(1).replace(/\.0$/, '')
   return x.toFixed(2).replace(/0$/, '').replace(/\.0$/, '')
 }
+/** "Boulder and back, band-avoiding weights" -> name and planner variant. */
+export function splitLabel(label: string): { name: string; variant?: string } {
+  const i = label.indexOf(', ')
+  return i > 0 ? { name: label.slice(0, i), variant: label.slice(i + 2) } : { name: label }
+}
 export function pct1(x: number): string {
   const v = x * 100
   return v < 1 ? `${v.toFixed(2)}%` : `${v.toFixed(1)}%`

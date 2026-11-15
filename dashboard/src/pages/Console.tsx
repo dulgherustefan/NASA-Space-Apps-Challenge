@@ -1,23 +1,39 @@
-import { AssessColumn } from '@/components/columns/Assess'
-import { DetectColumn } from '@/components/columns/Detect'
-import { COL_FR, LoopRail } from '@/components/columns/PhaseColumn'
-import { RespondColumn } from '@/components/columns/Respond'
-import { SimulateColumn } from '@/components/columns/Simulate'
+import { useLayout } from '@/lib/derive'
+import { ActionCard } from '@/components/console/ActionCard'
+import { Crew } from '@/components/console/Crew'
+import { Routes } from '@/components/console/Routes'
+import { Situation } from '@/components/console/Situation'
 import { MapView } from '@/components/MapView'
 
+/**
+ * One screen, three widths.
+ * wide:  situation | map | decision   (habitat display)
+ * split: map | decision + situation   (laptop)
+ * field: decision, map, the rest      (tablet or cuff display: one column, large targets)
+ */
 export function ConsolePage() {
-  return (
-    <div className="grid h-full min-h-0" style={{ gridTemplateColumns: 'minmax(0,1fr) clamp(440px, 33vw, 660px)' }}>
-      <div className="flex min-h-0 min-w-0 flex-col">
-        <LoopRail widths={COL_FR} />
-        <div className="grid min-h-0 flex-1" style={{ gridTemplateColumns: COL_FR.map((f) => `minmax(0,${f}fr)`).join(' ') }}>
-          <DetectColumn />
-          <AssessColumn />
-          <SimulateColumn />
-          <RespondColumn />
-        </div>
+  const layout = useLayout()
+  if (layout === 'field') {
+    return (
+      <div className="h-full overflow-y-auto" data-layout="field">
+        <div className="z-20 border-b border-rule2 bg-panel [@media(min-height:900px)]:sticky [@media(min-height:900px)]:top-0"><ActionCard compact /></div>
+        <div className="h-[58vh] min-h-[320px] border-b border-rule"><MapView /></div>
+        <Crew />
+        <Routes />
+        <Situation />
       </div>
-      <aside className="min-h-0 min-w-0 border-l border-rule2"><MapView /></aside>
+    )
+  }
+  return (
+    <div className="grid h-full min-h-0" data-layout={layout} style={{ gridTemplateColumns: layout === 'wide' ? '312px minmax(0,1fr) 408px' : 'minmax(0,1fr) 392px' }}>
+      {layout === 'wide' && <aside className="min-h-0 overflow-y-auto border-r border-rule bg-[#0e1114]" aria-label="Situation"><Situation /></aside>}
+      <section className="min-h-0 min-w-0" aria-label="Map"><MapView /></section>
+      <aside className="min-h-0 overflow-y-auto border-l border-rule2 bg-panel" aria-label="Response">
+        <ActionCard />
+        <Crew />
+        <Routes />
+        {layout === 'split' && <div className="border-t border-rule"><Situation /></div>}
+      </aside>
     </div>
   )
 }

@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 export function PageShell({ title, lede, aside, children, wide }: { title: string; lede?: string; aside?: ReactNode; children: ReactNode; wide?: boolean }) {
   return (
     <div className="h-full overflow-y-auto">
-      <div className={`mx-auto px-8 pb-16 pt-8 ${wide ? 'max-w-[1240px]' : 'max-w-[900px]'}`}>
+      <div className={`mx-auto px-4 pb-16 pt-6 sm:px-8 sm:pt-8 ${wide ? 'max-w-[1240px]' : 'max-w-[900px]'}`}>
         <div className="flex items-start justify-between gap-6">
           <div>
             <h1 className="text-[26px] font-semibold leading-tight tracking-tight">{title}</h1>

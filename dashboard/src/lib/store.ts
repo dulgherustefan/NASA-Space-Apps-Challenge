@@ -207,7 +207,7 @@ export function applyMessage(msg: EngineMsg) {
       const b = state.incidents[id]
       store.set({
         incidents: { ...state.incidents, [id]: { ...b, decision: msg, stageT: { ...b.stageT, respond: msg.t } } },
-        selectedRoute: msg.route_id,
+        selectedRoute: null,
         log: pushLog({ t: msg.t, type: 'decision', title: `Route ${msg.route_id} chosen${msg.auto === false ? ' (operator)' : ''}`, detail: msg.reasons.join('; '), incident_id: id, raw: msg }),
       })
       return

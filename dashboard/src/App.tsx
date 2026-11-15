@@ -6,8 +6,7 @@ import { retryNow, startEngine } from '@/lib/engine'
 import { usePage } from '@/lib/route'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { Button } from '@/components/ui/button'
-import { TopBar } from '@/components/TopBar'
-import { SubBar } from '@/components/SubBar'
+import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { ConsolePage } from '@/pages/Console'
 import { MethodPage } from '@/pages/Method'
@@ -23,9 +22,9 @@ function OfflineBanner() {
   if (conn === 'connecting' && attempts === 0) return null
   // Floats above the footer so the console does not shift when the connection drops or returns.
   return (
-    <div role="alert" className="anim-rise pointer-events-auto fixed bottom-[34px] left-4 z-50 flex w-[min(720px,calc(100vw-32px))] items-start gap-3 rounded-[4px] border border-hazard/45 bg-[#1a1213]/95 px-4 py-3 shadow-[0_8px_32px_rgba(0,0,0,.55)] backdrop-blur-sm">
+    <div role="alert" className="anim-rise pointer-events-auto fixed bottom-[40px] left-4 z-50 flex w-[min(720px,calc(100vw-32px))] items-start gap-3 rounded-[6px] border border-hazard/45 bg-[#1a1213]/95 px-4 py-3 shadow-[0_8px_32px_rgba(0,0,0,.55)] backdrop-blur-sm">
       <WifiOff size={16} className="mt-[2px] shrink-0 text-hazard" />
-      <div className="min-w-0 flex-1 text-[12.5px] leading-snug">
+      <div className="min-w-0 flex-1 text-[13px] leading-snug">
         <div className="font-medium text-ink">{hadData ? 'Connection to the engine lost' : 'Engine not running'}</div>
         <div className="mt-0.5 text-ink2">
           {hadData ? 'Showing the last state received. ' : 'Nothing to show until it answers. '}
@@ -46,8 +45,7 @@ export default function App() {
   return (
     <TooltipProvider>
       <div className="flex h-full flex-col">
-        <TopBar />
-        <SubBar />
+        <Header />
         <OfflineBanner />
         <main className="min-h-0 flex-1">
           {page === 'console' && <ConsolePage />}

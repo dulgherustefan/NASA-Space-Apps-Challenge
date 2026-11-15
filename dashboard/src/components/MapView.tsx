@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Maximize2, Minus, Plus } from 'lucide-react'
+import { Maximize2, Minus, Plus, Route, Users } from 'lucide-react'
 import { CORE_DEFAULT, LAYER_LABEL, ORTHO_PATH, fileUrl, type Layer } from '@/lib/config'
 import { focusBundle, focusIncidentId, store, useStore } from '@/lib/store'
 import { ROUTE_STYLE, OUTCOME_FAIL, FAIL_LABEL } from '@/lib/routeStyle'
 import type { RouteStatus } from '@/lib/types'
 import { cn } from '@/lib/utils'
-import { LayerSwitch } from './columns/Assess'
-import { Button } from './ui/button'
+import { LayerLegend, LayerSwitch } from './console/Layers'
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip'
 
 interface Img { el: HTMLImageElement; ready: boolean; failed: boolean; at: number }
@@ -35,7 +34,7 @@ function getImg(url: string, online: boolean): Img | null {
 interface View { k: number; ox: number; oy: number; fit: number; w: number; h: number; fitted: boolean }
 interface Hit { x: number; y: number; r: number; title: string; lines: string[] }
 const INK = '#e7eaee'
-const MONO = '10px "JetBrains Mono Variable", ui-monospace, monospace'
+const MONO = '11px "JetBrains Mono Variable", ui-monospace, monospace'
 
 function halo(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, color = INK, align: CanvasTextAlign = 'left') {
   ctx.font = MONO; ctx.textAlign = align; ctx.textBaseline = 'middle'
@@ -73,6 +72,33 @@ export function MapView() {
     v.oy = (v.h - size * fit) / 2
     v.fitted = true
   }, [size])
+
+  /** Frame the routes of the incident in focus together with the crew. Falls back to the whole box. */
+  const fitRoutes = useCallback(() => {
+    const v = view.current
+    const st = store.get()
+    const incId = focusIncidentId(st)
+    const rf = st.routesFile && st.routesFile.incident_id === incId ? st.routesFile : null
+    const chosenId = focusBundle(st)?.decision?.route_id
+    const pts: [number, number][] = []
+    for (const r of rf?.routes ?? []) if (chosenId === undefined || r.id === chosenId) for (const p of r.points) pts.push([p[0], p[1]])
+    for (const c of st.snapshot?.crew ?? []) pts.push([c.e, c.s])
+    if (!v.w || !v.h || pts.length < 2) { fitView(); return }
+    let a = Infinity, b = -Infinity, c = Infinity, d = -Infinity
+    for (const [e, s] of pts) { a = Math.min(a, e); b = Math.max(b, e); c = Math.min(c, s); d = Math.max(d, s) }
+    // screen space kept free: layer chips on top, buttons and place labels on the right
+    const padL = 40, padR = Math.min(190, v.w * 0.28), padT = 84, padB = 56
+    const availW = Math.max(120, v.w - padL - padR), availH = Math.max(120, v.h - padT - padB)
+    const k = Math.min(v.fit * 9, Math.max(v.fit, Math.min(availW / Math.max(b - a, 220), availH / Math.max(d - c, 220))))
+    v.k = k
+    v.ox = padL + availW / 2 - ((a + b) / 2 - e0) * k
+    v.oy = padT + availH / 2 - ((c + d) / 2 - s0) * k
+  }, [fitView, e0, s0])
+
+  // new routes for the incident in focus: bring them into frame
+  const routesV = useStore((s) => s.routesV)
+  const chosenRoute = useStore((s) => focusBundle(s)?.decision?.route_id)
+  useEffect(() => { if (routesV > 0) fitRoutes() }, [routesV, focusId, chosenRoute, fitRoutes])
 
   const zoomAt = useCallback((f: number, cx?: number, cy?: number) => {
     const v = view.current
@@ -161,8 +187,7 @@ export function MapView() {
       // overlay
       const layer = st.overlay.layer
       let overlayNote = ''
-      const ph = st.snapshot?.phase
-      if (layer && (ph === 'assess' || ph === 'simulate' || ph === 'respond' || focusBundle(st)?.assessment)) {
+      if (layer) {
         const ov = getImg(fileUrl(`runtime/overlay_${layer}.png`, st.overlayV), online)
         if (ov?.ready) { ctx.globalAlpha = st.overlay.opacity; ctx.drawImage(ov.el, x0, y0, sz, sz); ctx.globalAlpha = 1 }
         else if (ov?.failed) overlayNote = `${LAYER_LABEL[layer as Layer] ?? layer} overlay not available yet`
@@ -175,7 +200,7 @@ export function MapView() {
       for (let s = s0; s <= s0 + size + 0.1; s += 500) { const y = Math.round(Y(s)) + 0.5; ctx.moveTo(x0, y); ctx.lineTo(x0 + sz, y) }
       ctx.stroke()
       ctx.strokeStyle = 'rgba(231,234,238,.28)'; ctx.strokeRect(Math.round(x0) + 0.5, Math.round(y0) + 0.5, sz, sz)
-      ctx.font = '9px "JetBrains Mono Variable", monospace'; ctx.fillStyle = 'rgba(231,234,238,.5)'
+      ctx.font = '10px "JetBrains Mono Variable", monospace'; ctx.fillStyle = 'rgba(231,234,238,.5)'
       ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'
       for (let e = e0; e <= e0 + size + 0.1; e += 1000) { const x = X(e); if (x > 8 && x < v.w - 8 && y0 > 12) { const tw = 17; ctx.textAlign = x - tw < 2 ? 'left' : x + tw > v.w - 2 ? 'right' : 'center'; ctx.fillText(String(e), x < tw + 2 ? 4 : x > v.w - tw - 2 ? v.w - 4 : x, y0 - 3) } }
       ctx.textAlign = 'right'; ctx.textBaseline = 'middle'
@@ -223,6 +248,7 @@ export function MapView() {
       }
 
       // routes
+      const decided = !!bundle?.decision
       if (routesFile) {
         const weight = (id: number) => (id === selId ? 3 : statusOf.get(id) === 'chosen' ? 2 : 0)
         const order = [...routesFile.routes].sort((p, q) => weight(p.id) - weight(q.id))
@@ -232,18 +258,19 @@ export function MapView() {
           const sty = ROUTE_STYLE[status]
           const sel = selId === r.id
           const chosen = status === 'chosen'
+          const back = decided && !chosen && !sel
           const ch = st.routeChangedAt[`${routesFile.incident_id}:${r.id}`]
           const flash = ch ? Math.max(0, 1 - (Date.now() - ch) / 1100) : 0
           ctx.beginPath()
           r.points.forEach((p, i) => (i ? ctx.lineTo(X(p[0]), Y(p[1])) : ctx.moveTo(X(p[0]), Y(p[1]))))
           ctx.lineJoin = 'round'; ctx.lineCap = 'round'
-          const base = chosen ? 3.4 : sel ? 3 : 2
-          ctx.setLineDash([]); ctx.strokeStyle = 'rgba(6,8,10,.8)'; ctx.lineWidth = base + 2.6; ctx.stroke()
+          const base = chosen ? 4.5 : sel ? 3.2 : back ? 1.6 : 2.2
+          ctx.setLineDash([]); ctx.strokeStyle = back ? 'rgba(6,8,10,.45)' : 'rgba(6,8,10,.8)'; ctx.lineWidth = base + 2.6; ctx.stroke()
           if (status === 'testing') { ctx.setLineDash([7, 5]); ctx.lineDashOffset = -((now / 45) % 12) }
           else if (status === 'rejected') ctx.setLineDash([2, 5])
           else if (status === 'infeasible') ctx.setLineDash([1, 5])
-          ctx.globalAlpha = status === 'infeasible' ? 0.6 : 1
-          ctx.strokeStyle = sty.color; ctx.lineWidth = base + flash * 3; ctx.stroke()
+          ctx.globalAlpha = back ? 0.55 : status === 'infeasible' ? 0.6 : 1
+          ctx.strokeStyle = back ? '#aab3bf' : sty.color; ctx.lineWidth = base + flash * 3; ctx.stroke()
           ctx.setLineDash([])
           if (flash > 0) { ctx.globalAlpha = flash * 0.5; ctx.lineWidth = base + 10 * (1 - flash) + 4; ctx.stroke() }
           ctx.globalAlpha = 1
@@ -255,14 +282,12 @@ export function MapView() {
             if (acc >= total * 0.3) { tp = r.points[i]; break }
           }
           const tx = X(tp[0]), ty = Y(tp[1])
-          ctx.fillStyle = '#0a0c0f'; ctx.strokeStyle = sty.color; ctx.lineWidth = sel ? 2 : 1.4
-          ctx.beginPath(); ctx.arc(tx, ty, sel ? 8 : 7, 0, 6.283); ctx.fill(); ctx.stroke()
-          ctx.font = '600 9.5px "JetBrains Mono Variable", monospace'; ctx.fillStyle = INK; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+          ctx.globalAlpha = back ? 0.7 : 1
+          ctx.fillStyle = '#0a0c0f'; ctx.strokeStyle = back ? '#aab3bf' : sty.color; ctx.lineWidth = sel ? 2 : 1.4
+          ctx.beginPath(); ctx.arc(tx, ty, sel ? 10 : 9, 0, 6.283); ctx.fill(); ctx.stroke()
+          ctx.font = '600 11px "JetBrains Mono Variable", monospace'; ctx.fillStyle = INK; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
           ctx.fillText(String(r.id), tx, ty + 0.5)
-          if (status === 'rejected') {
-            ctx.strokeStyle = '#ff5f57'; ctx.lineWidth = 2; ctx.beginPath()
-            ctx.moveTo(tx - 5, ty + 10); ctx.lineTo(tx + 5, ty + 16); ctx.moveTo(tx + 5, ty + 10); ctx.lineTo(tx - 5, ty + 16); ctx.stroke()
-          }
+          ctx.globalAlpha = 1
         }
       }
 
@@ -272,6 +297,7 @@ export function MapView() {
       if (bundle) {
         for (const stress of Object.values(bundle.stress)) {
           const isSel = selId === stress.route_id
+          if (decided && !isSel && stress.route_id !== bundle.decision!.route_id) continue
           const list = [...stress.failures].sort((a, b) => b.log_p - a.log_p).slice(0, 3)
           list.forEach((f, i) => {
             const x = X(f.e), y = Y(f.s)
@@ -341,7 +367,7 @@ export function MapView() {
       halo(ctx, len >= 1000 ? `${len / 1000} km` : `${len} m`, bx, by - 11)
 
       // north arrow
-      const nx = v.w - 26, ny = 34
+      const nx = v.w - 28, ny = v.h - 34
       ctx.fillStyle = 'rgba(10,12,15,.75)'; ctx.beginPath(); ctx.arc(nx, ny, 17, 0, 6.283); ctx.fill()
       ctx.strokeStyle = 'rgba(231,234,238,.3)'; ctx.lineWidth = 1; ctx.stroke()
       ctx.beginPath(); ctx.moveTo(nx, ny - 12); ctx.lineTo(nx + 4.5, ny + 3); ctx.lineTo(nx, ny); ctx.lineTo(nx - 4.5, ny + 3); ctx.closePath(); ctx.fillStyle = INK; ctx.fill()
@@ -364,59 +390,54 @@ export function MapView() {
     return () => cancelAnimationFrame(raf)
   }, [e0, s0, size])
 
-  const incLabel = routesFileInc && routesFileInc === focusId ? `Routes for ${routesFileInc}` : 'no routes yet'
+  const mapBtn = 'flex h-9 w-9 items-center justify-center rounded-[4px] text-ink2 hover:bg-panel3 hover:text-ink'
+  const hasRoutes = !!routesFileInc && routesFileInc === focusId
   return (
     <div className="flex h-full min-h-0 flex-col bg-bg">
-      <div className="shrink-0 border-b border-rule px-3 pb-2 pt-2.5">
-        <div className="flex items-center justify-between gap-2">
-          <div className="min-w-0">
-            <h2 className="text-[13px] font-semibold tracking-tight">Tactical map</h2>
-            <div className="truncate text-[11px] text-ink3">Core box 4 × 4 km · {incLabel}</div>
-          </div>
-          <div className="flex shrink-0 items-center gap-1">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button onClick={() => store.set((s) => ({ showReplays: !s.showReplays }))} aria-pressed={showReplays} className={cn('h-7 rounded-[3px] border px-2 font-mono text-[11px]', showReplays ? 'border-accent/50 bg-accent-dim text-accent' : 'border-rule2 text-ink3')}>
-                  Replays
-                </button>
-              </TooltipTrigger>
-              <TooltipContent>Virtual crews from the stress test, replayed on the map. {phase === 'simulate' ? 'Playing now.' : 'Shown faintly outside the Simulate phase.'}</TooltipContent>
-            </Tooltip>
-            <Button variant="outline" size="icon" aria-label="Zoom in" onClick={() => zoomAt(1.4)}><Plus size={14} /></Button>
-            <Button variant="outline" size="icon" aria-label="Zoom out" onClick={() => zoomAt(1 / 1.4)}><Minus size={14} /></Button>
-            <Button variant="outline" size="icon" aria-label="Fit to the core box" onClick={fitView}><Maximize2 size={13} /></Button>
-          </div>
-        </div>
-        <div className="mt-2"><LayerSwitch compact /></div>
-      </div>
       <div ref={wrap} className="relative min-h-0 flex-1 overflow-hidden">
-        <canvas ref={cv} className="absolute inset-0 cursor-grab touch-none" aria-label="Tactical map of the core box" />
-        <Legend />
-        {coord && <div className="num pointer-events-none absolute left-3 top-2 rounded-[2px] bg-bg/80 px-1.5 py-0.5 text-[10px] text-ink2">e {Math.round(coord.e)}  s {Math.round(coord.s)}</div>}
+        <canvas ref={cv} className="absolute inset-0 cursor-grab touch-none" aria-label="Map of the 4 by 4 km walk area" />
+        <div className="absolute left-3 right-[60px] top-3 flex"><LayerSwitch /></div>
+        <div className="absolute right-3 top-3 flex flex-col rounded-[6px] border border-rule2 bg-bg/85 p-0.5 backdrop-blur-sm">
+          <Tooltip><TooltipTrigger asChild><button type="button" className={mapBtn} aria-label="Zoom in" onClick={() => zoomAt(1.5)}><Plus size={16} /></button></TooltipTrigger><TooltipContent side="left">Zoom in</TooltipContent></Tooltip>
+          <Tooltip><TooltipTrigger asChild><button type="button" className={mapBtn} aria-label="Zoom out" onClick={() => zoomAt(1 / 1.5)}><Minus size={16} /></button></TooltipTrigger><TooltipContent side="left">Zoom out</TooltipContent></Tooltip>
+          <Tooltip><TooltipTrigger asChild><button type="button" className={mapBtn} aria-label="Frame the routes" onClick={fitRoutes}><Route size={16} /></button></TooltipTrigger><TooltipContent side="left">Frame the routes and the crew</TooltipContent></Tooltip>
+          <Tooltip><TooltipTrigger asChild><button type="button" className={mapBtn} aria-label="Whole walk area" onClick={fitView}><Maximize2 size={15} /></button></TooltipTrigger><TooltipContent side="left">Whole 4 by 4 km walk area</TooltipContent></Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button type="button" onClick={() => store.set((s) => ({ showReplays: !s.showReplays }))} aria-pressed={showReplays} aria-label="Virtual crews" className={cn(mapBtn, showReplays && 'text-accent')}><Users size={16} /></button>
+            </TooltipTrigger>
+            <TooltipContent side="left">Virtual crews from the stress test, replayed on the map. {phase === 'simulate' ? 'Playing now.' : 'Shown faintly outside the Simulate step.'}</TooltipContent>
+          </Tooltip>
+        </div>
         {tip && (
-          <div className="pointer-events-none absolute z-10 max-w-[240px] rounded-[3px] border border-rule2 bg-panel3 px-2.5 py-1.5 text-[11.5px] shadow-lg" style={{ left: Math.min(tip.x + 14, (wrap.current?.clientWidth ?? 400) - 250), top: Math.max(6, tip.y - 12) }}>
+          <div className="pointer-events-none absolute z-10 max-w-[260px] rounded-[4px] border border-rule2 bg-panel3 px-2.5 py-1.5 text-[12.5px] shadow-lg" style={{ left: Math.min(tip.x + 14, (wrap.current?.clientWidth ?? 400) - 270), top: Math.max(6, tip.y - 12) }}>
             <div className="font-medium text-ink">{tip.title}</div>
             {tip.lines.map((l, i) => <div key={i} className="text-ink2">{l}</div>)}
           </div>
         )}
       </div>
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-x-5 gap-y-1 border-t border-rule px-3 py-2">
+        <Legend hasRoutes={hasRoutes} decided={chosenRoute !== undefined} />
+        <LayerLegend />
+        <div className="num hidden text-[11.5px] text-ink3 md:block">{coord ? `e ${Math.round(coord.e)}  s ${Math.round(coord.s)} m` : 'HiRISE 1 m, NASA/JPL/University of Arizona'}</div>
+      </div>
     </div>
   )
 }
 
-function Legend() {
-  const items: RouteStatus[] = ['candidate', 'testing', 'tested', 'rejected', 'chosen']
+function Legend({ hasRoutes, decided }: { hasRoutes: boolean; decided: boolean }) {
+  const items: RouteStatus[] = !hasRoutes ? [] : decided ? ['chosen'] : ['testing', 'tested']
   return (
-    <div className="pointer-events-none absolute bottom-2 left-3 right-3 flex flex-wrap gap-x-3.5 gap-y-1 rounded-[3px] bg-bg/75 px-2 py-1.5">
+    <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1 text-[12px] text-ink2">
+      <div className="flex items-center gap-1.5"><svg width="12" height="14" aria-hidden><path d="M6 1 11 13 6 10 1 13Z" fill="#e3b472" /></svg>Crew</div>
       {items.map((s) => (
-        <div key={s} className="flex items-center gap-1.5 text-[10px] text-ink2">
-          <svg width="18" height="6"><line x1="0" y1="3" x2="18" y2="3" stroke={ROUTE_STYLE[s].color} strokeWidth="2.2" strokeDasharray={s === 'testing' ? '5 3' : s === 'rejected' ? '2 3' : undefined} /></svg>
+        <div key={s} className="flex items-center gap-1.5">
+          <svg width="18" height="6" aria-hidden><line x1="0" y1="3" x2="18" y2="3" stroke={ROUTE_STYLE[s].color} strokeWidth="2.4" strokeDasharray={s === 'testing' ? '5 3' : s === 'rejected' ? '2 3' : undefined} /></svg>
           {ROUTE_STYLE[s].label}
         </div>
       ))}
-      <div className="flex items-center gap-1.5 text-[10px] text-ink2">
-        <svg width="18" height="8"><path d="M9 0.5 L13 4 L9 7.5 L5 4Z" fill="#ff5f57" /></svg>Failure
-      </div>
+      {hasRoutes && decided && <div className="flex items-center gap-1.5"><svg width="18" height="6" aria-hidden><line x1="0" y1="3" x2="18" y2="3" stroke="#aab3bf" strokeWidth="1.8" strokeDasharray="2 3" opacity=".7" /></svg>Not chosen</div>}
+      {hasRoutes && <div className="flex items-center gap-1.5"><svg width="10" height="10" aria-hidden><path d="M5 0.5 9.5 5 5 9.5 0.5 5Z" fill="#ff5f57" /></svg>Likely failure</div>}
     </div>
   )
 }
