@@ -3,7 +3,7 @@ import { hm, lightTime, num } from '@/lib/format'
 import type { Kind, Spread } from '@/lib/types'
 import { Fig } from '../Kind'
 import { Sensors } from '../Sensors'
-import { More, Section } from './parts'
+import { More } from './parts'
 
 const SUN_NOTE = 'Geometric sunset of the Sun’s centre over a flat horizon. The canyon wall can shade the ground earlier.'
 const minus = (x: number) => num(Math.round(x), 0).replace('-', '−')
@@ -14,7 +14,7 @@ function Tile({ label, value, unit, kind, source, digits }: { label: string; val
       <div className="cap truncate">{label}</div>
       {value === undefined || value === null
         ? <span className="num text-[14px] text-ink3">-</span>
-        : <Fig value={value} unit={unit} digits={digits} kind={kind} source={source} label={label} valueClassName="text-[14px]" />}
+        : <Fig value={value} unit={unit} digits={digits} kind={kind} source={source} label={label} valueClassName="text-[15px] font-bold" />}
     </div>
   )
 }
@@ -31,7 +31,8 @@ export function Conditions() {
   const wSrc = w ? `${w.source} (${w.sols} sols). ${w.credit}. ${w.note}` : ''
   const season = env?.mars_year !== undefined && env?.ls !== undefined ? `Mars Year ${env.mars_year} · Ls ${num(env.ls, 0)}°` : undefined
   return (
-    <Section title="Conditions" aside={season}>
+    <div className="px-4 pb-4 pt-1">
+      {season && <p className="mb-2 text-[12.5px] text-ink3">{season}</p>}
       <div className="grid grid-cols-2 gap-x-4 gap-y-3">
         <Tile label="Daylight left" value={env?.daylight_s === undefined ? undefined : env.daylight_s > 0 ? hm(env.daylight_s, true) : 'Sun down'} kind="model" source={sunSrc} />
         <Tile label="Sun height" value={env?.sun_el} unit="°" digits={0} kind="model" source={sunSrc} />
@@ -54,6 +55,6 @@ export function Conditions() {
       <div className="mt-2">
         <Sensors kind="scenario" kindSource="Sensor reading produced by the engine for this scenario. Not an instrument observation." />
       </div>
-    </Section>
+    </div>
   )
 }

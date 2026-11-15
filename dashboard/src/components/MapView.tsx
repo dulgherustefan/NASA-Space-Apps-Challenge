@@ -1,12 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Minus, Plus, Scan } from 'lucide-react'
+import { Minus, Plus, Route, Scan, X as Close } from 'lucide-react'
 import { CORE_DEFAULT, LAYER_LABEL, ORTHO_PATH, fileUrl, type Layer } from '@/lib/config'
 import { focusBundle, focusIncidentId, store, useStore } from '@/lib/store'
 import { requestPlan } from '@/lib/engine'
-import { ROUTE_STYLE, OUTCOME_FAIL, FAIL_LABEL } from '@/lib/routeStyle'
+import { bearingText, lineTo } from '@/lib/derive'
+import { num } from '@/lib/format'
+import { MAP, ROUTE_STYLE, OUTCOME_FAIL, FAIL_LABEL } from '@/lib/routeStyle'
 import type { RouteStatus } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { LayerLegend, LayerMenu } from './console/Layers'
+import { KIND_NAME } from './console/Situation'
+import { Timeline } from './Timeline'
+import { Button } from './ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip'
 
 interface Img { el: HTMLImageElement; ready: boolean; failed: boolean; at: number }
@@ -34,14 +39,22 @@ function getImg(url: string, online: boolean): Img | null {
 }
 
 interface View { k: number; ox: number; oy: number; fit: number; w: number; h: number; fitted: boolean }
-interface Hit { x: number; y: number; r: number; title: string; lines: string[] }
-const INK = '#efebe4'
-const FACE = '"Atkinson Hyperlegible Next Variable", system-ui, sans-serif'
-const LABEL = `500 12px ${FACE}`
+interface Hit { x: number; y: number; r: number; title: string; lines: string[]; place?: string }
+const INK = MAP.ink
+const DARK = '#0b0e10'
+const FACE = '"B612", system-ui, sans-serif'
+const LABEL = `400 12px ${FACE}`
+
+/** Distance in pixels from a point to a segment. */
+function segDist(px: number, py: number, ax: number, ay: number, bx: number, by: number) {
+  const dx = bx - ax, dy = by - ay
+  const t = dx || dy ? Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy))) : 0
+  return Math.hypot(px - ax - t * dx, py - ay - t * dy)
+}
 
 function halo(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, color = INK, align: CanvasTextAlign = 'left') {
   ctx.font = LABEL; ctx.textAlign = align; ctx.textBaseline = 'middle'
-  ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(8,10,13,.85)'; ctx.lineJoin = 'round'
+  ctx.lineWidth = 3; ctx.strokeStyle = MAP.line; ctx.lineJoin = 'round'
   ctx.strokeText(text, x, y); ctx.fillStyle = color; ctx.fillText(text, x, y)
 }
 
@@ -56,11 +69,15 @@ export function MapView() {
   const cv = useRef<HTMLCanvasElement>(null)
   const view = useRef<View>({ k: 0.2, ox: 0, oy: 0, fit: 0.2, w: 0, h: 0, fitted: false })
   const hoverRef = useRef<{ x: number; y: number } | null>(null)
+  const hitsRef = useRef<Hit[]>([])
+  const dragging = useRef(false)
   const [tip, setTip] = useState<{ x: number; y: number; title: string; lines: string[] } | null>(null)
   const [coord, setCoord] = useState<{ e: number; s: number } | null>(null)
   const focusId = useStore(focusIncidentId)
   const planMode = useStore((s) => s.planMode)
   const planFrom = useStore((s) => s.planFrom)
+  const canPlan = useStore((s) => s.mode === 'live')
+  const online = useStore((s) => s.conn === 'online')
   const planRef = useRef(planMode)
   planRef.current = planMode
   const routesFileInc = useStore((s) => s.routesFile?.incident_id)
@@ -143,7 +160,7 @@ export function MapView() {
       const r = c.getBoundingClientRect()
       zoomAt(Math.exp(-e.deltaY * 0.0016), e.clientX - r.left, e.clientY - r.top)
     }
-    const onDown = (e: PointerEvent) => { drag = { x: e.clientX, y: e.clientY }; press = drag; c.setPointerCapture(e.pointerId); c.style.cursor = 'grabbing' }
+    const onDown = (e: PointerEvent) => { drag = { x: e.clientX, y: e.clientY }; press = drag; dragging.current = true; c.setPointerCapture(e.pointerId); c.style.cursor = 'grabbing' }
     const onMove = (e: PointerEvent) => {
       const r = c.getBoundingClientRect()
       const x = e.clientX - r.left, y = e.clientY - r.top
@@ -153,25 +170,42 @@ export function MapView() {
       setCoord({ e: e0 + (x - v.ox) / v.k, s: s0 + (y - v.oy) / v.k })
     }
     const onUp = (e: PointerEvent) => {
-      drag = null; c.style.cursor = ''
+      drag = null; dragging.current = false; c.style.cursor = ''
       try { c.releasePointerCapture(e.pointerId) } catch { /* not captured */ }
       const still = press && Math.hypot(e.clientX - press.x, e.clientY - press.y) < 6
       press = null
-      if (!planRef.current || !still || e.button !== 0) return
+      if (!still || e.button !== 0) return
       const r = c.getBoundingClientRect(), v = view.current
-      const pt = { e: e0 + (e.clientX - r.left - v.ox) / v.k, s: s0 + (e.clientY - r.top - v.oy) / v.k }
-      if (e.shiftKey) store.set({ planFrom: { e: Math.round(pt.e * 10) / 10, s: Math.round(pt.s * 10) / 10 } })
-      else requestPlan(pt)
+      const px = e.clientX - r.left, py = e.clientY - r.top
+      if (planRef.current) {
+        const pt = { e: e0 + (px - v.ox) / v.k, s: s0 + (py - v.oy) / v.k }
+        if (e.shiftKey) store.set({ planFrom: { e: Math.round(pt.e * 10) / 10, s: Math.round(pt.s * 10) / 10 } })
+        else requestPlan(pt)
+        return
+      }
+      // a click picks what is under it: a place first, then a route line
+      const st = store.get()
+      let place: string | null = null, pd = 1e9
+      for (const t of hitsRef.current) { if (!t.place) continue; const d = Math.hypot(t.x - px, t.y - py); if (d < t.r + 4 && d < pd) { place = t.place; pd = d } }
+      if (place) { store.set({ selectedPlace: st.selectedPlace === place ? null : place }); return }
+      const incId = focusIncidentId(st)
+      const rf = st.routesFile && st.routesFile.incident_id === incId ? st.routesFile : null
+      let rid: number | null = null, rd = 10
+      for (const rt of rf?.routes ?? []) {
+        for (let i = 1; i < rt.points.length; i++) {
+          const a = rt.points[i - 1], b = rt.points[i]
+          const d = segDist(px, py, v.ox + (a[0] - e0) * v.k, v.oy + (a[1] - s0) * v.k, v.ox + (b[0] - e0) * v.k, v.oy + (b[1] - s0) * v.k)
+          if (d < rd) { rd = d; rid = rt.id }
+        }
+      }
+      if (rid !== null) store.set({ selectedRoute: st.selectedRoute === rid ? null : rid, detail: 'routes', selectedPlace: null })
+      else if (st.selectedPlace) store.set({ selectedPlace: null })
     }
     const onLeave = () => { hoverRef.current = null; setCoord(null); setTip(null) }
     c.addEventListener('wheel', onWheel, { passive: false })
     c.addEventListener('pointerdown', onDown); c.addEventListener('pointermove', onMove)
     c.addEventListener('pointerup', onUp); c.addEventListener('pointerleave', onLeave); c.addEventListener('dblclick', fitView)
-    // Esc leaves "Plan a walk"
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && planRef.current) store.set({ planMode: false }) }
-    window.addEventListener('keydown', onKey)
     return () => {
-      window.removeEventListener('keydown', onKey)
       c.removeEventListener('wheel', onWheel); c.removeEventListener('pointerdown', onDown); c.removeEventListener('pointermove', onMove)
       c.removeEventListener('pointerup', onUp); c.removeEventListener('pointerleave', onLeave); c.removeEventListener('dblclick', fitView)
     }
@@ -191,7 +225,7 @@ export function MapView() {
       if (!v.w) return
       const dpr = window.devicePixelRatio || 1
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-      ctx.fillStyle = '#0a0c0f'; ctx.fillRect(0, 0, v.w, v.h)
+      ctx.fillStyle = st.theme === 'night' ? '#0d1012' : '#dfe3e3'; ctx.fillRect(0, 0, v.w, v.h)
       const k = v.k
       const X = (e: number) => v.ox + (e - e0) * k
       const Y = (s: number) => v.oy + (s - s0) * k
@@ -201,8 +235,8 @@ export function MapView() {
       const online = st.conn === 'online'
       const ortho = getImg(fileUrl(ORTHO_PATH), online)
       if (ortho?.ready) { ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high'; ctx.drawImage(ortho.el, x0, y0, sz, sz) }
-      else { ctx.fillStyle = '#14181d'; ctx.fillRect(x0, y0, sz, sz) }
-      ctx.fillStyle = 'rgba(7,9,12,.5)'; ctx.fillRect(x0, y0, sz, sz)
+      else { ctx.fillStyle = '#1a1f23'; ctx.fillRect(x0, y0, sz, sz) }
+      ctx.fillStyle = 'rgba(8,11,13,.38)'; ctx.fillRect(x0, y0, sz, sz)
 
       // elevation contours under the hazard layer
       if (st.contours) {
@@ -225,7 +259,7 @@ export function MapView() {
       for (let e = e0; e <= e0 + size + 0.1; e += 500) { const x = Math.round(X(e)) + 0.5; ctx.moveTo(x, y0); ctx.lineTo(x, y0 + sz) }
       for (let s = s0; s <= s0 + size + 0.1; s += 500) { const y = Math.round(Y(s)) + 0.5; ctx.moveTo(x0, y); ctx.lineTo(x0 + sz, y) }
       ctx.stroke()
-      ctx.strokeStyle = 'rgba(231,234,238,.28)'; ctx.strokeRect(Math.round(x0) + 0.5, Math.round(y0) + 0.5, sz, sz)
+      ctx.strokeStyle = 'rgba(120,128,134,.6)'; ctx.strokeRect(Math.round(x0) + 0.5, Math.round(y0) + 0.5, sz, sz)
       const bundle = focusBundle(st)
       const incId = focusIncidentId(st)
       const live = st.snapshot
@@ -246,7 +280,7 @@ export function MapView() {
           if (n < 2) continue
           const idxF = Math.min(n - 1, rt / traj.dt)
           const i0 = Math.floor(idxF), i1 = Math.min(n - 1, i0 + 1), f = idxF - i0
-          const col = ROUTE_STYLE[statusOf.get(run.route) ?? 'candidate'].color
+          const col = ROUTE_STYLE[statusOf.get(run.route) ?? 'candidate'].map
           const fail = OUTCOME_FAIL(run.outcome)
           const from = Math.max(0, i0 - 28)
           ctx.beginPath()
@@ -254,13 +288,13 @@ export function MapView() {
           const pa = run.samples[i0], pb = run.samples[i1]
           const px = X(pa[0] + (pb[0] - pa[0]) * f), py = Y(pa[1] + (pb[1] - pa[1]) * f)
           ctx.lineTo(px, py)
-          ctx.strokeStyle = fail ? '#ff5f57' : col; ctx.globalAlpha = 0.35 * a; ctx.lineWidth = 1.2; ctx.setLineDash([]); ctx.stroke()
+          ctx.strokeStyle = fail ? MAP.hazard : col; ctx.globalAlpha = 0.35 * a; ctx.lineWidth = 1.2; ctx.setLineDash([]); ctx.stroke()
           ctx.globalAlpha = a
           if (idxF >= n - 1 && fail) {
-            ctx.strokeStyle = '#ff5f57'; ctx.lineWidth = 2
+            ctx.strokeStyle = MAP.hazard; ctx.lineWidth = 2
             ctx.beginPath(); ctx.moveTo(px - 4, py - 4); ctx.lineTo(px + 4, py + 4); ctx.moveTo(px + 4, py - 4); ctx.lineTo(px - 4, py + 4); ctx.stroke()
           } else {
-            ctx.fillStyle = col; ctx.strokeStyle = '#0a0c0f'; ctx.lineWidth = 1.5
+            ctx.fillStyle = col; ctx.strokeStyle = DARK; ctx.lineWidth = 1.5
             ctx.beginPath(); ctx.arc(px, py, 2.8, 0, 6.283); ctx.stroke(); ctx.fill()
           }
           ctx.globalAlpha = 1
@@ -290,7 +324,7 @@ export function MapView() {
           else if (status === 'rejected') ctx.setLineDash([2, 5])
           else if (status === 'infeasible') ctx.setLineDash([1, 5])
           ctx.globalAlpha = back ? 0.55 : status === 'infeasible' ? 0.6 : 1
-          ctx.strokeStyle = back ? '#aab3bf' : sty.color; ctx.lineWidth = base + flash * 3; ctx.stroke()
+          ctx.strokeStyle = back ? MAP.quiet : sty.map; ctx.lineWidth = base + flash * 3; ctx.stroke()
           ctx.setLineDash([])
           if (flash > 0) { ctx.globalAlpha = flash * 0.5; ctx.lineWidth = base + 10 * (1 - flash) + 4; ctx.stroke() }
           ctx.globalAlpha = 1
@@ -303,9 +337,9 @@ export function MapView() {
           }
           const tx = X(tp[0]), ty = Y(tp[1])
           ctx.globalAlpha = back ? 0.7 : 1
-          ctx.fillStyle = '#0a0c0f'; ctx.strokeStyle = back ? '#aab3bf' : sty.color; ctx.lineWidth = sel ? 2 : 1.4
+          ctx.fillStyle = chosen ? MAP.route : DARK; ctx.strokeStyle = chosen ? DARK : back ? MAP.quiet : sty.map; ctx.lineWidth = sel ? 2 : 1.4
           ctx.beginPath(); ctx.arc(tx, ty, sel ? 10 : 9, 0, 6.283); ctx.fill(); ctx.stroke()
-          ctx.font = `700 11.5px ${FACE}`; ctx.fillStyle = INK; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+          ctx.font = `700 11.5px ${FACE}`; ctx.fillStyle = chosen ? '#1d0614' : INK; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
           ctx.fillText(String(r.id), tx, ty + 0.5)
           ctx.globalAlpha = 1
         }
@@ -323,7 +357,7 @@ export function MapView() {
             const x = X(f.e), y = Y(f.s)
             const rr = isSel ? 7 : 4.5
             ctx.globalAlpha = isSel || selId === null ? 1 : 0.55
-            ctx.fillStyle = '#ff5f57'; ctx.strokeStyle = '#0a0c0f'; ctx.lineWidth = 1.5
+            ctx.fillStyle = MAP.hazard; ctx.strokeStyle = DARK; ctx.lineWidth = 1.5
             ctx.beginPath(); ctx.moveTo(x, y - rr); ctx.lineTo(x + rr, y); ctx.lineTo(x, y + rr); ctx.lineTo(x - rr, y); ctx.closePath(); ctx.stroke(); ctx.fill()
             if (isSel) { ctx.font = `700 9.5px ${FACE}`; ctx.fillStyle = '#1a0807'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(String(i + 1), x, y + 0.5) }
             ctx.globalAlpha = 1
@@ -338,9 +372,19 @@ export function MapView() {
         const x = X(p.e), y = Y(p.s)
         const sh = shelterState.get(p.id)
         let col = INK
-        if (p.kind === 'shelter') col = sh ? (sh.open ? '#4fd1b0' : '#ff5f57') : '#a3acb8'
-        if (p.kind === 'site') col = '#7fa9cf'
-        ctx.lineWidth = 1.6; ctx.strokeStyle = '#0a0c0f'; ctx.fillStyle = col
+        if (p.kind === 'shelter') col = sh ? (sh.open ? MAP.open : MAP.hazard) : MAP.quiet
+        if (st.selectedPlace === p.id) {
+          const lead = live?.crew[0]
+          if (lead) {
+            ctx.beginPath(); ctx.moveTo(X(lead.e), Y(lead.s)); ctx.lineTo(x, y)
+            ctx.setLineDash([]); ctx.strokeStyle = MAP.line; ctx.lineWidth = 3.5; ctx.stroke()
+            ctx.setLineDash([5, 5]); ctx.strokeStyle = INK; ctx.lineWidth = 1.4; ctx.stroke(); ctx.setLineDash([])
+          }
+          ctx.beginPath(); ctx.arc(x, y, 15, 0, 6.283)
+          ctx.strokeStyle = MAP.line; ctx.lineWidth = 5; ctx.stroke()
+          ctx.strokeStyle = MAP.route; ctx.lineWidth = 2.2; ctx.stroke()
+        }
+        ctx.lineWidth = 1.6; ctx.strokeStyle = DARK; ctx.fillStyle = col
         ctx.beginPath()
         if (p.kind === 'habitat') ctx.rect(x - 6, y - 6, 12, 12)
         else if (p.kind === 'rover') ctx.roundRect(x - 7, y - 4, 14, 8, 2)
@@ -348,11 +392,11 @@ export function MapView() {
         else { ctx.moveTo(x, y - 8); ctx.lineTo(x + 8, y); ctx.lineTo(x, y + 8); ctx.lineTo(x - 8, y); ctx.closePath() }
         ctx.stroke(); ctx.fill()
         if (p.kind === 'shelter' && sh && !sh.open) {
-          ctx.strokeStyle = '#0a0c0f'; ctx.lineWidth = 1.8; ctx.beginPath()
+          ctx.strokeStyle = DARK; ctx.lineWidth = 1.8; ctx.beginPath()
           ctx.moveTo(x - 4, y - 4); ctx.lineTo(x + 4, y + 4); ctx.moveTo(x + 4, y - 4); ctx.lineTo(x - 4, y + 4); ctx.stroke()
         }
         halo(ctx, p.name, x + 11, y)
-        hits.push({ x, y, r: 12, title: p.name, lines: [p.kind + (sh ? (sh.open ? ', open' : ', closed') : ''), sh?.reason ?? '', `e ${p.e}  s ${p.s}  z ${p.z ?? '-'}`] })
+        hits.push({ x, y, r: 12, title: p.name, place: p.id, lines: [(KIND_NAME[p.kind] ?? p.kind) + (sh ? (sh.open ? ', open' : ', closed') : ''), sh?.reason ?? '', 'Click for distance and bearing'] })
       }
 
       // crew: members standing together share one label
@@ -361,35 +405,35 @@ export function MapView() {
         const tr = st.trails[cr.id]
         if (tr && tr.length > 1) {
           ctx.beginPath(); tr.forEach((p, i) => (i ? ctx.lineTo(X(p[0]), Y(p[1])) : ctx.moveTo(X(p[0]), Y(p[1]))))
-          ctx.strokeStyle = 'rgba(227,180,114,.5)'; ctx.lineWidth = 1.4; ctx.setLineDash([]); ctx.stroke()
+          ctx.strokeStyle = 'rgba(244,246,247,.55)'; ctx.lineWidth = 1.4; ctx.setLineDash([]); ctx.stroke()
         }
         const x = X(cr.e), y = Y(cr.s)
         const bad = cr.status >= 2 && cr.status !== 6
         ctx.save(); ctx.translate(x, y); ctx.rotate((cr.heading * Math.PI) / 180)
         ctx.beginPath(); ctx.moveTo(0, -9); ctx.lineTo(6, 7); ctx.lineTo(0, 3.5); ctx.lineTo(-6, 7); ctx.closePath()
-        ctx.fillStyle = bad ? '#ff5f57' : '#e3b472'; ctx.strokeStyle = '#0a0c0f'; ctx.lineWidth = 1.8; ctx.stroke(); ctx.fill()
+        ctx.fillStyle = bad ? MAP.hazard : '#ffffff'; ctx.strokeStyle = DARK; ctx.lineWidth = 2.2; ctx.stroke(); ctx.fill()
         ctx.restore()
         const name = cr.name ?? `EV${cr.id + 1}`
         const near = crewLabels.find((l) => Math.hypot(l.x - x, l.y - y) < 16)
         if (near) { near.names.push(name); near.bad ||= bad } else crewLabels.push({ x, y, names: [name], bad })
-        hits.push({ x, y, r: 12, title: cr.name ?? `Crew ${cr.id}`, lines: [`heading ${Math.round(cr.heading)} deg, pace ${cr.pace.toFixed(2)} m/s`, `O2 ${(cr.o2 * 100).toFixed(0)}%  heat stored ${(cr.heat * 100).toFixed(0)}%`] })
+        hits.push({ x, y, r: 12, title: cr.name ?? `Crew ${cr.id}`, lines: [`Heading ${bearingText(cr.heading)}, pace ${cr.pace.toFixed(2)} m/s`, `Oxygen ${(cr.o2 * 100).toFixed(0)}%, heat margin ${((1 - cr.heat) * 100).toFixed(0)}%`] })
       }
 
-      for (const l of crewLabels) halo(ctx, l.names.join(' · '), l.x, l.y - 17, l.bad ? '#ff5f57' : '#e3b472', 'center')
+      for (const l of crewLabels) halo(ctx, l.names.join(' · '), l.x, l.y - 17, l.bad ? MAP.hazard : INK, 'center')
 
       // free plan: where it starts, where it ends, and a request still on its way
       const mark = (e: number, s: number, label: string, kind: 'to' | 'from' | 'wait') => {
         const x = X(e), y = Y(s)
-        ctx.lineWidth = 2; ctx.strokeStyle = '#0a0c0f'; ctx.fillStyle = '#e3b472'
-        if (kind === 'from') { ctx.beginPath(); ctx.arc(x, y, 5.5, 0, 6.283); ctx.fillStyle = '#0a0c0f'; ctx.fill(); ctx.strokeStyle = '#e3b472'; ctx.stroke() }
+        ctx.lineWidth = 2; ctx.strokeStyle = DARK; ctx.fillStyle = MAP.route
+        if (kind === 'from') { ctx.beginPath(); ctx.arc(x, y, 5.5, 0, 6.283); ctx.fillStyle = DARK; ctx.fill(); ctx.strokeStyle = MAP.route; ctx.stroke() }
         else {
           const r = kind === 'wait' ? 9 + 3 * Math.sin(now / 160) : 9
           ctx.beginPath(); ctx.arc(x, y, r, 0, 6.283); ctx.strokeStyle = 'rgba(6,8,10,.85)'; ctx.lineWidth = 4.5; ctx.stroke()
-          ctx.strokeStyle = '#e3b472'; ctx.lineWidth = 2; ctx.stroke()
+          ctx.strokeStyle = MAP.route; ctx.lineWidth = 2; ctx.stroke()
           ctx.beginPath(); ctx.moveTo(x - r - 5, y); ctx.lineTo(x - 3, y); ctx.moveTo(x + 3, y); ctx.lineTo(x + r + 5, y)
           ctx.moveTo(x, y - r - 5); ctx.lineTo(x, y - 3); ctx.moveTo(x, y + 3); ctx.lineTo(x, y + r + 5); ctx.stroke()
         }
-        halo(ctx, label, x + 14, y - 12, '#e3b472')
+        halo(ctx, label, x + 14, y - 12)
       }
       const plan = bundle?.plan
       if (plan?.to?.e !== undefined && plan.to.s !== undefined) mark(plan.to.e, plan.to.s, plan.to.label ? `Plan to ${plan.to.label}` : 'Plan destination', 'to')
@@ -408,12 +452,12 @@ export function MapView() {
 
       // north arrow
       const nx = v.w - 28, ny = v.h - 34
-      ctx.fillStyle = 'rgba(10,12,15,.75)'; ctx.beginPath(); ctx.arc(nx, ny, 17, 0, 6.283); ctx.fill()
+      ctx.fillStyle = 'rgba(11,14,16,.8)'; ctx.beginPath(); ctx.arc(nx, ny, 17, 0, 6.283); ctx.fill()
       ctx.strokeStyle = 'rgba(231,234,238,.3)'; ctx.lineWidth = 1; ctx.stroke()
       ctx.beginPath(); ctx.moveTo(nx, ny - 12); ctx.lineTo(nx + 4.5, ny + 3); ctx.lineTo(nx, ny); ctx.lineTo(nx - 4.5, ny + 3); ctx.closePath(); ctx.fillStyle = INK; ctx.fill()
       ctx.font = `700 9.5px ${FACE}`; ctx.fillStyle = INK; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText('N', nx, ny + 4)
 
-      if (overlayNote) halo(ctx, overlayNote, v.w / 2, v.h - 14, '#a3acb8', 'center')
+      if (overlayNote) halo(ctx, overlayNote, v.w / 2, v.h - 14, MAP.quiet, 'center')
 
       // hover readout
       const h = hoverRef.current
@@ -422,7 +466,9 @@ export function MapView() {
         let best: Hit | null = null, bd = 1e9
         for (const t of hits) { const d = Math.hypot(t.x - h.x, t.y - h.y); if (d < t.r && d < bd) { best = t; bd = d } }
         if (best) tipNow = { x: best.x, y: best.y, title: best.title, lines: best.lines.filter(Boolean) }
+        if (!dragging.current && !st.planMode) c.style.cursor = best?.place ? 'pointer' : ''
       }
+      hitsRef.current = hits
       const key = tipNow ? `${tipNow.title}|${Math.round(tipNow.x)}|${Math.round(tipNow.y)}` : ''
       if (key !== lastTip) { lastTip = key; setTip(tipNow) }
     }
@@ -430,7 +476,7 @@ export function MapView() {
     return () => cancelAnimationFrame(raf)
   }, [e0, s0, size])
 
-  const mapBtn = 'flex h-10 w-10 items-center justify-center text-ink2 transition-colors hover:bg-panel3 hover:text-ink'
+  const mapBtn = 'flex h-10 w-10 items-center justify-center text-ink2 transition-colors duration-150 hover:bg-panel3 hover:text-ink'
   const hasRoutes = !!routesFileInc && routesFileInc === focusId
   return (
     <div className="flex h-full min-h-0 flex-col bg-bg">
@@ -438,15 +484,29 @@ export function MapView() {
         <canvas ref={cv} className={cn('absolute inset-0 touch-none', planMode ? 'cursor-crosshair' : 'cursor-grab')} aria-label="Map of the 4 by 4 km walk area" />
         {planMode && (
           <div role="status" className="anim-rise pointer-events-none absolute inset-x-3 bottom-3 flex justify-center">
-            <div className="pointer-events-auto flex max-w-full flex-wrap items-center gap-x-3 gap-y-1 rounded-[8px] bg-bg/90 px-3.5 py-2 text-[13px] text-ink shadow-[0_4px_16px_rgba(0,0,0,.45)]">
-              <span><span className="font-medium text-accent">Planning a walk.</span> Click the destination. Shift and click sets another start.</span>
+            <div className="float pointer-events-auto flex max-w-full flex-wrap items-center gap-x-3 gap-y-1 rounded-[8px] px-3.5 py-2 text-[13px] text-ink">
+              <span><span className="font-bold">Planning a walk.</span> Click the destination. Shift and click sets another start.</span>
               {planFrom && <button type="button" className="text-ink2 underline decoration-dotted underline-offset-2 hover:text-ink" onClick={() => store.set({ planFrom: null })}>Start from the crew</button>}
               <button type="button" className="text-ink2 underline decoration-dotted underline-offset-2 hover:text-ink" onClick={() => store.set({ planMode: false })}>Stop (Esc)</button>
             </div>
           </div>
         )}
-        <div className="absolute left-3 top-3"><LayerMenu /></div>
-        <div className="absolute right-3 top-3 flex flex-col overflow-hidden rounded-[8px] bg-bg/90 shadow-[0_4px_16px_rgba(0,0,0,.45)]">
+        <div className="absolute left-3 top-3 flex items-start gap-2">
+          <LayerMenu />
+          {canPlan && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button type="button" aria-pressed={planMode} disabled={!online} onClick={() => store.set({ planMode: !planMode, selectedPlace: null })}
+                  className={cn('flex h-10 items-center gap-2 rounded-[8px] px-3 text-[13.5px] shadow-float transition-colors duration-150 disabled:opacity-50', planMode ? 'bg-solid font-bold text-on-solid' : 'bg-panel text-ink hover:bg-panel2')}>
+                  <Route size={15} /><span className="hidden sm:inline">Plan a walk</span>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Ask the engine for a route to any point: turn this on, then click the map (P)</TooltipContent>
+            </Tooltip>
+          )}
+        </div>
+        <PlaceCard />
+        <div className="float absolute right-3 top-3 flex flex-col overflow-hidden rounded-[8px]">
           <button type="button" className={mapBtn} aria-label="Zoom in" onClick={() => zoomAt(1.5)}><Plus size={16} /></button>
           <button type="button" className={mapBtn} aria-label="Zoom out" onClick={() => zoomAt(1 / 1.5)}><Minus size={16} /></button>
           <Tooltip>
@@ -455,34 +515,62 @@ export function MapView() {
           </Tooltip>
         </div>
         {tip && (
-          <div className="pointer-events-none absolute z-10 max-w-[260px] rounded-[6px] bg-panel3 px-2.5 py-1.5 text-[12.5px] shadow-[0_8px_24px_rgba(0,0,0,.5)]" style={{ left: Math.min(tip.x + 14, (wrap.current?.clientWidth ?? 400) - 270), top: Math.max(6, tip.y - 12) }}>
-            <div className="font-medium text-ink">{tip.title}</div>
+          <div className="invert pointer-events-none absolute z-10 max-w-[260px] rounded-[6px] bg-panel3 px-2.5 py-1.5 text-[12.5px] shadow-float" style={{ left: Math.min(tip.x + 14, (wrap.current?.clientWidth ?? 400) - 270), top: Math.max(6, tip.y - 12) }}>
+            <div className="font-bold text-ink">{tip.title}</div>
             {tip.lines.map((l, i) => <div key={i} className="text-ink2">{l}</div>)}
           </div>
         )}
       </div>
-      <div className="flex min-h-[36px] shrink-0 flex-wrap items-center justify-between gap-x-5 gap-y-1 border-t border-rule bg-panel px-3 py-2">
-        <Legend hasRoutes={hasRoutes} decided={chosenRoute !== undefined} />
-        <LayerLegend />
-        <div className={cn('hidden text-[12px] text-ink3 md:block', coord && 'num')}>{coord ? `e ${Math.round(coord.e)}  s ${Math.round(coord.s)} m` : 'HiRISE 1 m, NASA/JPL/University of Arizona'}</div>
+      <div className="flex min-h-[52px] shrink-0 flex-wrap items-center gap-x-5 gap-y-1.5 border-t border-rule bg-panel px-3 py-2">
+        <Timeline />
+        <div className="flex shrink-0 items-center gap-4 max-md:hidden">
+          <LayerLegend />
+          <div className={cn('w-[150px] text-right text-[12px] text-ink3 max-xl:hidden', coord && 'num')}>{coord ? `e ${Math.round(coord.e)}  s ${Math.round(coord.s)} m` : 'HiRISE, NASA/JPL/UArizona'}</div>
+        </div>
       </div>
     </div>
   )
 }
 
-function Legend({ hasRoutes, decided }: { hasRoutes: boolean; decided: boolean }) {
-  const items: RouteStatus[] = !hasRoutes ? [] : decided ? ['chosen'] : ['testing', 'tested']
+/** The place picked on the map or in the list: what it is, how far, and a route to it on request. */
+function PlaceCard() {
+  const place = useStore((s) => s.hello?.places?.find((p) => p.id === s.selectedPlace))
+  const sh = useStore((s) => focusBundle(s)?.assessment?.shelters?.find((x) => x.id === s.selectedPlace))
+  const lead = useStore((s) => s.snapshot?.crew[0])
+  const live = useStore((s) => s.mode === 'live')
+  const online = useStore((s) => s.conn === 'online')
+  const planMode = useStore((s) => s.planMode)
+  if (!place || planMode) return null
+  const line = lead ? lineTo(lead.e, lead.s, place.e, place.s) : null
   return (
-    <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1 text-[12px] text-ink2">
-      <div className="flex items-center gap-1.5"><svg width="12" height="14" aria-hidden><path d="M6 1 11 13 6 10 1 13Z" fill="#e3b472" /></svg>Crew</div>
-      {items.map((s) => (
-        <div key={s} className="flex items-center gap-1.5">
-          <svg width="18" height="6" aria-hidden><line x1="0" y1="3" x2="18" y2="3" stroke={ROUTE_STYLE[s].color} strokeWidth="2.4" strokeDasharray={s === 'testing' ? '5 3' : s === 'rejected' ? '2 3' : undefined} /></svg>
-          {ROUTE_STYLE[s].label}
+    <div className="float anim-rise absolute left-3 top-[60px] w-[min(280px,calc(100%-24px))] rounded-[8px] p-3" role="region" aria-label={`Selected place: ${place.name}`}>
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <div className="truncate text-[15px] font-bold text-ink">{place.name}</div>
+          <div className="text-[12.5px] text-ink3">
+            {KIND_NAME[place.kind] ?? place.kind}
+            {sh && <span className={cn('font-bold', sh.open ? 'text-safe' : 'text-hazard')}> · {sh.open ? 'Open' : 'Closed'}</span>}
+          </div>
         </div>
-      ))}
-      {hasRoutes && decided && <div className="flex items-center gap-1.5"><svg width="18" height="6" aria-hidden><line x1="0" y1="3" x2="18" y2="3" stroke="#aab3bf" strokeWidth="1.8" strokeDasharray="2 3" opacity=".7" /></svg>Not chosen</div>}
-      {hasRoutes && <div className="flex items-center gap-1.5"><svg width="10" height="10" aria-hidden><path d="M5 0.5 9.5 5 5 9.5 0.5 5Z" fill="#ff5f57" /></svg>Likely failure</div>}
+        <button type="button" aria-label="Close" className="-mr-1 -mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-[6px] text-ink3 transition-colors duration-150 hover:bg-panel3 hover:text-ink" onClick={() => store.set({ selectedPlace: null })}><Close size={15} /></button>
+      </div>
+      {sh && !sh.open && sh.reason && <p className="mt-1.5 text-[12.5px] leading-snug text-ink2">{sh.reason}</p>}
+      <dl className="mt-2.5 space-y-1 text-[13px]">
+        {line && (
+          <div className="flex items-baseline justify-between gap-3">
+            <dt className="text-ink2">From {lead?.name ?? 'the crew'}</dt>
+            <dd className="num font-bold text-ink">{num(Math.round(line.dist_m / 10) * 10)} m · {bearingText(line.bearing)}</dd>
+          </div>
+        )}
+        <div className="flex items-baseline justify-between gap-3">
+          <dt className="text-ink2">Position</dt>
+          <dd className="num text-ink">e {Math.round(place.e)} · s {Math.round(place.s)}{place.z !== undefined ? ` · z ${Math.round(place.z)}` : ''}</dd>
+        </div>
+      </dl>
+      <p className="mt-1.5 text-[12px] leading-snug text-ink3">Straight line, not a route. Metres in the site frame.</p>
+      {live
+        ? <Button variant="default" size="md" className="mt-2.5 w-full" disabled={!online} onClick={() => { requestPlan({ e: place.e, s: place.s }); store.set({ selectedPlace: null }) }}><Route size={14} />Plan a walk here</Button>
+        : <p className="mt-2 border-t border-rule pt-2 text-[12px] leading-snug text-ink3">A recorded run cannot plan new routes. That needs the engine.</p>}
     </div>
   )
 }

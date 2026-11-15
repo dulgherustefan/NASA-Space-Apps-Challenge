@@ -45,14 +45,14 @@ function StressDetail({ r, st }: { r: RouteSummary; st?: Stress }) {
           </Tooltip>
           {st.robustness_nats === null || st.robustness_nats === undefined
             ? <Tooltip><TooltipTrigger asChild><span tabIndex={0} className="cursor-help text-[13px] text-ink3">not reported</span></TooltipTrigger><TooltipContent>{METHOD_HELP[st.method] ?? 'This method does not report robustness.'}</TooltipContent></Tooltip>
-            : <Fig value={st.robustness_nats} unit="nats" kind="model" source={`${METHOD[st.method] ?? st.method}, ${src}`} label={`Route ${r.id} robustness`} valueClassName="text-[16px] font-medium" />}
+            : <Fig value={st.robustness_nats} unit="nats" kind="model" source={`${METHOD[st.method] ?? st.method}, ${src}`} label={`Route ${r.id} robustness`} valueClassName="text-[16px] font-bold" />}
         </div>
         <div>
           <div className="cap">Failure rate</div>
           {st.mc_fail_rate === null || st.mc_fail_rate === undefined ? <span className="num text-[13px] text-ink3">-</span> : (
-            <Fig value={pct1(st.mc_fail_rate)} kind="model" source={`Monte Carlo${st.n ? `, ${st.n.toLocaleString('en-US')} runs` : ''}, ${src}`} label={`Route ${r.id} failure rate`} valueClassName="text-[16px] font-medium" />
+            <Fig value={pct1(st.mc_fail_rate)} kind="model" source={`Monte Carlo${st.n ? `, ${st.n.toLocaleString('en-US')} runs` : ''}, ${src}`} label={`Route ${r.id} failure rate`} valueClassName="text-[16px] font-bold" />
           )}
-          {st.mc_ci && <div className="num text-[11.5px] text-ink3">{pct1(st.mc_ci[0])} to {pct1(st.mc_ci[1])}{st.n ? ` · n ${st.n.toLocaleString('en-US')}` : ''}</div>}
+          {st.mc_ci && <div className="num text-[12px] text-ink3">{pct1(st.mc_ci[0])} to {pct1(st.mc_ci[1])}{st.n ? ` · n ${st.n.toLocaleString('en-US')}` : ''}</div>}
         </div>
       </div>
       <div className="mt-2 text-[12px] text-ink3">
@@ -74,11 +74,11 @@ function Failures({ list }: { list: Failure[] }) {
           const drivers = (f.events ?? []).filter((ev) => ev.log_p <= DRIVER_LOGP).sort((a, b) => a.log_p - b.log_p).slice(0, 3)
           return (
             <li key={i} className="flex items-start gap-2.5">
-              <span className="num mt-[1px] flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border border-hazard/60 text-[11.5px] text-hazard">{i + 1}</span>
+              <span className="num mt-[1px] flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border border-hazard text-[12px] text-hazard">{i + 1}</span>
               <div className="min-w-0 flex-1">
                 <div className="flex items-baseline justify-between gap-2">
-                  <span className="text-[13px] font-medium text-hazard">{FAIL_LABEL[f.class] ?? f.class}</span>
-                  <span className="num whitespace-nowrap text-[11.5px] text-ink3">{dur(f.t)} in · log p {logp(f.log_p)}</span>
+                  <span className="text-[13px] font-bold text-ink">{FAIL_LABEL[f.class] ?? f.class}</span>
+                  <span className="num whitespace-nowrap text-[12px] text-ink3">{dur(f.t)} in · log p {logp(f.log_p)}</span>
                 </div>
                 {f.summary && <p className="mt-0.5 text-[12.5px] leading-snug text-ink2">{f.summary}</p>}
                 {drivers.length > 0 && (
@@ -86,7 +86,7 @@ function Failures({ list }: { list: Failure[] }) {
                     {drivers.map((ev, k) => (
                       <Tooltip key={k}>
                         <TooltipTrigger asChild>
-                          <span tabIndex={0} className="num cursor-help rounded-[3px] bg-panel3 px-1.5 py-[2px] text-[11.5px] text-ink2">{ev.channel} <span className="text-ink">{num(ev.value, 2)}</span></span>
+                          <span tabIndex={0} className="num cursor-help rounded-[3px] bg-panel3 px-1.5 py-[2px] text-[12px] text-ink2">{ev.channel} <span className="text-ink">{num(ev.value, 2)}</span></span>
                         </TooltipTrigger>
                         <TooltipContent>Disturbance pushed by the stress test: {ev.channel} = {num(ev.value, 3)} at {dur(ev.t)} into the walk, log p {logp(ev.log_p)}. Model input, not an observation.</TooltipContent>
                       </Tooltip>
@@ -114,9 +114,9 @@ function RouteRow({ r, bundle, open }: { r: RouteSummary; bundle: IncidentBundle
     <li ref={li} className={cn('border-b border-rule last:border-b-0', r.status === 'infeasible' && 'opacity-60')} data-route={r.id} data-status={r.status}>
       <button type="button" onClick={() => { store.set({ selectedRoute: open ? null : r.id }); if (!open) reveal() }} aria-expanded={open}
         className={cn('card-hover relative flex min-h-[56px] w-full items-center gap-3 py-2.5 pl-4 pr-3 text-left', open && 'bg-panel2')}>
-        <span className="num flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-[1.5px] text-[12.5px] text-ink" style={r.status === 'chosen' ? { borderColor: style.color, background: `color-mix(in srgb, ${style.color} 18%, transparent)` } : { borderColor: style.color }}>{r.id}</span>
+        <span className="num flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-[1.5px] text-[12.5px] font-bold text-ink" style={r.status === 'chosen' ? { borderColor: style.ink, background: style.ink, color: 'var(--color-on-accent)' } : { borderColor: style.ink }}>{r.id}</span>
         <div className="min-w-0 flex-1">
-          <div className={cn('truncate text-[14px] font-medium text-ink', r.status === 'rejected' && 'text-ink2')}>{name}{variant && <span className="font-normal text-ink3"> · {variant}</span>}</div>
+          <div className={cn('truncate text-[14px] font-bold text-ink', r.status === 'rejected' && 'font-normal text-ink2')}>{name}{variant && <span className="font-normal text-ink3"> · {variant}</span>}</div>
           <div className="flex items-center gap-2 text-[12px]">
             {r.status === 'rejected' && r.rule_ok !== false
               ? <span className="inline-flex items-center gap-1.5 text-[12px] text-ink3"><span className="h-2 w-2 rounded-full border-[1.5px] border-ink3" />Not chosen</span>
@@ -152,7 +152,7 @@ function RouteRow({ r, bundle, open }: { r: RouteSummary; bundle: IncidentBundle
             {bundle.plan
               ? <span className="text-[12.5px] text-ink3">A plan only: the crew is not told to walk it.</span>
               : r.status !== 'chosen' && r.status !== 'infeasible' && !replay
-              ? <Button variant="outline" size="md" className="tap" onClick={() => { sendCmd({ cmd: 'choose', route_id: r.id }); reveal() }}>Choose route {r.id} instead</Button>
+              ? <Button variant="outline" size="md" className="tap" onClick={() => { sendCmd({ cmd: 'choose', route_id: r.id }); reveal() }}>Take route {r.id} instead</Button>
               : <span className="text-[12.5px] text-ink3">{r.status === 'chosen' ? 'The crew is told to take this route.' : ''}</span>}
             <GroupKind kind="model" source={PLANNER_SRC} label={`Route ${r.id} planner figures`} />
           </div>
@@ -174,7 +174,7 @@ export function Routes() {
   return (
     <section>
       {!routes ? (
-        <div className="px-4 py-5"><Empty>No routes yet. After an incident the planner proposes one to every open shelter, and virtual crews walk each under disturbances.</Empty></div>
+        <div className="px-4 pb-4 pt-1"><Empty>No routes yet. After an incident the planner proposes one to every open shelter, and virtual crews walk each under disturbances.</Empty></div>
       ) : (
         <>
           <ul>

@@ -28,7 +28,7 @@ export function Menu({ label, button, buttonClassName, children, align = 'right'
       </button>
       {open && (
         <div role="dialog" aria-label={label}
-          className={cn('anim-rise absolute top-[calc(100%+8px)] z-50 w-[min(320px,calc(100vw-24px))] rounded-[8px] bg-panel2 p-3 shadow-[0_12px_32px_rgba(0,0,0,.55),0_0_0_1px_var(--color-rule2)]', align === 'right' ? 'right-0' : 'left-0', className)}>
+          className={cn('anim-rise absolute top-[calc(100%+8px)] z-50 w-[min(320px,calc(100vw-24px))] rounded-[8px] border border-rule2 bg-panel p-3 shadow-float', align === 'right' ? 'right-0' : 'left-0', className)}>
           {children(() => setOpen(false))}
         </div>
       )}

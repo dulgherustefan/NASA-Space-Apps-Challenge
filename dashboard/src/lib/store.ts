@@ -1,7 +1,8 @@
 import { useSyncExternalStore } from 'react'
 import type {
-  Assessment, CrewState, Decision, EngineMsg, Hello, Incident, ParamDef, Phase, PlanMsg, PovItem, RouteSummary, RoutesFile, RoutesMsg, Snapshot, Stress, TrajFile,
+  Assessment, CrewState, Decision, EngineMsg, Hello, Incident, IncidentKind, ParamDef, Phase, PlanMsg, PovItem, RouteSummary, RoutesFile, RoutesMsg, Snapshot, Stress, TrajFile,
 } from './types'
+import { readTheme, type Theme } from './theme'
 
 export type Conn = 'connecting' | 'online' | 'offline'
 
@@ -32,6 +33,11 @@ export interface LogEntry {
 }
 
 export interface SensorPoint { t: number; dose_rate: number; seismic: number; tau: number }
+
+/** One group of supporting detail under the response; only one is open at a time. */
+export type DetailId = 'why' | 'routes' | 'crew' | 'hazard' | 'conditions' | 'places' | 'view'
+/** Position in a recorded run, in seconds of the recording. */
+export interface ReplayState { pos: number; dur: number; playing: boolean; marks: { at: number; id: string; title: string; kind: IncidentKind }[] }
 
 export interface TrainingState { status: 'idle' | 'loading' | 'missing' | 'ready' | 'error'; data?: unknown }
 
@@ -65,6 +71,15 @@ export interface State {
   trails: Record<number, [number, number][]>
   /** wall time of the newest incident, for the alert cue */
   alertAt: number
+  /** incident whose alert nobody has acknowledged yet */
+  alertId: string | null
+  /** the open detail group, or null when all are closed */
+  detail: DetailId | null
+  /** place picked on the map */
+  selectedPlace: string | null
+  theme: Theme
+  /** set while a recorded run is loaded */
+  replay: ReplayState | null
   /** "Plan a walk" is on: a click on the map asks the engine for a route to that point */
   planMode: boolean
   /** start point picked by the operator; null means the crew's position */
@@ -81,7 +96,7 @@ const initial = (): State => ({
   routesFile: null, routesV: 0, trajFile: null, trajV: 0, overlayV: 0,
   params: { status: 'idle', items: [] }, training: { status: 'idle' }, pov: {},
   overlay: { layer: 'hazard', opacity: 0.42, userSet: false }, contours: true, selectedRoute: null, showReplays: true,
-  routeChangedAt: {}, trails: {}, alertAt: 0,
+  routeChangedAt: {}, trails: {}, alertAt: 0, alertId: null, detail: null, selectedPlace: null, theme: readTheme(), replay: null,
   planMode: false, planFrom: null, planPending: null, planFail: null,
 })
 
@@ -133,7 +148,7 @@ export function applyMessage(msg: EngineMsg) {
       logN = 0
       lastSensorWall = 0
       const keepConn = state.conn
-      state = { ...initial(), mode: state.mode, conn: keepConn, hello: msg, lastMsgAt: now, params: state.params, training: state.training, pov: state.pov, overlay: { ...state.overlay, userSet: false }, contours: state.contours }
+      state = { ...initial(), mode: state.mode, conn: keepConn, hello: msg, lastMsgAt: now, params: state.params, training: state.training, pov: state.pov, overlay: { ...state.overlay, userSet: false }, contours: state.contours, theme: state.theme, replay: state.replay }
       state.log = pushLog({ t: msg.t, type: 'hello', title: `Connected to ${msg.product} ${msg.version}`, detail: msg.site.name, source: 'engine', raw: msg })
       listeners.forEach((l) => l())
       return
@@ -143,7 +158,7 @@ export function applyMessage(msg: EngineMsg) {
       const patch: Partial<State> = { snapshot: msg, lastMsgAt: now }
       if (prev && msg.t < prev.t - 1) {
         // mission clock went backwards: treat as a reset
-        Object.assign(patch, { incidents: {}, order: [], focusId: null, sensors: [], routesFile: null, trajFile: null, selectedRoute: null, trails: {}, routeChangedAt: {} })
+        Object.assign(patch, { incidents: {}, order: [], focusId: null, sensors: [], routesFile: null, trajFile: null, selectedRoute: null, trails: {}, routeChangedAt: {}, alertId: null, detail: null })
       }
       // one point per 0.5 s of wall time, and only while the mission clock moves
       const lastPt = (patch.sensors ?? state.sensors)[(patch.sensors ?? state.sensors).length - 1]
@@ -173,11 +188,12 @@ export function applyMessage(msg: EngineMsg) {
     case 'incident': {
       const b: IncidentBundle = { id: msg.id, incident: msg, stress: {}, stageT: { detect: msg.t } }
       const order = state.order.includes(msg.id) ? state.order : [...state.order, msg.id]
+      // a late client receives old incidents again, before its first snapshot: only an incident that is live now raises the alert
+      const fresh = !!state.snapshot && Math.abs(state.snapshot.t - msg.t) < 30
       store.set({
         incidents: { ...state.incidents, [msg.id]: b }, order, focusId: null, selectedRoute: null,
-        overlay: { ...state.overlay, userSet: false },
-        // a late client receives old incidents again, before its first snapshot: only an incident that is live now raises the alert
-        alertAt: state.snapshot && Math.abs(state.snapshot.t - msg.t) < 30 ? now : state.alertAt,
+        overlay: { ...state.overlay, userSet: false }, detail: null,
+        alertAt: fresh ? now : state.alertAt, alertId: fresh ? msg.id : state.alertId,
         log: pushLog({ t: msg.t, type: 'incident', title: msg.title, detail: msg.summary, source: msg.source, incident_id: msg.id, raw: msg }),
       })
       return
@@ -206,6 +222,8 @@ export function applyMessage(msg: EngineMsg) {
       store.set({
         incidents: { ...state.incidents, [msg.incident_id]: { ...b, routes: msg.routes, stageT: { ...b.stageT, simulate: b.stageT.simulate ?? msg.t } } },
         routeChangedAt: changed,
+        // the candidates open by themselves while the choice is still being made
+        detail: first && !b.decision && state.detail === null ? 'routes' : state.detail,
         log: first ? pushLog({ t: msg.t, type: 'routes', title: `${msg.routes.length} candidate routes`, detail: msg.routes.map((r) => `${r.id}: ${r.label ?? r.shelter} ${r.length_m} m, ${Math.round(r.time_s / 60)} min`).join('; '), incident_id: msg.incident_id, raw: msg }) : state.log,
       })
       return
@@ -227,7 +245,7 @@ export function applyMessage(msg: EngineMsg) {
       const b = state.incidents[id]
       store.set({
         incidents: { ...state.incidents, [id]: { ...b, decision: msg, stageT: { ...b.stageT, respond: msg.t } } },
-        selectedRoute: null,
+        selectedRoute: null, detail: !b.decision && state.detail === 'routes' ? null : state.detail,
         log: pushLog({ t: msg.t, type: 'decision', title: `Route ${msg.route_id} chosen${msg.auto === false ? ' (operator)' : ''}`, detail: msg.reasons.join('; '), incident_id: id, raw: msg }),
       })
       return
@@ -245,7 +263,7 @@ export function applyMessage(msg: EngineMsg) {
       }
       store.set({
         incidents: { ...state.incidents, [msg.id]: b }, focusId: msg.id, selectedRoute: msg.recommended ?? null,
-        planPending: null, planFail: null,
+        planPending: null, planFail: null, detail: null,
         log: pushLog({ t: msg.t, type: 'plan', title: `Planned walk to ${msg.to?.label ?? `e ${Math.round(msg.to?.e ?? 0)}, s ${Math.round(msg.to?.s ?? 0)}`}`, detail: msg.routes.map((r) => `${r.label ?? r.id}: ${r.length_m} m, ${Math.round(r.time_s / 60)} min`).join('; '), source: 'engine', raw: msg }),
       })
       return

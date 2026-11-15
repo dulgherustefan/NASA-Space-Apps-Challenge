@@ -41,9 +41,9 @@ export function LayerMenu() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button type="button" aria-label={`Map layer: ${current}`}
-          className="flex h-10 items-center gap-2 rounded-[8px] bg-bg/90 pl-3 pr-2.5 text-[13.5px] text-ink shadow-[0_4px_16px_rgba(0,0,0,.45)] transition-colors hover:bg-panel2 data-[state=open]:bg-panel2">
+          className="float flex h-10 items-center gap-2 rounded-[8px] pl-3 pr-2.5 text-[13.5px] text-ink transition-colors duration-150 hover:bg-panel2 data-[state=open]:bg-panel2">
           <Layers size={15} className="text-ink2" />
-          <span className="text-ink3">Layer</span>{current}
+          <span className="text-ink3 max-sm:hidden">Layer</span>{current}
           <ChevronDown size={14} className="text-ink3" />
         </button>
       </DropdownMenuTrigger>
@@ -53,7 +53,7 @@ export function LayerMenu() {
           {LAYERS.map((l) => (
             <DropdownMenuRadioItem key={l} value={l}>
               <div className="min-w-0">
-                <div className="flex items-baseline gap-2 leading-tight">{LAYER_LABEL[l]}{fromEngine.has(l) && <span className="text-[12px] text-accent">updated by this incident</span>}</div>
+                <div className="flex items-baseline gap-2 leading-tight">{LAYER_LABEL[l]}{fromEngine.has(l) && <span className="text-[12px] font-bold text-ink2">updated by this incident</span>}</div>
                 <div className="text-[12px] leading-snug text-ink3">{SHORT[l]}</div>
               </div>
             </DropdownMenuRadioItem>

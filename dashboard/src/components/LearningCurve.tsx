@@ -17,7 +17,7 @@ interface TrainingFile {
 }
 
 const METHOD_NAME: Record<string, string> = { mc: 'Monte Carlo', random: 'Random search', random_search: 'Random search', cem: 'Cross-entropy', cem_restart: 'Cross-entropy with restarts', ppo: 'PPO adversary', 'ppo-ast': 'PPO adversary' }
-const METHOD_COLOR: Record<string, string> = { mc: 'var(--color-ink3)', random: 'var(--color-data)', random_search: 'var(--color-data)', cem: 'var(--color-accent)', cem_restart: 'var(--color-k-scenario)', ppo: 'var(--color-safe)', 'ppo-ast': 'var(--color-safe)' }
+const METHOD_COLOR: Record<string, string> = { mc: 'var(--color-ink3)', random: 'var(--color-data)', random_search: 'var(--color-data)', cem: 'var(--color-ink)', cem_restart: 'var(--color-k-scenario)', ppo: 'var(--color-safe)', 'ppo-ast': 'var(--color-safe)' }
 const CONFIG_NAME: Record<string, string> = { falls_terminal: 'A fall ends the walk', falls_penalty: 'A fall costs time and energy' }
 
 function isTraining(d: unknown): d is TrainingFile {
@@ -33,7 +33,7 @@ function Chips<T extends string>({ label, items, value, onChange, name }: { labe
       <span className="cap mr-1">{label}</span>
       {items.map((it) => (
         <button key={it} type="button" role="radio" aria-checked={it === value} onClick={() => onChange(it)}
-          className={cn('h-7 rounded-[4px] border px-2 text-[12px] transition-colors', it === value ? 'border-accent/60 bg-accent-dim text-accent' : 'border-rule2 text-ink2 hover:text-ink')}>
+          className={cn('h-7 rounded-[4px] border px-2 text-[12px] transition-colors', it === value ? 'border-ink bg-panel3 font-bold text-ink' : 'border-rule2 text-ink2 hover:text-ink')}>
           {name(it)}
         </button>
       ))}
@@ -67,11 +67,11 @@ function Curves({ file }: { file: TrainingFile }) {
             <ResponsiveContainer width="100%" height="100%">
               <LineChart margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
                 <CartesianGrid vertical={false} stroke="var(--color-rule)" />
-                <XAxis dataKey="x" type="number" scale="log" domain={['dataMin', 'dataMax']} allowDuplicatedCategory={false} tick={{ fontSize: 11, fill: 'var(--color-ink3)', fontFamily: 'var(--font-mono)' }} tickLine={false} axisLine={{ stroke: 'var(--color-rule2)' }} tickFormatter={compact} minTickGap={40} />
-                <YAxis type="number" domain={['auto', 'auto']} tick={{ fontSize: 11, fill: 'var(--color-ink3)', fontFamily: 'var(--font-mono)' }} tickLine={false} axisLine={false} width={40} tickCount={5} tickFormatter={(v) => num(Number(v), 1)} />
+                <XAxis dataKey="x" type="number" scale="log" domain={['dataMin', 'dataMax']} allowDuplicatedCategory={false} tick={{ fontSize: 11, fill: 'var(--color-ink3)', fontFamily: 'var(--font-sans)' }} tickLine={false} axisLine={{ stroke: 'var(--color-rule2)' }} tickFormatter={compact} minTickGap={40} />
+                <YAxis type="number" domain={['auto', 'auto']} tick={{ fontSize: 11, fill: 'var(--color-ink3)', fontFamily: 'var(--font-sans)' }} tickLine={false} axisLine={false} width={40} tickCount={5} tickFormatter={(v) => num(Number(v), 1)} />
                 <RTooltip isAnimationActive={false} cursor={{ stroke: 'var(--color-ink3)' }}
                   contentStyle={{ background: 'var(--color-panel3)', border: '1px solid var(--color-rule2)', borderRadius: 4, fontSize: 12, padding: '6px 10px' }}
-                  labelStyle={{ color: 'var(--color-ink3)', fontFamily: 'var(--font-mono)', fontSize: 11 }}
+                  labelStyle={{ color: 'var(--color-ink3)', fontFamily: 'var(--font-sans)', fontSize: 11 }}
                   labelFormatter={(v) => `${compact(Number(v))} simulator steps`}
                   formatter={(v, n) => [`${num(Number(v), 1)} nats`, String(n)]} />
                 {series.map((s) => (

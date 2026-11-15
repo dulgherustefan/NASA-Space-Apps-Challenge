@@ -92,12 +92,14 @@ await incident('sep-1', 3)
 await wait(2500)
 
 // 5. the operator opens another route and takes it
+await page.locator('[data-detail=routes] button[aria-expanded=false]').first().click().catch(() => {})
+await wait(300)
 const alt = page.locator('li[data-route][data-status=rejected]').first()
 if (await alt.count()) {
   await alt.locator('button').first().click()
   await wait(400)
   await shot('07-sep-route-open')
-  await page.getByRole('button', { name: /^Choose route/ }).first().click()
+  await page.getByRole('button', { name: /^Take route/ }).first().click()
   await wait(1800)
   await shot('08-sep-route-choice')
 } else console.log('no alternative route to choose')

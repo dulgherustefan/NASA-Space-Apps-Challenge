@@ -126,7 +126,7 @@ director starts and Play begins in the level viewport (press F11 for the viewpor
 2. Open `MelasSim.uproject`, make sure `/Game/Maps/Melas` is loaded.
 3. In the Cmd box run `py "<repo>/unreal/scripts/director.py"`, then press Play (or set `SOLWAY_PLAY=1`).
    For a demo, pick **New Editor Window (PIE)** in the menu next to the Play button: the scene then runs in a window of its own, without the editor around it.
-4. Start the demo from the dashboard (**Run demo**) or start the engine with `--demo`.
+4. Start the demo from the dashboard (**Play demo**) or start the engine with `--demo`.
 
 Running the script again replaces the previous director. To stop it, run in the Cmd box:
 

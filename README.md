@@ -17,10 +17,20 @@ It is not affiliated with or endorsed by NASA, and it is a planning aid only. No
 
 ![The Solway dashboard during the solar particle event scenario](docs/img/dashboard.png)
 
-The dashboard during the solar particle event scenario. One map and one panel. The panel leads with the decision:
-where to go, the walking time against the 30-minute shelter rule, the heading, what is left on arrival, and the hazard
-the chosen route avoids. Below it, three tabs: the routes, the crew, and the situation (how the incident was detected
-and what it changed). Every figure is labelled as measured, model, requirement, assumption or scenario.
+The dashboard during the solar particle event scenario. One map and one panel. A new incident is announced as a
+warning that stays until someone acknowledges it. The panel then leads with the decision: where to go, the walking time
+against the 30-minute shelter rule, the distance and bearing, what is left on arrival, and the steps in order. The
+detail behind it (why this route, the routes compared, crew and suits, detection and hazard, cover and places,
+conditions) opens in place, one group at a time. Every figure is labelled as measured, model, requirement, assumption
+or scenario.
+
+Nothing runs when the dashboard opens: it stands by with the crew, the nearest cover and the values it watches (dose
+rate against the alert threshold, ground motion, daylight left, the round trip of a question to Earth). The map is
+interactive: a click on a place gives its distance and bearing from the crew and can ask for a route to it, a click on
+a route line opens that route, and the bar under the map plays, pauses and scrubs the recorded run or reopens an
+earlier incident. The display has a day and a night setting and uses the colour meanings of NASA-STD-3001 Volume 2
+(red warning, yellow caution, blue advisory, cyan for stale data), always with a word or a shape beside the colour.
+Keys: Space plays or pauses, A acknowledges, P plans a walk, Esc closes.
 
 ![Plan a walk: a click on the map returns the walking route from the crew to that point](docs/img/plan.png)
 
@@ -31,7 +41,7 @@ sight. No incident is involved and the crew is not sent anywhere.
 <img src="docs/img/dashboard_field.png" alt="The same screen on a tablet: one column" width="360">
 
 On a tablet or a cuff display the same screen is one column with large targets: the decision first, then the map, then
-the tabs (above). A recorded run of the demo plays in a browser with no engine (`npm run build:web`, see below).
+the detail groups (above). A recorded run of the demo plays in a browser with no engine (`npm run build:web`, see below).
 
 ![The 3D view: two crew members walk the chosen route](docs/img/scene.jpg)
 
@@ -160,9 +170,10 @@ To run the built app, use `npm run build` and then `npm start`; Electron then st
 
 Environment variables: `VITE_ENGINE_URL` (default `ws://127.0.0.1:8765/ws`), `SOLWAY_ROOT` (repository root for the engine),
 `SOLWAY_ENGINE=external` (do not start an engine from Electron).
-The dashboard has five pages: Console, Method, Parameters, Log (decision log with JSON export) and Sources.
-The **Run demo** button plays the three incidents. The button beside it opens the exercise controls: clock, single
-incidents, alert sound.
+The top bar has two destinations: Mission (the display above) and Reference (Method and limits, Parameters, Sources,
+Event log with JSON export). **Play demo** under the map plays the three incidents; nothing starts by itself. The
+settings menu holds the day and night display, the alert sound and the exercise controls (reset, clock speed, single
+incidents).
 
 **Plan a walk**, in the same menu, is for before a walk: a click on the map returns the walking route from the crew to
 that point (Shift and click sets another start). It uses the same planner, hazard layers and walk model as the incident

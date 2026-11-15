@@ -1,13 +1,14 @@
-import { focusBundle, focusIncidentId, store, useStore } from '@/lib/store'
+import type { ReactNode } from 'react'
+import { focusBundle, store, useStore } from '@/lib/store'
+import { bearingText, lineTo } from '@/lib/derive'
 import type { Detection, Quantity } from '@/lib/types'
 import { cn } from '@/lib/utils'
-import { missionT } from '@/lib/format'
+import { num } from '@/lib/format'
 import { Fig } from '../Kind'
-import { Conditions } from './Conditions'
-import { Empty, INCIDENT_ICON, More, Section } from './parts'
+import { Empty, More } from './parts'
 
-function Figures({ items, first = 3 }: { items: Quantity[]; first?: number }) {
-  const Row = ({ q }: { q: Quantity }) => (
+export function Figures({ items, first = 3 }: { items: Quantity[]; first?: number }) {
+  const Line = ({ q }: { q: Quantity }) => (
     <div className="flex items-baseline justify-between gap-3 py-[5px] text-[13px]">
       <dt className="leading-snug text-ink2">{q.label}</dt>
       <dd className="shrink-0"><Fig value={q.value} unit={q.unit} kind={q.kind} source={q.source} label={q.label} /></dd>
@@ -15,50 +16,13 @@ function Figures({ items, first = 3 }: { items: Quantity[]; first?: number }) {
   )
   return (
     <dl>
-      {items.slice(0, first).map((q) => <Row key={q.label} q={q} />)}
+      {items.slice(0, first).map((q) => <Line key={q.label} q={q} />)}
       {items.length > first && (
         <More label={`All ${items.length} figures`}>
-          {items.slice(first).map((q) => <Row key={q.label} q={q} />)}
+          {items.slice(first).map((q) => <Line key={q.label} q={q} />)}
         </More>
       )}
     </dl>
-  )
-}
-
-function Incidents() {
-  const order = useStore((s) => s.order)
-  const incidents = useStore((s) => s.incidents)
-  const focusId = useStore(focusIncidentId)
-  const liveId = useStore((s) => s.snapshot?.incident_id ?? null)
-  const focus = focusId ? incidents[focusId]?.incident : undefined
-  if (!order.length) return <Empty>Nothing detected. Dose rate and ground motion are watched under Conditions.</Empty>
-  return (
-    <>
-      <ul className="-mx-2 space-y-0.5">
-        {[...order].reverse().map((id) => {
-          const inc = incidents[id].incident
-          const Icon = INCIDENT_ICON[inc.kind]
-          const sel = id === focusId
-          return (
-            <li key={id} className="anim-rise">
-              <button type="button" onClick={() => store.set({ focusId: id === liveId ? null : id, selectedRoute: null })} aria-pressed={sel}
-                className={cn('card-hover tap flex w-full items-start gap-2.5 rounded-[4px] px-2 py-2 text-left', sel && 'bg-panel2')}>
-                <Icon size={16} strokeWidth={1.8} className={cn('mt-[2px] shrink-0', sel ? 'text-accent' : 'text-ink3')} />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-baseline justify-between gap-2">
-                    <span className={cn('text-[13.5px] font-medium leading-tight', sel ? 'text-ink' : 'text-ink2')}>{inc.title}</span>
-                    <span className="num shrink-0 text-[11.5px] text-ink3">{missionT(inc.t)}</span>
-                  </div>
-                  {sel && inc.summary && <p className="mt-0.5 text-[12.5px] leading-snug text-ink2">{inc.summary}</p>}
-                </div>
-              </button>
-            </li>
-          )
-        })}
-      </ul>
-      {focus?.source && <p className="mt-2 text-[12px] leading-snug text-ink3">{focus.scenario ? 'Scripted from: ' : 'Source: '}{focus.source}</p>}
-      {focus?.params && focus.params.length > 0 && <div className="mt-2 border-t border-rule pt-2"><Figures items={focus.params} /></div>}
-    </>
   )
 }
 
@@ -82,63 +46,78 @@ function Detected({ d }: { d: Detection }) {
   )
 }
 
-function Shelters() {
-  const bundle = useStore(focusBundle)
-  const places = useStore((s) => s.hello?.places)
-  const shelters = bundle?.assessment?.shelters ?? []
-  const known = new Set(shelters.map((x) => x.id))
-  const rest = (places ?? []).filter((p) => (p.kind === 'shelter' || p.kind === 'rover' || p.kind === 'habitat') && !known.has(p.id))
-  if (!shelters.length && !rest.length) return <Empty>Shelter status arrives with the assessment.</Empty>
+function Block({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <ul>
-      {shelters.map((sh) => (
-        <li key={sh.id} className="flex items-start gap-2.5 py-1.5">
-          <span className={cn('mt-[6px] h-2 w-2 shrink-0 rounded-full', sh.open ? 'bg-safe' : 'border border-hazard bg-hazard/25')} />
-          <div className="min-w-0 flex-1">
-            <div className="flex items-baseline justify-between gap-2">
-              <span className={cn('text-[13px]', sh.open ? 'text-ink' : 'text-ink2 line-through decoration-ink3')}>{sh.name}</span>
-              <span className={cn('text-[12px]', sh.open ? 'text-safe' : 'text-hazard')}>{sh.open ? 'open' : 'closed'}</span>
-            </div>
-            {sh.reason && <p className="text-[12px] leading-snug text-ink3">{sh.reason}</p>}
-          </div>
-        </li>
-      ))}
-      {rest.map((p) => (
-        <li key={p.id} className="flex items-center gap-2.5 py-1.5 text-[13px] text-ink3"><span className="h-2 w-2 rounded-full border border-rule2" />{p.name}<span className="ml-auto text-[12px]">not assessed</span></li>
-      ))}
-    </ul>
-  )
-}
-
-/** What happened and what it changed: the Detect and Assess side of the loop. */
-export function Situation() {
-  const bundle = useStore(focusBundle)
-  const order = useStore((s) => s.order)
-  const a = bundle?.assessment
-  return (
-    <div>
-      <Section title="Incidents" aside={order.length > 1 ? `${order.length} so far` : undefined} className="border-t-0">
-        <Incidents />
-      </Section>
-      {bundle?.plan && (
-        <Section title="What the plan assumes">
-          <Figures items={bundle.plan.conditions ?? []} first={5} />
-        </Section>
-      )}
-      {bundle?.incident.detection && (
-        <Section title="How it was detected" aside="on-site rule">
-          <Detected d={bundle.incident.detection} />
-        </Section>
-      )}
-      {bundle && !bundle.plan && (
-        <Section title="What changed on the map" aside={a ? undefined : 'assessing'}>
-          {a ? <Figures items={a.changes} first={4} /> : <Empty>The hazard map is being updated for this incident.</Empty>}
-        </Section>
-      )}
-      <Section title="Shelters" aside={a?.shelters?.length ? `${a.shelters.filter((s) => s.open).length} of ${a.shelters.length} open` : undefined}>
-        <Shelters />
-      </Section>
-      <Conditions />
+    <div className="border-t border-rule pt-3 first:border-t-0 first:pt-0">
+      <h4 className="mb-1.5 text-[13px] font-bold text-ink">{title}</h4>
+      {children}
     </div>
   )
 }
+
+/** How the incident was detected and what it changed on the map: the Detect and Assess side of the loop. */
+export function Hazard() {
+  const bundle = useStore(focusBundle)
+  if (!bundle) return <div className="px-4 pb-4 pt-1"><Empty>Nothing detected. Dose rate and ground motion are watched under Conditions.</Empty></div>
+  const a = bundle.assessment
+  const inc = bundle.incident
+  return (
+    <div className="space-y-3 px-4 pb-4 pt-1">
+      {bundle.plan ? (
+        <Block title="What the plan assumes"><Figures items={bundle.plan.conditions ?? []} first={5} /></Block>
+      ) : (
+        <>
+          <Block title={inc.detection ? 'Detected by the on-site rule' : inc.scenario ? 'Scripted incident' : 'Observed'}>
+            {inc.detection ? <Detected d={inc.detection} /> : (
+              <>
+                {inc.summary && <p className="text-[13px] leading-snug text-ink">{inc.summary}</p>}
+                {inc.source && <p className="mt-1.5 text-[12px] leading-snug text-ink3">{inc.scenario ? 'Scripted from: ' : 'Source: '}{inc.source}</p>}
+                {inc.params && inc.params.length > 0 && <div className="mt-1.5"><Figures items={inc.params} /></div>}
+              </>
+            )}
+          </Block>
+          <Block title="What changed on the map">
+            {a ? <Figures items={a.changes} first={4} /> : <Empty>The hazard map is being updated for this incident.</Empty>}
+          </Block>
+        </>
+      )}
+    </div>
+  )
+}
+
+const COVER = new Set(['shelter', 'rover', 'habitat'])
+export const KIND_NAME: Record<string, string> = { site: 'Work site', habitat: 'Habitat', rover: 'Pressurised rover', shelter: 'Terrain shelter', science: 'Science target', epicentre: 'Quake epicentre' }
+
+/** Every place of the site, with whether it is open as cover right now. A row selects the place on the map. */
+export function Places() {
+  const bundle = useStore(focusBundle)
+  const places = useStore((s) => s.hello?.places)
+  const lead = useStore((s) => s.snapshot?.crew[0])
+  const sel = useStore((s) => s.selectedPlace)
+  const state = new Map((bundle?.assessment?.shelters ?? []).map((x) => [x.id, x]))
+  if (!places?.length) return <div className="px-4 pb-4 pt-1"><Empty>No places yet. They arrive with the site.</Empty></div>
+  const rows = places.map((p) => ({ p, sh: state.get(p.id), line: lead ? lineTo(lead.e, lead.s, p.e, p.s) : null }))
+    .sort((x, y) => Number(COVER.has(y.p.kind)) - Number(COVER.has(x.p.kind)) || (x.line?.dist_m ?? 0) - (y.line?.dist_m ?? 0))
+  return (
+    <div className="pb-3">
+      <ul>
+        {rows.map(({ p, sh, line }) => (
+          <li key={p.id}>
+            <button type="button" aria-pressed={sel === p.id} onClick={() => store.set({ selectedPlace: sel === p.id ? null : p.id })}
+              className={cn('card-hover flex min-h-[44px] w-full items-center gap-3 px-4 py-1.5 text-left', sel === p.id && 'bg-accent-dim')}>
+              <span className={cn('h-2.5 w-2.5 shrink-0 rounded-full', sh ? (sh.open ? 'bg-safe' : 'border-[1.5px] border-hazard') : 'border-[1.5px] border-rule2')} aria-hidden />
+              <span className="min-w-0 flex-1">
+                <span className={cn('block truncate text-[13.5px]', sh && !sh.open ? 'text-ink2 line-through decoration-ink3' : 'text-ink')}>{p.name}</span>
+                <span className="block truncate text-[12px] text-ink3">{sh ? (sh.open ? 'Open' : `Closed${sh.reason ? ': ' + sh.reason : ''}`) : KIND_NAME[p.kind] ?? p.kind}</span>
+              </span>
+              {line && <span className="num shrink-0 text-right text-[12.5px] text-ink2">{num(Math.round(line.dist_m / 10) * 10)} m<span className="block text-[12px] text-ink3">{bearingText(line.bearing)}</span></span>}
+            </button>
+          </li>
+        ))}
+      </ul>
+      <p className="px-4 pt-2 text-[12px] leading-snug text-ink3">Distance and bearing are a straight line from {lead?.name ?? 'the crew'}, not a route.</p>
+    </div>
+  )
+}
+
+export const isCover = (kind: string) => COVER.has(kind)

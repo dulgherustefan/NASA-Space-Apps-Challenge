@@ -13,7 +13,7 @@ function ChartTip({ active, payload, unit, digits }: { active?: boolean; payload
   if (!active || !payload?.length) return null
   const p = payload[0].payload
   return (
-    <div className="rounded-[3px] border border-rule2 bg-panel3 px-2 py-1 text-[11px] shadow-lg">
+    <div className="invert rounded-[4px] bg-panel3 px-2 py-1 text-[12px] shadow-float">
       <div className="num text-ink3">{missionT(p.t)}</div>
       <div className="num text-ink">{num(p.v, digits)} <span className="text-ink3">{unit}</span></div>
     </div>

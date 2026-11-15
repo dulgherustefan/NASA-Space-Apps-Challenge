@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { PageShell } from './PageShell'
 
 const TYPES = ['incident', 'assessment', 'routes', 'stress', 'decision', 'log'] as const
-const TYPE_COLOR: Record<string, string> = { incident: 'var(--color-accent)', decision: 'var(--color-safe)', stress: 'var(--color-data)', routes: 'var(--color-data)', assessment: 'var(--color-ink2)', log: 'var(--color-ink3)', hello: 'var(--color-ink3)' }
+const TYPE_COLOR: Record<string, string> = { incident: 'var(--color-hazard)', decision: 'var(--color-safe)', stress: 'var(--color-data)', routes: 'var(--color-data)', assessment: 'var(--color-ink2)', log: 'var(--color-ink3)', hello: 'var(--color-ink3)' }
 
 export function LogPage() {
   const log = useStore((s) => s.log)
@@ -45,7 +45,7 @@ export function LogPage() {
             <li key={l.n} className="rule-b">
               <button onClick={() => setOpen(open === l.n ? null : l.n)} className="card-hover grid w-full grid-cols-[96px_150px_1fr] items-baseline gap-3 px-2 py-2 text-left" aria-expanded={open === l.n}>
                 <span className="num text-[11px] text-ink3">{missionT(l.t)}</span>
-                <span className="text-[12px] font-medium" style={{ color: TYPE_COLOR[l.type] }}>{l.type}{l.incident_id ? ` · ${l.incident_id}` : ''}</span>
+                <span className="text-[12px] font-bold" style={{ color: TYPE_COLOR[l.type] }}>{l.type}{l.incident_id ? ` · ${l.incident_id}` : ''}</span>
                 <span className="min-w-0">
                   <span className={cn('text-[13px]', l.level === 'warn' ? 'text-caution' : l.level === 'error' ? 'text-hazard' : 'text-ink')}>{l.title}</span>
                   {l.detail && <span className="mt-0.5 block text-[12px] leading-snug text-ink3">{l.detail}</span>}

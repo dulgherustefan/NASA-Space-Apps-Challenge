@@ -1,6 +1,6 @@
 import { ENGINE_URL, REPLAY, fileUrl } from './config'
 import { replayCmd, startReplay } from './replay'
-import { applyMessage, setConn, setRoutesFile, setTrajFile, store } from './store'
+import { applyMessage, setConn, setRoutesFile, setTrajFile, store, type State } from './store'
 import type { EngineMsg, ParamDef, PovItem, RoutesFile, TrajFile } from './types'
 import { chime } from './alert'
 
@@ -50,9 +50,31 @@ export async function loadTraining() {
   store.set({ training: j === null ? { status: 'missing' } : { status: 'ready', data: j } })
 }
 
+const ALARM_EVERY_MS = 5000
+const ALARM_REPEATS = 8          // a display choice: the cue stops by itself after 40 s, the band stays
+let alarm: ReturnType<typeof setInterval> | null = null
+function stopAlarm() { if (alarm) { clearInterval(alarm); alarm = null } }
+/** The cue for a warning repeats until someone acknowledges it. An advisory sounds once. */
+function raiseAlarm(id: string, urgent: boolean) {
+  stopAlarm()
+  chime(urgent)
+  if (!urgent) return
+  let n = 0
+  alarm = setInterval(() => {
+    if (store.get().alertId !== id || ++n > ALARM_REPEATS) return stopAlarm()
+    chime(true)
+  }, ALARM_EVERY_MS)
+}
+export function acknowledge() {
+  stopAlarm()
+  store.set({ alertId: null })
+}
+
 let midLoaded = false
-function handle(msg: EngineMsg) {
+/** quiet: a recorded run is being moved to another moment, so nothing sounds and files are fetched once at the end. */
+function handle(msg: EngineMsg, quiet = false) {
   applyMessage(msg)
+  if (quiet) return
   switch (msg.type) {
     case 'hello':
       midLoaded = false
@@ -68,7 +90,7 @@ function handle(msg: EngineMsg) {
       if (!midLoaded && msg.phase && (msg.phase === 'simulate' || msg.phase === 'respond')) { midLoaded = true; void loadRoutes(); void loadTrajectories() }
       break
     case 'incident':
-      if (store.get().alertAt > Date.now() - 500) chime(msg.kind !== 'science')
+      if (store.get().alertId === msg.id) raiseAlarm(msg.id, msg.kind !== 'science')
       break
     case 'routes':
       void loadRoutes()
@@ -104,10 +126,17 @@ function schedule() {
   retry = setTimeout(() => { retry = null; open() }, wait)
 }
 
+/** After a jump in a recorded run: no alert pending, and the route files of that moment. */
+export function settleAfterSeek() {
+  acknowledge()
+  const st = store.get()
+  if (Object.values(st.incidents).some((b) => b.routes)) { void loadRoutes(); void loadTrajectories() }
+}
+
 export function startEngine() {
   if (started) return
   started = true
-  if (REPLAY) void startReplay(handle)
+  if (REPLAY) void startReplay(handle, settleAfterSeek)
   else open()
 }
 
@@ -115,6 +144,23 @@ export function sendCmd(cmd: Record<string, unknown>): boolean {
   if (REPLAY) return replayCmd(cmd)
   if (ws && ws.readyState === WebSocket.OPEN) { ws.send(JSON.stringify(cmd)); return true }
   return false
+}
+
+/** Nothing has run yet: the clock is at zero and no incident has come in. */
+export function notStarted(s: State): boolean {
+  if (s.replay) return s.replay.pos < 0.05 && !s.replay.playing
+  return !s.snapshot || (s.snapshot.clock.paused && s.snapshot.t < 0.5 && s.order.length === 0)
+}
+export function isRunning(s: State): boolean {
+  return s.replay ? s.replay.playing : !!s.snapshot && !s.snapshot.clock.paused
+}
+/** Play, pause or resume: the one transport action, shared by the button and the space bar. */
+export function togglePlay() {
+  const s = store.get()
+  if (s.conn !== 'online') return
+  if (s.replay) sendCmd({ cmd: s.replay.playing ? 'pause' : 'resume' })
+  else if (notStarted(s)) sendCmd({ cmd: 'demo' })
+  else sendCmd({ cmd: s.snapshot?.clock.paused ? 'resume' : 'pause' })
 }
 
 /** Ask the engine for a walking route to a point of the map (free planning, no incident). */
@@ -133,7 +179,7 @@ export function closePlan() {
 }
 
 export function retryNow() {
-  if (REPLAY) { void startReplay(handle); return }
+  if (REPLAY) { void startReplay(handle, settleAfterSeek); return }
   if (retry) { clearTimeout(retry); retry = null }
   if (!ws) open()
 }

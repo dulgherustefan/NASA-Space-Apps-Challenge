@@ -41,7 +41,7 @@ export function MethodPage() {
       <ul className="mb-3 divide-y divide-rule border-y border-rule">
         {KINDS.map((k) => (
           <li key={k} className="flex items-baseline gap-3 py-2.5">
-            <span className="flex w-[130px] shrink-0 items-center gap-2 text-[12.5px] font-medium" style={{ color: KIND_INFO[k].color }}><KindGlyph kind={k} size={11} />{KIND_INFO[k].label}</span>
+            <span className="flex w-[130px] shrink-0 items-center gap-2 text-[12.5px] font-bold" style={{ color: KIND_INFO[k].color }}><KindGlyph kind={k} size={11} />{KIND_INFO[k].label}</span>
             <span className="text-[13px] text-ink2">{KIND_INFO[k].def}</span>
           </li>
         ))}

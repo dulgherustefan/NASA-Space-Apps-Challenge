@@ -78,8 +78,27 @@ export function progressOn(points: [number, number, number][], e: number, s: num
   return { total_m: total, left_m: Math.max(0, total - at), frac: total > 0 ? at / total : 0, bearing: (bearing + 360) % 360, off_m: best }
 }
 
+/** Straight-line distance and bearing between two points in local metres. A line on the map, not a route. */
+export function lineTo(fromE: number, fromS: number, toE: number, toS: number): { dist_m: number; bearing: number } {
+  // s grows southward, so north is -s
+  const bearing = (Math.atan2(toE - fromE, -(toS - fromS)) * 180) / Math.PI
+  return { dist_m: Math.hypot(toE - fromE, toS - fromS), bearing: (bearing + 360) % 360 }
+}
+
+/** Wall time that ticks, for readouts that age while no message arrives. */
+export function useNow(every_ms = 1000): number {
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), every_ms)
+    return () => clearInterval(t)
+  }, [every_ms])
+  return now
+}
+
 const POINTS = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW']
 export const compass = (deg: number) => POINTS[Math.round((((deg % 360) + 360) % 360) / 22.5) % 16]
+/** 048° NE */
+export const bearingText = (deg: number) => `${String(Math.round(deg) % 360).padStart(3, '0')}° ${compass(deg)}`
 
 export type WalkPhase = 'none' | 'ready' | 'walking' | 'arrived' | 'stopped'
 

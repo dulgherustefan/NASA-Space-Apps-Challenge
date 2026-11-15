@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react'
 
+/** Two destinations in the bar: the mission display, and the reference pages behind it. */
 export const PAGES = [
-  { id: 'console', path: '/', label: 'Console' },
+  { id: 'console', path: '/', label: 'Mission' },
   { id: 'method', path: '/method', label: 'Method and limits' },
   { id: 'parameters', path: '/parameters', label: 'Parameters' },
-  { id: 'log', path: '/log', label: 'Decision log' },
   { id: 'sources', path: '/sources', label: 'Sources' },
+  { id: 'log', path: '/log', label: 'Event log' },
 ] as const
 export type PageId = (typeof PAGES)[number]['id']
+export const REFERENCE = PAGES.filter((p) => p.id !== 'console')
 
 function parse(): PageId {
   const p = window.location.hash.replace(/^#/, '') || '/'
